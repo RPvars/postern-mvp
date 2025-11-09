@@ -411,8 +411,8 @@ async function main() {
 
     // Create ownership relationships
     for (const ownerData of ownersData) {
-      const sharesCount = ownerData.sharesCount || Math.floor((company.shareCapital || 2844) * (ownerData.share / 100));
-      const nominalValue = ownerData.nominalValue || 1.0;
+      const sharesCount = (ownerData as any).sharesCount || Math.floor((company.shareCapital || 2844) * (ownerData.share / 100));
+      const nominalValue = (ownerData as any).nominalValue || 1.0;
       const totalValue = sharesCount * nominalValue;
       const votingRights = totalValue;
 
@@ -425,8 +425,8 @@ async function main() {
           nominalValue,
           totalValue,
           votingRights,
-          memberSince: ownerData.memberSince || company.registrationDate,
-          notes: ownerData.notes || null,
+          memberSince: (ownerData as any).memberSince || company.registrationDate,
+          notes: (ownerData as any).notes || null,
           isHistorical: false,
         },
       });
@@ -443,7 +443,7 @@ async function main() {
           personalCode: member.owner.personalCode,
           institution: 'Valde',
           position: i === 0 ? 'Valdes priekšsēdētājs' : 'Valdes loceklis',
-          appointedDate: member.memberSince || company.registrationDate,
+          appointedDate: (member as any).memberSince || company.registrationDate,
           representationRights: i === 0 ? 'Tiesības pārstāvēt atsevišķi' : 'Kopā ar vismaz 1',
           notes: null,
           isHistorical: false,
@@ -461,7 +461,7 @@ async function main() {
           companyId: company.id,
           name: mainOwner.owner.name,
           personalCode: mainOwner.owner.personalCode,
-          dateFrom: mainOwner.memberSince || company.registrationDate,
+          dateFrom: (mainOwner as any).memberSince || company.registrationDate,
           residenceCountry: 'Latvijas Republika',
           citizenship: 'Latvijas Republika',
           controlType: 'kā dalībnieks',

@@ -41,3 +41,10 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# prisma
+/prisma/dev.db-journal
+/prisma/migrations
+
+# turso
+.turso
