@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Postern - Latvijas Uzņēmumu Analīzes Platforma",
+  title: "Posterns - Latvijas Uzņēmumu Analīzes Platforma",
   description: "Meklējiet un analizējiet Latvijas uzņēmumus ar pilnīgu finanšu informāciju, īpašumtiesību struktūrām un nodokļu maksājumu datiem.",
 };
 
@@ -28,6 +29,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <SpeedInsights />
       </body>
     </html>
   );
