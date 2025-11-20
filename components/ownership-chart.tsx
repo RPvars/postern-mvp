@@ -11,19 +11,19 @@ interface OwnershipChartProps {
   owners: Owner[];
 }
 
-// Postern Yellow RGB values
-const POSTERN_YELLOW_RGB = { r: 254, g: 194, b: 0 };
+// Posterns Yellow RGB values
+const POSTERNS_YELLOW_RGB = { r: 254, g: 194, b: 0 };
 
-// Generate Postern yellow with varying opacity based on index
+// Generate Posterns yellow with varying opacity based on index
 // Largest shareholder (index 0) gets 100% opacity
 // Smallest shareholder gets 40% opacity
 const getColorWithOpacity = (index: number, total: number): string => {
-  if (total === 1) return `rgba(${POSTERN_YELLOW_RGB.r}, ${POSTERN_YELLOW_RGB.g}, ${POSTERN_YELLOW_RGB.b}, 1.0)`;
+  if (total === 1) return `rgba(${POSTERNS_YELLOW_RGB.r}, ${POSTERNS_YELLOW_RGB.g}, ${POSTERNS_YELLOW_RGB.b}, 1.0)`;
 
   // Calculate opacity: 100% for first owner, 40% for last owner
   const opacity = 1.0 - (index / (total - 1)) * 0.6;
 
-  return `rgba(${POSTERN_YELLOW_RGB.r}, ${POSTERN_YELLOW_RGB.g}, ${POSTERN_YELLOW_RGB.b}, ${opacity})`;
+  return `rgba(${POSTERNS_YELLOW_RGB.r}, ${POSTERNS_YELLOW_RGB.g}, ${POSTERNS_YELLOW_RGB.b}, ${opacity})`;
 };
 
 export function OwnershipChart({ owners }: OwnershipChartProps) {

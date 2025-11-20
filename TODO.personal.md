@@ -6,15 +6,26 @@
 
 ## 📋 Planned / To Do
 
-- [ ] Salabot Favorītu atjaunotāju, ja listing ir arhivēts tam arī tā jārādas pēc atsvaidzināšanas, ja vine tyas nav atkal publicēts
+- [/] Izveidot salīdzinājuma lapu
 
-- [ ] Labot code quality
-
-- [ ] Optimizācijas
-
-- [ ] Kautkas kas nodrošina, palaižot bez interneta netiek sačakarēts viss
+lets change the language select in the header, lets also add lithuanian and estonina, lets make the component a dropdown with the emoji flags of the language with an language icon like in the image i provided
 
 
 
----
+- [ ] Izveidot lapu kā firmas.lv "Industrijas" un klāt vel reģioni
+- [ ] Home page visas nozares
+- [ ] Industrijas ziņas
+- [ ] Header Uzņēmumu datu izmaiņu monitorēšana
+- [ ] Header uzņēmuma novērtēšanas rīki
+- [ ] Top firmas
+- [ ] 
 
+
+
+- [ ] Uzņēmuma info lapa
+    - [ ] Tabs (Pamat info.; Personas; Finanšu rādītāji;)
+    - [ ] Ratio charti
+    - [ ]
+    - [ ]
+    - [ ]
+    - [ ]

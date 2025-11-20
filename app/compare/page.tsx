@@ -60,6 +60,21 @@ interface Company {
   }[];
 }
 
+// Warm + cool accent color palette for maximum line contrast
+// Maintains the Posterns brand vibe with strategic cool accents for distinction
+const COMPANY_COLORS = [
+  '#FEC200', // Posterns Yellow (main brand)
+  '#F97316', // Vibrant Orange
+  '#14B8A6', // Teal (cool accent - high contrast)
+  '#DC2626', // Red (warm but distinct)
+  '#0EA5E9', // Sky Blue (cool accent - high contrast)
+];
+
+// Get color for a company by index
+const getCompanyColor = (index: number): string => {
+  return COMPANY_COLORS[index % COMPANY_COLORS.length];
+};
+
 export default function ComparePage() {
   const [selectedCompanies, setSelectedCompanies] = useState<SelectedCompany[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -653,7 +668,7 @@ export default function ComparePage() {
               {/* Tax Payments Comparison */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Nodokļu Maksājumi ({selectedYear})</CardTitle>
+                  <CardTitle>Nodokļu Maksājumi</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
@@ -661,7 +676,7 @@ export default function ComparePage() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Uzņēmums</TableHead>
-                          <TableHead className="text-right">Summa</TableHead>
+                          <TableHead className="text-right">Summa ({selectedYear})</TableHead>
                           <TableHead>Datums</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -684,19 +699,64 @@ export default function ComparePage() {
                     </Table>
                   </div>
 
-                  {/* Tax Payments Bar Chart */}
+                  {/* Tax Payments Line Chart */}
                   <div className="mt-6 h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={companies.map((company) => ({
-                        name: company.name.length > 20 ? company.name.substring(0, 20) + '...' : company.name,
-                        amount: getTaxPayment(company)?.amount || 0,
-                      }))}>
+                      <LineChart data={(() => {
+                        // Get all unique years from all companies
+                        const allYears = Array.from(
+                          new Set(
+                            companies.flatMap(c => c.taxPayments.map(t => t.year))
+                          )
+                        ).sort((a, b) => a - b);
+
+                        // Create data points for each year
+                        return allYears.map(year => {
+                          const dataPoint: any = { year };
+                          companies.forEach(company => {
+                            const payment = company.taxPayments.find(t => t.year === year);
+                            dataPoint[company.name] = payment ? payment.amount : null;
+                          });
+                          return dataPoint;
+                        });
+                      })()}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="name" />
-                        <YAxis />
+                        <XAxis dataKey="year" />
+                        <YAxis
+                          tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
+                          domain={(() => {
+                            // Calculate dynamic Y-axis range based on actual data
+                            const allValues = companies.flatMap(c =>
+                              c.taxPayments.map(t => t.amount)
+                            ).filter(v => v !== null && v !== undefined);
+
+                            if (allValues.length === 0) return [0, 'auto'];
+
+                            const minValue = Math.min(...allValues);
+                            const maxValue = Math.max(...allValues);
+                            const padding = (maxValue - minValue) * 0.1;
+
+                            return [
+                              Math.max(0, minValue - padding),
+                              maxValue + padding
+                            ];
+                          })()}
+                        />
                         <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                        <Bar dataKey="amount" fill="#fec200" />
-                      </BarChart>
+                        <Legend formatter={(value) => <span style={{ color: '#000000' }}>{value}</span>} />
+                        {companies.map((company, index) => (
+                          <Line
+                            key={company.id}
+                            type="monotone"
+                            dataKey={company.name}
+                            stroke={getCompanyColor(index)}
+                            strokeWidth={2}
+                            dot={{ r: 4 }}
+                            activeDot={{ r: 6 }}
+                            connectNulls
+                          />
+                        ))}
+                      </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </CardContent>

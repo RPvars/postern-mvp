@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Navigation } from '@/components/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building2, Users, FileText, TrendingUp, Phone, Mail, MapPin, Calendar, AlertCircle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Building2, Users, FileText, TrendingUp, Phone, Mail, MapPin, Calendar, AlertCircle, FolderOpen } from 'lucide-react';
 import { OwnershipChart } from '@/components/ownership-chart';
 import { FinancialRatiosDisplay } from '@/components/financial-ratios-display';
 
@@ -110,9 +111,22 @@ interface Company {
 
 export default function CompanyPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [company, setCompany] = useState<Company | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get active tab from URL or default to 'basic'
+  const activeTab = searchParams.get('tab') || 'basic';
+
+  // Handler to update tab in URL
+  const handleTabChange = (value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', value);
+    router.push(`${pathname}?${params.toString()}`, { scroll: false });
+  };
 
   useEffect(() => {
     const fetchCompany = async () => {
@@ -200,9 +214,19 @@ export default function CompanyPage() {
       </div>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Company Information */}
-          <Card>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4 bg-white border shadow-sm rounded-lg">
+            <TabsTrigger value="basic" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Pamatinformācija</TabsTrigger>
+            <TabsTrigger value="people" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Personas</TabsTrigger>
+            <TabsTrigger value="financial" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Finanšu informācija</TabsTrigger>
+            <TabsTrigger value="documents" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Dokumenti</TabsTrigger>
+          </TabsList>
+
+          {/* Tab 1: Pamatinformācija */}
+          <TabsContent value="basic">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Company Information */}
+              <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building2 className="h-5 w-5" />
@@ -229,7 +253,7 @@ export default function CompanyPage() {
                   <div className="flex items-start gap-2">
                     <FileText className="mt-0.5 h-4 w-4 text-muted-foreground" />
                     <div>
-                      <div className="text-sm font-medium">Juridiskā forma</div>
+                      <div className="text-sm font-medium">Uzņēmējdarbības forma</div>
                       <div className="text-sm text-muted-foreground">{company.legalForm}</div>
                     </div>
                   </div>
@@ -304,8 +328,79 @@ export default function CompanyPage() {
             </CardContent>
           </Card>
 
-          {/* Owners */}
-          <Card>
+          {/* Risk & Compliance Information */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5" />
+                Apgrūtinājumi
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-medium">Likvidācijas process</TableCell>
+                    <TableCell className={company.inLiquidation ? 'text-[#FF8042] font-semibold' : ''}>
+                      {company.inLiquidation ? 'Ir' : 'Nav'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Aktuāls ieraksts maksātnespējas reģistrā</TableCell>
+                    <TableCell className={company.inInsolvencyRegister ? 'text-[#FF8042] font-semibold' : ''}>
+                      {company.inInsolvencyRegister ? 'Ir' : 'Nav'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Aktuālās pretenzijas par maksājumiem</TableCell>
+                    <TableCell>
+                      {company.hasPaymentClaims ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#FF8042] font-semibold">Ir</span>
+                          <Badge variant="outline" className="bg-blue-50">Pieslēgties</Badge>
+                        </div>
+                      ) : (
+                        'Nav'
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Aktuāli komercķīlu akti</TableCell>
+                    <TableCell className={company.hasCommercialPledges ? 'text-[#FF8042] font-semibold' : ''}>
+                      {company.hasCommercialPledges ? 'Ir' : 'Nav'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Aktuālie nodrošinājumi</TableCell>
+                    <TableCell className={company.hasSecurities ? 'text-[#FF8042] font-semibold' : ''}>
+                      {company.hasSecurities ? 'Ir' : 'Nav'}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-medium">Nodokļu parādi VID (uz datumu)</TableCell>
+                    <TableCell>
+                      <span className={company.hasTaxDebts ? 'text-[#FF8042] font-semibold' : ''}>
+                        {company.hasTaxDebts ? 'Ir' : 'Nav'}
+                      </span>
+                      {company.taxDebtsCheckedDate && (
+                        <span className="text-sm text-muted-foreground ml-2">
+                          uz {formatDate(company.taxDebtsCheckedDate)}
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+            </div>
+          </TabsContent>
+
+          {/* Tab 2: Personas */}
+          <TabsContent value="people">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Owners */}
+              <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
@@ -480,75 +575,14 @@ export default function CompanyPage() {
               </CardContent>
             </Card>
           )}
+            </div>
+          </TabsContent>
 
-          {/* Risk & Compliance Information */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5" />
-                Apgrūtinājumi
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">Likvidācijas process</TableCell>
-                    <TableCell className={company.inLiquidation ? 'text-[#FF8042] font-semibold' : ''}>
-                      {company.inLiquidation ? 'Ir' : 'Nav'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Aktuāls ieraksts maksātnespējas reģistrā</TableCell>
-                    <TableCell className={company.inInsolvencyRegister ? 'text-[#FF8042] font-semibold' : ''}>
-                      {company.inInsolvencyRegister ? 'Ir' : 'Nav'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Aktuālās pretenzijas par maksājumiem</TableCell>
-                    <TableCell>
-                      {company.hasPaymentClaims ? (
-                        <div className="flex items-center gap-2">
-                          <span className="text-[#FF8042] font-semibold">Ir</span>
-                          <Badge variant="outline" className="bg-blue-50">Pieslēgties</Badge>
-                        </div>
-                      ) : (
-                        'Nav'
-                      )}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Aktuāli komercķīlu akti</TableCell>
-                    <TableCell className={company.hasCommercialPledges ? 'text-[#FF8042] font-semibold' : ''}>
-                      {company.hasCommercialPledges ? 'Ir' : 'Nav'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Aktuālie nodrošinājumi</TableCell>
-                    <TableCell className={company.hasSecurities ? 'text-[#FF8042] font-semibold' : ''}>
-                      {company.hasSecurities ? 'Ir' : 'Nav'}
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell className="font-medium">Nodokļu parādi VID (uz datumu)</TableCell>
-                    <TableCell>
-                      <span className={company.hasTaxDebts ? 'text-[#FF8042] font-semibold' : ''}>
-                        {company.hasTaxDebts ? 'Ir' : 'Nav'}
-                      </span>
-                      {company.taxDebtsCheckedDate && (
-                        <span className="text-sm text-muted-foreground ml-2">
-                          uz {formatDate(company.taxDebtsCheckedDate)}
-                        </span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-
-          {/* Tax Payments */}
-          <Card className="lg:col-span-2">
+          {/* Tab 3: Finanšu informācija */}
+          <TabsContent value="financial">
+            <div className="grid gap-6 lg:grid-cols-2">
+              {/* Tax Payments */}
+              <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
@@ -579,11 +613,37 @@ export default function CompanyPage() {
             </CardContent>
           </Card>
 
-          {/* Financial Ratios */}
-          <div className="lg:col-span-2">
-            <FinancialRatiosDisplay ratios={company.financialRatios} />
-          </div>
-        </div>
+              {/* Financial Ratios */}
+              <div className="lg:col-span-2">
+                <FinancialRatiosDisplay ratios={company.financialRatios} />
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Tab 4: Dokumenti */}
+          <TabsContent value="documents">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FolderOpen className="h-5 w-5" />
+                  Dokumenti
+                </CardTitle>
+                <CardDescription>
+                  Uzņēmuma dokumenti un reģistrācijas materiāli
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+                <FolderOpen className="h-16 w-16 text-muted-foreground/50 mb-4" />
+                <p className="text-lg font-medium text-muted-foreground mb-2">
+                  Dokumentu sadaļa ir izstrādes procesā
+                </p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  Drīzumā šeit būs pieejami uzņēmuma dokumenti, finanšu pārskati, reģistrācijas apliecības un citi svarīgi materiāli.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

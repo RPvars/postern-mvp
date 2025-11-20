@@ -13,7 +13,7 @@ export function Sparkline({
   data,
   width = 60,
   height = 24,
-  color = '#fec200' // Postern yellow
+  color = '#fec200' // Posterns yellow
 }: SparklineProps) {
   // Filter out null values and create chart data
   const chartData = data.map((value, index) => ({

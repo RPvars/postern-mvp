@@ -71,7 +71,7 @@ export function HeaderSearch() {
           }}
           onFocus={() => query.length >= 2 && setIsOpen(true)}
           onBlur={() => setTimeout(() => setIsOpen(false), 200)}
-          className="h-10 text-sm px-3"
+          className="h-9 text-sm px-3"
         />
       </Command>
       {isOpen && (

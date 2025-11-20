@@ -1,10 +1,10 @@
-# Postern MVP
+# Posterns MVP
 
 Latvijas Uzņēmumu Analīzes Platforma - Baltic States Business Intelligence Platform
 
 ## Project Overview
 
-Postern is a business intelligence platform for searching and analyzing companies across the Baltic states (Latvia, Estonia, Lithuania). The MVP focuses on providing comprehensive company information including ownership structures, board members, beneficial owners, financial ratios, and tax payment data with side-by-side company comparison capabilities.
+Posterns is a business intelligence platform for searching and analyzing companies across the Baltic states (Latvia, Estonia, Lithuania). The MVP focuses on providing comprehensive company information including ownership structures, board members, beneficial owners, financial ratios, and tax payment data with side-by-side company comparison capabilities.
 
 ## Tech Stack
 
@@ -20,7 +20,7 @@ Postern is a business intelligence platform for searching and analyzing companie
 ## Project Structure
 
 ```
-Postern_MVP/
+Posterns_MVP/
 ├── app/
 │   ├── api/
 │   │   ├── search/route.ts          # Search API with Latvian char normalization
@@ -33,16 +33,19 @@ Postern_MVP/
 │   └── globals.css                  # Global styles
 ├── components/
 │   ├── ui/                          # shadcn/ui components
-│   ├── navigation.tsx               # Header navigation with search
-│   ├── header-search.tsx            # Compact header search bar (NEW)
+│   ├── navigation.tsx               # Header navigation with grouped layout (logo+links | search+buttons)
+│   ├── header-search.tsx            # Compact header search bar
 │   ├── search-bar.tsx               # Main search with country selector
-│   └── company-selector.tsx         # Multi-select company picker (NEW)
+│   ├── company-selector.tsx         # Multi-select company picker
+│   ├── financial-ratios-display.tsx # Financial metrics with 2-column grid and charts
+│   ├── ownership-chart.tsx          # Ownership visualization component
+│   └── sparkline.tsx                # Mini chart component
 ├── prisma/
 │   ├── schema.prisma                # Database schema
 │   ├── seed.ts                      # Database seeding script
 │   └── dev.db                       # SQLite database
 ├── public/
-│   ├── postern-logo.svg             # Postern logo (#FEC200)
+│   ├── postern-logo.svg             # Posterns logo (#FEC200)
 │   └── BG_2.avif                    # Background image
 └── .claude/
     └── README.md                    # This file
@@ -173,21 +176,37 @@ Postern_MVP/
 - Year-over-year trends
 
 **Financial Ratios**
-- 21 comprehensive financial metrics
-- Multi-year historical data
-- Grouped by category with tabbed interface
+- 21 comprehensive financial metrics in 2-column grid layout
+- Multi-year historical data with full-height line charts
+- YoY (Year-over-Year) trend indicators with color coding
+- Current year value display with trend arrows
+- Grouped by category with tabbed interface (Rentabilitāte, Likviditāte, Finansējums, Efektivitāte)
+- Enhanced RatioCard component with FinancialChart for data visualization
 
 ### UI/UX
 
+**Navigation**
+- Restructured header with grouped layout:
+  - Left: Logo + navigation links (Meklēt, Salīdzināt, Analītika, Ziņojumi)
+  - Right: Search bar + language selector + login button
+- Active page indication with bold black text (no underline)
+- Increased navigation link size (text-base/16px)
+- Consistent element heights (h-9/36px) across header
+- Proper spacing: gap-6 between logo and links, gap-6 between nav items, gap-3 between header right elements
+
+**Language Selection**
+- Dropdown selector with flag emojis
+- Available languages: 🇱🇻 LV, 🇱🇹 LT (disabled), 🇪🇪 EE (disabled), 🇬🇧 EN (disabled), 🇷🇺 RU (disabled)
+- Currently only Latvian is functional
+
+**General UI**
 - Latvian language interface
-- Country-specific header text
-- Flag-based country selector (🇱🇻 🇪🇪 🇱🇹 🌍)
 - Responsive design
 - Background image with opacity control
 - Brand color: #FEC200 (Yellow)
 - Proper z-index layering for dropdowns (header: z-10, dropdowns: z-50)
 - Hover states and transitions
-- Color-coded data visualization
+- Color-coded data visualization (green for positive, red for negative)
 
 ## Database Schema
 
@@ -384,6 +403,22 @@ npm run db:seed                    # Re-seed with sample data
 
 ## Technical Implementation Notes
 
+### Tab Persistence
+Company detail pages use URL-based tab state management to persist the active tab across page refreshes:
+```typescript
+const searchParams = useSearchParams();
+const router = useRouter();
+const pathname = usePathname();
+const activeTab = searchParams.get('tab') || 'basic';
+
+const handleTabChange = (value: string) => {
+  const params = new URLSearchParams(searchParams.toString());
+  params.set('tab', value);
+  router.push(`${pathname}?${params.toString()}`, { scroll: false });
+};
+```
+This ensures users don't lose their place when refreshing or sharing links to specific tabs.
+
 ### Search Debouncing
 All search inputs use 300ms debouncing to reduce API calls and improve performance.
 
@@ -395,6 +430,12 @@ Proper stacking context is maintained throughout the application:
 
 ### Header Search Implementation
 The header search uses a custom dropdown instead of cmdk's CommandList to avoid React context issues when the dropdown is conditionally rendered outside the Command component hierarchy.
+
+### Navigation Layout Strategy
+The header uses a two-group flexbox layout with `justify-between`:
+- **Left group** (`gap-6`): Logo + navigation links (with `gap-6` between nav items)
+- **Right group** (`gap-3`): Search bar (w-80) + language selector (w-[110px]) + login button
+This creates clear visual separation between navigation and user actions.
 
 ### Latvian Character Normalization
 The search API implements comprehensive normalization:
@@ -417,7 +458,12 @@ function normalizeString(str: string): string {
 - ✅ Header search integration for quick access
 - ✅ Company comparison feature (Salīdzināt)
 - ✅ Multi-company selection interface
-- ✅ Financial ratio visualization with 21 metrics
+- ✅ Financial ratio visualization with 21 metrics in 2-column grid layout
+- ✅ Enhanced financial charts with YoY trend indicators
+- ✅ URL-based tab persistence for company detail pages
+- ✅ Redesigned navigation with grouped layout and active states
+- ✅ Language selector dropdown with flag emojis (LV, LT, EE, EN, RU)
+- ✅ Consistent header element sizing and spacing
 - ✅ Tax payment comparisons with charts
 - ✅ Board member and beneficial owner tracking
 - ✅ Risk and compliance indicators

@@ -1,13 +1,10 @@
 'use client';
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sparkline } from "@/components/sparkline";
-import { TrendingUp, TrendingDown, Minus, ChevronDown, ChevronUp } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface FinancialRatio {
   year: number;
@@ -42,7 +39,7 @@ interface FinancialRatiosDisplayProps {
 }
 
 const formatRatio = (value: number | null, isPercentage: boolean = false, decimals: number = 2): string => {
-  if (value == null) return 'N/A'; // Checks for both null and undefined
+  if (value == null) return 'N/A';
   const formatted = value.toFixed(decimals);
   return isPercentage ? `${(parseFloat(formatted) * 100).toFixed(2)}%` : formatted;
 };
@@ -70,7 +67,81 @@ const calculateTrend = (current: number | null, previous: number | null): {
   return { direction: 'down', change: percentChange, color: 'text-red-600' };
 };
 
-const RatioItem = ({
+// Enhanced Financial Chart Component
+const FinancialChart = ({
+  data,
+  isPercentage = false,
+  decimals = 2
+}: {
+  data: (number | null)[];
+  isPercentage?: boolean;
+  decimals?: number;
+}) => {
+  // Don't render if all values are null or no data
+  if (data.every(v => v == null) || data.length === 0) {
+    return (
+      <div className="h-[200px] flex items-center justify-center text-muted-foreground">
+        <p className="text-sm">No data available</p>
+      </div>
+    );
+  }
+
+  // Create chart data with year labels (reversed to show oldest to newest)
+  const chartData = [...data].reverse().map((value, index) => ({
+    year: new Date().getFullYear() - data.length + 1 + index,
+    value: value ?? 0
+  }));
+
+  // Custom tooltip formatter
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const value = payload[0].value;
+      return (
+        <div className="bg-background border border-border rounded-md px-3 py-2 shadow-md">
+          <p className="text-sm font-semibold">{payload[0].payload.year}</p>
+          <p className="text-sm text-[#fec200]">
+            {formatRatio(value, isPercentage, decimals)}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="h-[200px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+          <XAxis
+            dataKey="year"
+            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tickLine={{ stroke: '#e5e7eb' }}
+            axisLine={{ stroke: '#e5e7eb' }}
+          />
+          <YAxis
+            tick={{ fill: '#6b7280', fontSize: 12 }}
+            tickLine={{ stroke: '#e5e7eb' }}
+            axisLine={{ stroke: '#e5e7eb' }}
+            tickFormatter={(value) => formatRatio(value, isPercentage, 0)}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Line
+            type="monotone"
+            dataKey="value"
+            stroke="#fec200"
+            strokeWidth={2.5}
+            dot={{ fill: '#fec200', r: 4 }}
+            activeDot={{ r: 6 }}
+          />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+};
+
+// Ratio Card Component for 2-column grid
+const RatioCard = ({
   label,
   value,
   historicalValues,
@@ -92,529 +163,232 @@ const RatioItem = ({
 
   const TrendIcon = trend.direction === 'up' ? TrendingUp : trend.direction === 'down' ? TrendingDown : Minus;
 
+  // Get current year
+  const currentYear = new Date().getFullYear();
+
   return (
-    <div className="flex justify-between items-start py-3 border-b last:border-0">
-      <div className="flex-1">
-        <p className="font-medium text-sm">{label}</p>
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
-      </div>
-      <div className="flex items-center gap-3 ml-4">
-        {/* Trend Indicator */}
-        <div className="flex items-center gap-1">
-          <TrendIcon className={`h-4 w-4 ${trend.color}`} />
-          {trend.change != null && (
-            <span className={`text-xs ${trend.color}`}>
-              {trend.change > 0 ? '+' : ''}{trend.change.toFixed(1)}%
-            </span>
-          )}
+    <Card className="flex flex-col h-full">
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1">
+            <CardTitle className="text-base font-semibold">{label}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          </div>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className="text-xs font-medium text-muted-foreground">{currentYear}</span>
+            <div className="flex items-center gap-1">
+              <TrendIcon className={`h-4 w-4 ${trend.color}`} />
+              <span className={`font-mono text-sm font-semibold ${trend.color}`}>
+                {formatRatio(value, isPercentage, decimals)}
+              </span>
+            </div>
+            {trend.change != null && (
+              <span className={`text-xs ${trend.color}`}>
+                {trend.change > 0 ? '+' : ''}{trend.change.toFixed(1)}% YoY
+              </span>
+            )}
+          </div>
         </div>
-
-        {/* Sparkline */}
-        <div className="hidden sm:block">
-          <Sparkline data={historicalValues} width={60} height={24} />
-        </div>
-
-        {/* Current Value Badge */}
-        <Badge variant="secondary" className="font-mono min-w-[80px] text-center">
-          {formatRatio(value, isPercentage, decimals)}
-        </Badge>
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent className="flex-1 pt-0">
+        <FinancialChart
+          data={historicalValues}
+          isPercentage={isPercentage}
+          decimals={decimals}
+        />
+      </CardContent>
+    </Card>
   );
 };
 
 export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) {
-  const [selectedYear, setSelectedYear] = useState<number>(ratios.length > 0 ? ratios[0].year : new Date().getFullYear());
-  const [showComparison, setShowComparison] = useState(false);
-
   if (ratios.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Financial Ratios</CardTitle>
-          <CardDescription>No financial data available</CardDescription>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            Finanšu Rādītāji
+          </CardTitle>
         </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">Nav pieejami finanšu dati</p>
+        </CardContent>
       </Card>
     );
   }
 
-  // Get data for selected year
-  const selectedYearData = ratios.find(r => r.year === selectedYear) || ratios[0];
-  const selectedYearIndex = ratios.findIndex(r => r.year === selectedYear);
-  const previousYearData = selectedYearIndex < ratios.length - 1 ? ratios[selectedYearIndex + 1] : null;
+  // Get most recent year data for displaying current values
+  const currentYearData = ratios[0];
 
   // Helper to extract historical values for a specific ratio
   const getHistoricalValues = (ratioKey: keyof FinancialRatio): (number | null)[] => {
     return ratios.map(r => r[ratioKey] as number | null);
   };
 
-  // Helper to get trend for selected year compared to previous year
-  const getSelectedYearTrend = (ratioKey: keyof FinancialRatio) => {
-    const currentValue = selectedYearData[ratioKey] as number | null;
-    const previousValue = previousYearData ? (previousYearData[ratioKey] as number | null) : null;
-    return calculateTrend(currentValue, previousValue);
-  };
-
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle>Financial Ratios</CardTitle>
-            <CardDescription>Comprehensive financial analysis</CardDescription>
-          </div>
-
-          {/* Year Selector */}
-          <div className="flex gap-2">
-            {ratios.map((ratio) => (
-              <Button
-                key={ratio.year}
-                variant={selectedYear === ratio.year ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedYear(ratio.year)}
-                className="min-w-[70px]"
-              >
-                {ratio.year}
-              </Button>
-            ))}
-          </div>
-        </div>
+        <CardTitle className="flex items-center gap-2">
+          <BarChart3 className="h-5 w-5" />
+          Finanšu Rādītāji
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="profitability" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="profitability">Profitability</TabsTrigger>
-            <TabsTrigger value="liquidity">Liquidity</TabsTrigger>
-            <TabsTrigger value="leverage">Leverage</TabsTrigger>
-            <TabsTrigger value="efficiency">Efficiency</TabsTrigger>
+            <TabsTrigger value="profitability" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Rentabilitāte</TabsTrigger>
+            <TabsTrigger value="liquidity" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Likviditāte</TabsTrigger>
+            <TabsTrigger value="leverage" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Finansējums</TabsTrigger>
+            <TabsTrigger value="efficiency" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">Efektivitāte</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="profitability" className="mt-4">
-            <div className="space-y-1">
-              <RatioItem
+          <TabsContent value="profitability" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RatioCard
                 label="Return on Equity (ROE)"
-                value={selectedYearData.returnOnEquity}
+                value={currentYearData.returnOnEquity}
                 historicalValues={getHistoricalValues('returnOnEquity')}
                 isPercentage
                 description="Net Income / Shareholder's Equity"
               />
-              <RatioItem
+              <RatioCard
                 label="Return on Assets (ROA)"
-                value={selectedYearData.returnOnAssets}
+                value={currentYearData.returnOnAssets}
                 historicalValues={getHistoricalValues('returnOnAssets')}
                 isPercentage
                 description="Net Income / Total Assets"
               />
-              <RatioItem
+              <RatioCard
                 label="Net Profit Margin"
-                value={selectedYearData.netProfitMargin}
+                value={currentYearData.netProfitMargin}
                 historicalValues={getHistoricalValues('netProfitMargin')}
                 isPercentage
                 description="Net Income / Revenue"
               />
-              <RatioItem
+              <RatioCard
                 label="Gross Profit Margin"
-                value={selectedYearData.grossProfitMargin}
+                value={currentYearData.grossProfitMargin}
                 historicalValues={getHistoricalValues('grossProfitMargin')}
                 isPercentage
                 description="Gross Profit / Revenue"
               />
-              <RatioItem
+              <RatioCard
                 label="Operating Profit Margin"
-                value={selectedYearData.operatingProfitMargin}
+                value={currentYearData.operatingProfitMargin}
                 historicalValues={getHistoricalValues('operatingProfitMargin')}
                 isPercentage
                 description="Operating Income / Revenue"
               />
-              <RatioItem
+              <RatioCard
                 label="EBITDA Margin"
-                value={selectedYearData.ebitdaMargin}
+                value={currentYearData.ebitdaMargin}
                 historicalValues={getHistoricalValues('ebitdaMargin')}
                 isPercentage
                 description="EBITDA / Revenue"
               />
-              <RatioItem
+              <RatioCard
                 label="Cash Flow Margin"
-                value={selectedYearData.cashFlowMargin}
+                value={currentYearData.cashFlowMargin}
                 historicalValues={getHistoricalValues('cashFlowMargin')}
                 isPercentage
                 description="Operating Cash Flow / Revenue"
               />
             </div>
-
-            {/* Historical Comparison Table */}
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowComparison(!showComparison)}
-                className="w-full"
-              >
-                {showComparison ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
-                {showComparison ? 'Hide' : 'Show'} Historical Comparison
-              </Button>
-
-              {showComparison && (
-                <div className="mt-4 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ratio</TableHead>
-                        {ratios.map(r => (
-                          <TableHead key={r.year} className="text-center">{r.year}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">ROE</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.returnOnEquity, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">ROA</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.returnOnAssets, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Net Profit Margin</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.netProfitMargin, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Gross Profit Margin</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.grossProfitMargin, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Operating Profit Margin</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.operatingProfitMargin, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">EBITDA Margin</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.ebitdaMargin, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Cash Flow Margin</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.cashFlowMargin, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
           </TabsContent>
 
-          <TabsContent value="liquidity" className="mt-4">
-            <div className="space-y-1">
-              <RatioItem
+          <TabsContent value="liquidity" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RatioCard
                 label="Current Ratio"
-                value={selectedYearData.currentRatio}
+                value={currentYearData.currentRatio}
                 historicalValues={getHistoricalValues('currentRatio')}
                 description="Current Assets / Current Liabilities"
               />
-              <RatioItem
+              <RatioCard
                 label="Quick Ratio"
-                value={selectedYearData.quickRatio}
+                value={currentYearData.quickRatio}
                 historicalValues={getHistoricalValues('quickRatio')}
                 description="(Current Assets - Inventory) / Current Liabilities"
               />
-              <RatioItem
+              <RatioCard
                 label="Cash Ratio"
-                value={selectedYearData.cashRatio}
+                value={currentYearData.cashRatio}
                 historicalValues={getHistoricalValues('cashRatio')}
                 description="Cash & Equivalents / Current Liabilities"
               />
-              <RatioItem
+              <RatioCard
                 label="Working Capital Ratio"
-                value={selectedYearData.workingCapitalRatio}
+                value={currentYearData.workingCapitalRatio}
                 historicalValues={getHistoricalValues('workingCapitalRatio')}
                 isPercentage
                 description="Working Capital / Total Assets"
               />
             </div>
-
-            {/* Historical Comparison Table for Liquidity */}
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowComparison(!showComparison)}
-                className="w-full"
-              >
-                {showComparison ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
-                {showComparison ? 'Hide' : 'Show'} Historical Comparison
-              </Button>
-
-              {showComparison && (
-                <div className="mt-4 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ratio</TableHead>
-                        {ratios.map(r => (
-                          <TableHead key={r.year} className="text-center">{r.year}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Current Ratio</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.currentRatio)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Quick Ratio</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.quickRatio)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Cash Ratio</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.cashRatio)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Working Capital Ratio</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.workingCapitalRatio, true)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
           </TabsContent>
 
-          <TabsContent value="leverage" className="mt-4">
-            <div className="space-y-1">
-              <RatioItem
+          <TabsContent value="leverage" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RatioCard
                 label="Debt to Equity"
-                value={selectedYearData.debtToEquity}
+                value={currentYearData.debtToEquity}
                 historicalValues={getHistoricalValues('debtToEquity')}
                 description="Total Debt / Total Equity"
               />
-              <RatioItem
+              <RatioCard
                 label="Debt Ratio"
-                value={selectedYearData.debtRatio}
+                value={currentYearData.debtRatio}
                 historicalValues={getHistoricalValues('debtRatio')}
                 description="Total Debt / Total Assets"
               />
-              <RatioItem
+              <RatioCard
                 label="Interest Coverage Ratio"
-                value={selectedYearData.interestCoverageRatio}
+                value={currentYearData.interestCoverageRatio}
                 historicalValues={getHistoricalValues('interestCoverageRatio')}
                 description="EBIT / Interest Expense"
               />
-              <RatioItem
+              <RatioCard
                 label="Equity Multiplier"
-                value={selectedYearData.equityMultiplier}
+                value={currentYearData.equityMultiplier}
                 historicalValues={getHistoricalValues('equityMultiplier')}
                 description="Total Assets / Total Equity"
               />
             </div>
-
-            {/* Historical Comparison Table for Leverage */}
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowComparison(!showComparison)}
-                className="w-full"
-              >
-                {showComparison ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
-                {showComparison ? 'Hide' : 'Show'} Historical Comparison
-              </Button>
-
-              {showComparison && (
-                <div className="mt-4 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ratio</TableHead>
-                        {ratios.map(r => (
-                          <TableHead key={r.year} className="text-center">{r.year}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Debt to Equity</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.debtToEquity)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Debt Ratio</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.debtRatio)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Interest Coverage Ratio</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.interestCoverageRatio)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Equity Multiplier</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.equityMultiplier)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </div>
           </TabsContent>
 
-          <TabsContent value="efficiency" className="mt-4">
-            <div className="space-y-1">
-              <RatioItem
+          <TabsContent value="efficiency" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <RatioCard
                 label="Asset Turnover"
-                value={selectedYearData.assetTurnover}
+                value={currentYearData.assetTurnover}
                 historicalValues={getHistoricalValues('assetTurnover')}
                 description="Revenue / Total Assets"
               />
-              <RatioItem
+              <RatioCard
                 label="Inventory Turnover"
-                value={selectedYearData.inventoryTurnover}
+                value={currentYearData.inventoryTurnover}
                 historicalValues={getHistoricalValues('inventoryTurnover')}
                 description="Cost of Goods Sold / Average Inventory"
               />
-              <RatioItem
+              <RatioCard
                 label="Receivables Turnover"
-                value={selectedYearData.receivablesTurnover}
+                value={currentYearData.receivablesTurnover}
                 historicalValues={getHistoricalValues('receivablesTurnover')}
                 description="Revenue / Average Accounts Receivable"
               />
-              <RatioItem
+              <RatioCard
                 label="Payables Turnover"
-                value={selectedYearData.payablesTurnover}
+                value={currentYearData.payablesTurnover}
                 historicalValues={getHistoricalValues('payablesTurnover')}
                 description="COGS / Average Accounts Payable"
               />
-              <RatioItem
+              <RatioCard
                 label="Cash Conversion Cycle"
-                value={selectedYearData.cashConversionCycle}
+                value={currentYearData.cashConversionCycle}
                 historicalValues={getHistoricalValues('cashConversionCycle')}
                 decimals={0}
                 description="Days Inventory + Days Receivables - Days Payables"
               />
-            </div>
-
-            {/* Historical Comparison Table for Efficiency */}
-            <div className="mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowComparison(!showComparison)}
-                className="w-full"
-              >
-                {showComparison ? <ChevronUp className="h-4 w-4 mr-2" /> : <ChevronDown className="h-4 w-4 mr-2" />}
-                {showComparison ? 'Hide' : 'Show'} Historical Comparison
-              </Button>
-
-              {showComparison && (
-                <div className="mt-4 overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Ratio</TableHead>
-                        {ratios.map(r => (
-                          <TableHead key={r.year} className="text-center">{r.year}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell className="font-medium">Asset Turnover</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.assetTurnover)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Inventory Turnover</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.inventoryTurnover)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Receivables Turnover</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.receivablesTurnover)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Payables Turnover</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.payablesTurnover)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                      <TableRow>
-                        <TableCell className="font-medium">Cash Conversion Cycle</TableCell>
-                        {ratios.map(r => (
-                          <TableCell key={r.year} className="text-center">
-                            {formatRatio(r.cashConversionCycle, false, 0)}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
             </div>
           </TabsContent>
         </Tabs>

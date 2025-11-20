@@ -469,10 +469,13 @@ async function main() {
       });
     }
 
-    // Create tax payments for the last 3 years
+    // Create tax payments based on company age (realistic historical data)
     const currentYear = new Date().getFullYear();
-    for (let i = 0; i < 3; i++) {
-      const year = currentYear - i;
+    const registrationYear = company.registrationDate.getFullYear();
+    const startYear = Math.max(registrationYear, 2015); // Don't go back further than 2015
+
+    // Generate tax payment data from company founding (or 2015) to current year
+    for (let year = startYear; year <= currentYear; year++) {
       await prisma.taxPayment.create({
         data: {
           companyId: company.id,
@@ -483,9 +486,8 @@ async function main() {
       });
     }
 
-    // Create financial ratios for the last 3 years
-    for (let i = 0; i < 3; i++) {
-      const year = currentYear - i;
+    // Create financial ratios based on company age (realistic historical data)
+    for (let year = startYear; year <= currentYear; year++) {
       await prisma.financialRatio.create({
         data: {
           companyId: company.id,
