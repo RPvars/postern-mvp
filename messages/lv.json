@@ -1,0 +1,364 @@
+{
+  "common": {
+    "loading": "Ielādē...",
+    "error": "Kļūda",
+    "success": "Veiksmīgi",
+    "save": "Saglabāt",
+    "cancel": "Atcelt",
+    "close": "Aizvērt",
+    "back": "Atpakaļ",
+    "next": "Tālāk",
+    "search": "Meklēt",
+    "noResults": "Nav rezultātu",
+    "notFound": "Nav atrasts",
+    "yes": "Jā",
+    "no": "Nē",
+    "copyright": "© 2025 Posterns. Visas tiesības aizsargātas.",
+    "notAvailable": "N/A",
+    "year": "Gads",
+    "date": "Datums",
+    "amount": "Summa",
+    "actions": "Darbības",
+    "details": "Detaļas",
+    "view": "Skatīt",
+    "edit": "Rediģēt",
+    "delete": "Dzēst",
+    "add": "Pievienot",
+    "remove": "Noņemt",
+    "select": "Izvēlēties",
+    "all": "Visi",
+    "none": "Nekas",
+    "from": "No",
+    "to": "Līdz",
+    "total": "Kopā",
+    "status": "Statuss",
+    "active": "Aktīvs",
+    "inactive": "Neaktīvs",
+    "companyStatus": {
+      "Aktīvs": "Aktīvs",
+      "Likvidēts": "Likvidēts",
+      "Izslēgts": "Izslēgts",
+      "Apturēta darbība": "Apturēta darbība",
+      "Maksātnespēja": "Maksātnespēja",
+      "Reorganizācija": "Reorganizācija",
+      "unknown": "Nezināms"
+    }
+  },
+  "navigation": {
+    "search": "Meklēt",
+    "compare": "Salīdzināt",
+    "analytics": "Analītika",
+    "reports": "Ziņojumi",
+    "login": "Pieslēgties",
+    "searchPlaceholder": "Meklēt uzņēmumu...",
+    "comingSoon": "Drīzumā",
+    "languages": {
+      "lv": "Latviešu",
+      "en": "English"
+    }
+  },
+  "home": {
+    "title": {
+      "latvia": "Meklēt Latvijas Uzņēmumus",
+      "estonia": "Meklēt Igaunijas Uzņēmumus",
+      "lithuania": "Meklēt Lietuvas Uzņēmumus",
+      "all": "Meklēt Baltijas Valstu Uzņēmumus",
+      "default": "Meklēt Uzņēmumus"
+    },
+    "subtitle": {
+      "latvia": "Meklējiet pēc uzņēmuma nosaukuma, reģistrācijas numura, nodokļu numura vai īpašnieka vārda",
+      "estonia": "Meklējiet pēc uzņēmuma nosaukuma, reģistrācijas numura, nodokļu numura vai īpašnieka vārda",
+      "lithuania": "Meklējiet pēc uzņēmuma nosaukuma, reģistrācijas numura, nodokļu numura vai īpašnieka vārda",
+      "all": "Meklējiet pēc uzņēmuma nosaukuma, reģistrācijas numura, nodokļu numura vai īpašnieka vārda visās Baltijas valstīs",
+      "default": "Meklējiet pēc uzņēmuma nosaukuma, reģistrācijas numura, nodokļu numura vai īpašnieka vārda"
+    },
+    "search": {
+      "searching": "Meklē...",
+      "noResults": "Uzņēmumi nav atrasti.",
+      "companies": "Uzņēmumi",
+      "owners": "Īpašnieki",
+      "placeholder": "Ievadiet uzņēmuma nosaukumu vai reģistrācijas numuru...",
+      "button": "Meklēt"
+    },
+    "countries": {
+      "latvia": "Latvija",
+      "estonia": "Igaunija",
+      "lithuania": "Lietuva",
+      "all": "Visas Baltijas valstis"
+    },
+    "footer": {
+      "poweredBy": "Darbina",
+      "dataSource": "Datu avots: Lursoft, Uzņēmumu Reģistrs"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Pieslēgties",
+      "subtitle": "Ievadiet savus datus, lai pieslēgtos",
+      "email": "E-pasta adrese",
+      "emailPlaceholder": "jusu@epasts.lv",
+      "password": "Parole",
+      "passwordPlaceholder": "Ievadiet paroli",
+      "rememberMe": "Atcerēties mani",
+      "forgotPassword": "Aizmirsāt paroli?",
+      "submit": "Pieslēgties",
+      "noAccount": "Nav konta?",
+      "register": "Reģistrēties",
+      "orContinueWith": "Vai turpiniet ar",
+      "google": "Turpināt ar Google"
+    },
+    "register": {
+      "title": "Izveidot kontu",
+      "subtitle": "Ievadiet savus datus, lai izveidotu kontu",
+      "name": "Vārds",
+      "namePlaceholder": "Jūsu vārds",
+      "email": "E-pasta adrese",
+      "emailPlaceholder": "jusu@epasts.lv",
+      "password": "Parole",
+      "passwordPlaceholder": "Izveidojiet paroli",
+      "confirmPassword": "Apstiprināt paroli",
+      "confirmPasswordPlaceholder": "Apstiprināt paroli",
+      "submit": "Reģistrēties",
+      "hasAccount": "Jau ir konts?",
+      "login": "Pieslēgties",
+      "orContinueWith": "Vai turpiniet ar",
+      "google": "Turpināt ar Google"
+    },
+    "forgotPassword": {
+      "title": "Aizmirsāt paroli?",
+      "subtitle": "Ievadiet savu e-pastu un mēs nosūtīsim paroles atjaunošanas saiti",
+      "email": "E-pasta adrese",
+      "emailPlaceholder": "jusu@epasts.lv",
+      "submit": "Nosūtīt saiti",
+      "backToLogin": "Atpakaļ uz pieslēgšanos",
+      "successTitle": "Pārbaudiet e-pastu",
+      "successMessage": "Ja konts pastāv, mēs nosūtījām paroles atjaunošanas saiti."
+    },
+    "resetPassword": {
+      "title": "Atjaunot paroli",
+      "subtitle": "Ievadiet jaunu paroli",
+      "password": "Jaunā parole",
+      "passwordPlaceholder": "Ievadiet jauno paroli",
+      "confirmPassword": "Apstiprināt paroli",
+      "confirmPasswordPlaceholder": "Apstiprināt jauno paroli",
+      "submit": "Atjaunot paroli",
+      "successTitle": "Parole atjaunota",
+      "successMessage": "Jūsu parole ir veiksmīgi atjaunota. Tagad varat pieslēgties.",
+      "backToLogin": "Atpakaļ uz pieslēgšanos"
+    },
+    "verifyEmail": {
+      "title": "Apstipriniet e-pastu",
+      "subtitle": "Mēs nosūtījām apstiprinājuma saiti uz jūsu e-pastu",
+      "checking": "Apstiprina...",
+      "successTitle": "E-pasts apstiprināts",
+      "successMessage": "Jūsu e-pasts ir veiksmīgi apstiprināts. Tagad varat pieslēgties.",
+      "errorTitle": "Kļūda",
+      "errorMessage": "Neizdevās apstiprināt e-pastu. Saite var būt nederīga vai beigusies.",
+      "resend": "Nosūtīt vēlreiz",
+      "backToLogin": "Atpakaļ uz pieslēgšanos"
+    },
+    "resendVerification": {
+      "button": "Nosūtīt vēlreiz",
+      "sending": "Sūta...",
+      "success": "Verifikācijas e-pasts nosūtīts!",
+      "error": "Neizdevās nosūtīt e-pastu. Mēģiniet vēlreiz.",
+      "didntReceive": "Nesaņēmāt e-pastu?",
+      "enterEmail": "Ievadiet savu e-pasta adresi",
+      "requestNew": "Pieprasīt jaunu verifikācijas e-pastu"
+    },
+    "userMenu": {
+      "profile": "Profils",
+      "settings": "Iestatījumi",
+      "logout": "Iziet"
+    },
+    "errors": {
+      "invalidEmail": "Nederīga e-pasta adrese",
+      "passwordMin": "Parolei jābūt vismaz 8 simboliem",
+      "passwordUppercase": "Parolei jāsatur vismaz viens lielais burts",
+      "passwordLowercase": "Parolei jāsatur vismaz viens mazais burts",
+      "passwordNumber": "Parolei jāsatur vismaz viens cipars",
+      "passwordMismatch": "Paroles nesakrīt",
+      "nameMin": "Vārdam jābūt vismaz 2 simboliem",
+      "invalidCredentials": "Nepareiza e-pasta adrese vai parole",
+      "emailNotVerified": "Lūdzu, vispirms apstipriniet savu e-pastu",
+      "accountExists": "Konts ar šo e-pastu jau pastāv",
+      "rateLimited": "Pārāk daudz mēģinājumu. Lūdzu, mēģiniet vēlāk.",
+      "generic": "Kaut kas nogāja greizi. Lūdzu, mēģiniet vēlreiz."
+    },
+    "success": {
+      "registered": "Konts izveidots! Lūdzu, pārbaudiet savu e-pastu.",
+      "registeredEmailFailed": "Konts izveidots, bet e-pastu neizdevās nosūtīt. Lūdzu, pieprasiet jaunu verifikācijas e-pastu.",
+      "loggedIn": "Veiksmīgi pieslēgts!",
+      "loggedOut": "Veiksmīgi izrakstījies!",
+      "passwordReset": "Parole veiksmīgi atjaunota!",
+      "emailSent": "E-pasts nosūtīts!"
+    }
+  },
+  "company": {
+    "error": "Kļūda",
+    "notFound": "Uzņēmums nav atrasts",
+    "loadError": "Neizdevās ielādēt uzņēmumu",
+    "tabs": {
+      "basic": "Pamatinformācija",
+      "people": "Personas",
+      "financial": "Finanšu informācija",
+      "documents": "Dokumenti"
+    },
+    "companyInfo": {
+      "title": "Uzņēmuma Informācija",
+      "registrationNumber": "Reģistrācijas numurs",
+      "taxNumber": "Nodokļu numurs",
+      "legalForm": "Uzņēmējdarbības forma",
+      "registry": "Reģistrs",
+      "registrationDate": "Reģistrācijas datums",
+      "shareCapital": "Pamatkapitāls",
+      "registered": "reģ.",
+      "vehicles": "CSDD reģistrētie transportlīdzekļi",
+      "legalAddress": "Juridiskā adrese",
+      "phone": "Tālrunis",
+      "email": "E-pasts"
+    },
+    "risk": {
+      "title": "Apgrūtinājumi",
+      "liquidation": "Likvidācijas process",
+      "insolvency": "Aktuāls ieraksts maksātnespējas reģistrā",
+      "paymentClaims": "Aktuālās pretenzijas par maksājumiem",
+      "commercialPledges": "Aktuāli komercķīlu akti",
+      "securities": "Aktuālie nodrošinājumi",
+      "taxDebts": "Nodokļu parādi VID (uz datumu)",
+      "hasValue": "Ir",
+      "noValue": "Nav",
+      "loginRequired": "Pieslēgties",
+      "asOf": "uz"
+    },
+    "ownership": {
+      "title": "Īpašumtiesību Struktūra",
+      "owner": "Īpašnieks",
+      "sharePercent": "Daļa %",
+      "sharesCount": "Daļu skaits",
+      "totalValue": "Kopējā vērtība",
+      "votingRights": "Balsstiesības",
+      "memberSince": "Dalībnieks kopš",
+      "nominal": "nom."
+    },
+    "boardMembers": {
+      "title": "Amatpersonas",
+      "name": "Vārds, uzvārds",
+      "personalCode": "Personas kods",
+      "institution": "Institūcija",
+      "position": "Amats",
+      "appointedDate": "Apstiprināšanas datums",
+      "representationRights": "Pārstāvības tiesības"
+    },
+    "beneficialOwners": {
+      "title": "Patiesie labuma guvēji",
+      "name": "Vārds, uzvārds",
+      "personalCode": "Personas kods",
+      "statusSince": "Statuss kopš",
+      "residenceCountry": "Dzīvesvietas valsts",
+      "citizenship": "Pilsonība",
+      "controlType": "Kontroles veids"
+    },
+    "taxPayments": {
+      "title": "Nodokļu Maksājumi Valsts Budžetā",
+      "year": "Gads",
+      "amount": "Summa",
+      "date": "Datums"
+    },
+    "documents": {
+      "title": "Dokumenti",
+      "description": "Uzņēmuma dokumenti un reģistrācijas materiāli",
+      "comingSoon": "Dokumentu sadaļa ir izstrādes procesā",
+      "comingSoonDescription": "Drīzumā šeit būs pieejami uzņēmuma dokumenti, finanšu pārskati, reģistrācijas apliecības un citi svarīgi materiāli."
+    },
+    "financialRatios": {
+      "title": "Finanšu Rādītāji",
+      "profitability": "Rentabilitāte",
+      "liquidity": "Likviditāte",
+      "leverage": "Finansējums",
+      "efficiency": "Efektivitāte",
+      "ratio": "Rādītājs",
+      "returnOnEquity": "Pašu kapitāla atdeve (ROE)",
+      "returnOnAssets": "Aktīvu atdeve (ROA)",
+      "roce": "Izmantotā kapitāla atdeve (ROCE)",
+      "netProfitMargin": "Neto peļņas marža",
+      "grossProfitMargin": "Bruto peļņas marža",
+      "operatingProfitMargin": "EBIT marža",
+      "ebitdaMargin": "EBITDA marža",
+      "cashFlowMargin": "Naudas plūsmas marža",
+      "revenuePerEmployee": "Apgrozījums uz darbinieku",
+      "profitPerEmployee": "Peļņa uz darbinieku",
+      "currentRatio": "Kopējās likviditātes koeficients",
+      "quickRatio": "Ātrās likviditātes koeficients",
+      "cashRatio": "Naudas likviditātes koeficients",
+      "workingCapitalRatio": "Apgrozāmā kapitāla koeficients",
+      "debtToEquity": "Parāda un pašu kapitāla attiecība",
+      "debtRatio": "Parāda un aktīvu attiecība",
+      "interestCoverageRatio": "Procentu seguma koeficients",
+      "equityMultiplier": "Pašu kapitāla reizinātājs",
+      "assetTurnover": "Aktīvu apgrozījums",
+      "inventoryTurnover": "Krājumu apgrozījums",
+      "receivablesTurnover": "Debitoru apgrozījums",
+      "payablesTurnover": "Kreditoru apgrozījums",
+      "dso": "Debitoru apgrozījuma periods (DSO)",
+      "dpo": "Kreditoru apgrozījuma periods (DPO)",
+      "cashConversionCycle": "Naudas konversijas cikls (dienas)"
+    }
+  },
+  "maintenance": {
+    "title": "Sistēma īslaicīgi nav pieejama",
+    "description": "Veicam tehniskos uzlabojumus. Lūdzu, mēģiniet vēlreiz pēc brīža.",
+    "thanks": "Paldies par jūsu pacietību!"
+  },
+  "companySelector": {
+    "searchPlaceholder": "Meklēt uzņēmumus ({count}/{max})...",
+    "searching": "Meklē...",
+    "noResults": "Uzņēmumi nav atrasti.",
+    "companies": "Uzņēmumi",
+    "removeCompany": "Noņemt uzņēmumu",
+    "minCompanies": "Izvēlieties vismaz {min} uzņēmumus, lai sāktu salīdzinājumu.",
+    "maxCompanies": "Maksimālais uzņēmumu skaits ({max}) sasniegts.",
+    "noDataAvailable": "Nav pieejami finanšu dati"
+  },
+  "compare": {
+    "title": "Uzņēmumu Salīdzinājums",
+    "subtitle": "Salīdziniet līdz 5 uzņēmumu finanšu datus",
+    "selection": {
+      "title": "Izvēlēties Uzņēmumus",
+      "description": "Izvēlieties no 2 līdz 5 uzņēmumiem salīdzināšanai",
+      "compare": "Salīdzināt Uzņēmumus",
+      "loading": "Ielādē..."
+    },
+    "errors": {
+      "loadFailed": "Neizdevās ielādēt uzņēmumus",
+      "generic": "Radās kļūda"
+    },
+    "basicInfo": {
+      "title": "Pamata Informācija",
+      "company": "Uzņēmums",
+      "status": "Statuss",
+      "legalForm": "Juridiskā forma",
+      "shareCapital": "Pamatkapitāls",
+      "vehicles": "CSDD transportlīdzekļi",
+      "registrationDate": "Reģistrācijas datums"
+    },
+    "yearSelector": {
+      "label": "Izvēlēties gadu:"
+    },
+    "financialRatios": {
+      "title": "Finanšu Rādītāji",
+      "profitability": "Rentabilitāte",
+      "liquidity": "Likviditāte",
+      "leverage": "Finansējums",
+      "efficiency": "Efektivitāte",
+      "ratio": "Rādītājs"
+    },
+    "taxPayments": {
+      "title": "Nodokļu Maksājumi",
+      "company": "Uzņēmums",
+      "amount": "Summa",
+      "date": "Datums",
+      "noData": "Nav datu"
+    }
+  }
+}

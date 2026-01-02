@@ -1,0 +1,364 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "search": "Search",
+    "noResults": "No results",
+    "notFound": "Not found",
+    "yes": "Yes",
+    "no": "No",
+    "copyright": "© 2025 Posterns. All rights reserved.",
+    "notAvailable": "N/A",
+    "year": "Year",
+    "date": "Date",
+    "amount": "Amount",
+    "actions": "Actions",
+    "details": "Details",
+    "view": "View",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "remove": "Remove",
+    "select": "Select",
+    "all": "All",
+    "none": "None",
+    "from": "From",
+    "to": "To",
+    "total": "Total",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "companyStatus": {
+      "Aktīvs": "Active",
+      "Likvidēts": "Liquidated",
+      "Izslēgts": "Excluded",
+      "Apturēta darbība": "Suspended",
+      "Maksātnespēja": "Insolvent",
+      "Reorganizācija": "Reorganization",
+      "unknown": "Unknown"
+    }
+  },
+  "navigation": {
+    "search": "Search",
+    "compare": "Compare",
+    "analytics": "Analytics",
+    "reports": "Reports",
+    "login": "Sign In",
+    "searchPlaceholder": "Search company...",
+    "comingSoon": "Coming Soon",
+    "languages": {
+      "lv": "Latvian",
+      "en": "English"
+    }
+  },
+  "home": {
+    "title": {
+      "latvia": "Search Latvian Companies",
+      "estonia": "Search Estonian Companies",
+      "lithuania": "Search Lithuanian Companies",
+      "all": "Search Baltic Companies",
+      "default": "Search Companies"
+    },
+    "subtitle": {
+      "latvia": "Search by company name, registration number, tax number, or owner name",
+      "estonia": "Search by company name, registration number, tax number, or owner name",
+      "lithuania": "Search by company name, registration number, tax number, or owner name",
+      "all": "Search by company name, registration number, tax number, or owner name across all Baltic states",
+      "default": "Search by company name, registration number, tax number, or owner name"
+    },
+    "search": {
+      "searching": "Searching...",
+      "noResults": "No companies found.",
+      "companies": "Companies",
+      "owners": "Owners",
+      "placeholder": "Enter company name or registration number...",
+      "button": "Search"
+    },
+    "countries": {
+      "latvia": "Latvia",
+      "estonia": "Estonia",
+      "lithuania": "Lithuania",
+      "all": "All Baltic States"
+    },
+    "footer": {
+      "poweredBy": "Powered by",
+      "dataSource": "Data source: Lursoft, Company Register"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Sign In",
+      "subtitle": "Enter your credentials to sign in",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Enter your password",
+      "rememberMe": "Remember me",
+      "forgotPassword": "Forgot password?",
+      "submit": "Sign In",
+      "noAccount": "Don't have an account?",
+      "register": "Sign Up",
+      "orContinueWith": "Or continue with",
+      "google": "Continue with Google"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Enter your details to create an account",
+      "name": "Name",
+      "namePlaceholder": "Your name",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "password": "Password",
+      "passwordPlaceholder": "Create a password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm your password",
+      "submit": "Sign Up",
+      "hasAccount": "Already have an account?",
+      "login": "Sign In",
+      "orContinueWith": "Or continue with",
+      "google": "Continue with Google"
+    },
+    "forgotPassword": {
+      "title": "Forgot Password?",
+      "subtitle": "Enter your email and we'll send you a reset link",
+      "email": "Email",
+      "emailPlaceholder": "your@email.com",
+      "submit": "Send Reset Link",
+      "backToLogin": "Back to Sign In",
+      "successTitle": "Check Your Email",
+      "successMessage": "If an account exists, we sent a password reset link."
+    },
+    "resetPassword": {
+      "title": "Reset Password",
+      "subtitle": "Enter your new password",
+      "password": "New Password",
+      "passwordPlaceholder": "Enter new password",
+      "confirmPassword": "Confirm Password",
+      "confirmPasswordPlaceholder": "Confirm new password",
+      "submit": "Reset Password",
+      "successTitle": "Password Reset",
+      "successMessage": "Your password has been successfully reset. You can now sign in.",
+      "backToLogin": "Back to Sign In"
+    },
+    "verifyEmail": {
+      "title": "Verify Email",
+      "subtitle": "We sent a verification link to your email",
+      "checking": "Verifying...",
+      "successTitle": "Email Verified",
+      "successMessage": "Your email has been verified. You can now sign in.",
+      "errorTitle": "Error",
+      "errorMessage": "Failed to verify email. The link may be invalid or expired.",
+      "resend": "Resend Email",
+      "backToLogin": "Back to Sign In"
+    },
+    "resendVerification": {
+      "button": "Resend email",
+      "sending": "Sending...",
+      "success": "Verification email sent!",
+      "error": "Failed to send email. Please try again.",
+      "didntReceive": "Didn't receive the email?",
+      "enterEmail": "Enter your email address",
+      "requestNew": "Request new verification email"
+    },
+    "userMenu": {
+      "profile": "Profile",
+      "settings": "Settings",
+      "logout": "Sign Out"
+    },
+    "errors": {
+      "invalidEmail": "Invalid email address",
+      "passwordMin": "Password must be at least 8 characters",
+      "passwordUppercase": "Password must contain at least one uppercase letter",
+      "passwordLowercase": "Password must contain at least one lowercase letter",
+      "passwordNumber": "Password must contain at least one number",
+      "passwordMismatch": "Passwords do not match",
+      "nameMin": "Name must be at least 2 characters",
+      "invalidCredentials": "Invalid email or password",
+      "emailNotVerified": "Please verify your email first",
+      "accountExists": "An account with this email already exists",
+      "rateLimited": "Too many attempts. Please try again later.",
+      "generic": "Something went wrong. Please try again."
+    },
+    "success": {
+      "registered": "Account created! Please check your email.",
+      "registeredEmailFailed": "Account created, but we could not send the verification email. Please request a new one.",
+      "loggedIn": "Successfully signed in!",
+      "loggedOut": "Successfully signed out!",
+      "passwordReset": "Password successfully reset!",
+      "emailSent": "Email sent!"
+    }
+  },
+  "company": {
+    "error": "Error",
+    "notFound": "Company not found",
+    "loadError": "Failed to load company",
+    "tabs": {
+      "basic": "Basic Information",
+      "people": "People",
+      "financial": "Financial Information",
+      "documents": "Documents"
+    },
+    "companyInfo": {
+      "title": "Company Information",
+      "registrationNumber": "Registration Number",
+      "taxNumber": "Tax Number",
+      "legalForm": "Legal Form",
+      "registry": "Registry",
+      "registrationDate": "Registration Date",
+      "shareCapital": "Share Capital",
+      "registered": "reg.",
+      "vehicles": "CSDD Registered Vehicles",
+      "legalAddress": "Legal Address",
+      "phone": "Phone",
+      "email": "Email"
+    },
+    "risk": {
+      "title": "Encumbrances",
+      "liquidation": "Liquidation Process",
+      "insolvency": "Entry in Insolvency Register",
+      "paymentClaims": "Active Payment Claims",
+      "commercialPledges": "Active Commercial Pledges",
+      "securities": "Active Securities",
+      "taxDebts": "Tax Debts (as of date)",
+      "hasValue": "Yes",
+      "noValue": "No",
+      "loginRequired": "Sign In",
+      "asOf": "as of"
+    },
+    "ownership": {
+      "title": "Ownership Structure",
+      "owner": "Owner",
+      "sharePercent": "Share %",
+      "sharesCount": "Number of Shares",
+      "totalValue": "Total Value",
+      "votingRights": "Voting Rights",
+      "memberSince": "Member Since",
+      "nominal": "nom."
+    },
+    "boardMembers": {
+      "title": "Board Members",
+      "name": "Name",
+      "personalCode": "Personal Code",
+      "institution": "Institution",
+      "position": "Position",
+      "appointedDate": "Appointed Date",
+      "representationRights": "Representation Rights"
+    },
+    "beneficialOwners": {
+      "title": "Beneficial Owners",
+      "name": "Name",
+      "personalCode": "Personal Code",
+      "statusSince": "Status Since",
+      "residenceCountry": "Residence Country",
+      "citizenship": "Citizenship",
+      "controlType": "Control Type"
+    },
+    "taxPayments": {
+      "title": "Tax Payments to State Budget",
+      "year": "Year",
+      "amount": "Amount",
+      "date": "Date"
+    },
+    "documents": {
+      "title": "Documents",
+      "description": "Company documents and registration materials",
+      "comingSoon": "Documents section is under development",
+      "comingSoonDescription": "Soon you will be able to access company documents, financial reports, registration certificates, and other important materials here."
+    },
+    "financialRatios": {
+      "title": "Financial Ratios",
+      "profitability": "Profitability",
+      "liquidity": "Liquidity",
+      "leverage": "Leverage",
+      "efficiency": "Efficiency",
+      "ratio": "Ratio",
+      "returnOnEquity": "Return on Equity (ROE)",
+      "returnOnAssets": "Return on Assets (ROA)",
+      "roce": "Return on Capital Employed (ROCE)",
+      "netProfitMargin": "Net Profit Margin",
+      "grossProfitMargin": "Gross Profit Margin",
+      "operatingProfitMargin": "EBIT Margin",
+      "ebitdaMargin": "EBITDA Margin",
+      "cashFlowMargin": "Cash Flow Margin",
+      "revenuePerEmployee": "Revenue per Employee",
+      "profitPerEmployee": "Profit per Employee",
+      "currentRatio": "Current Ratio",
+      "quickRatio": "Quick Ratio",
+      "cashRatio": "Cash Ratio",
+      "workingCapitalRatio": "Working Capital Ratio",
+      "debtToEquity": "Debt to Equity",
+      "debtRatio": "Debt to Assets",
+      "interestCoverageRatio": "Interest Coverage Ratio",
+      "equityMultiplier": "Equity Multiplier",
+      "assetTurnover": "Asset Turnover",
+      "inventoryTurnover": "Inventory Turnover",
+      "receivablesTurnover": "Receivables Turnover",
+      "payablesTurnover": "Payables Turnover",
+      "dso": "Days Sales Outstanding (DSO)",
+      "dpo": "Days Payable Outstanding (DPO)",
+      "cashConversionCycle": "Cash Conversion Cycle (days)"
+    }
+  },
+  "maintenance": {
+    "title": "System Temporarily Unavailable",
+    "description": "We are performing technical improvements. Please try again later.",
+    "thanks": "Thank you for your patience!"
+  },
+  "companySelector": {
+    "searchPlaceholder": "Search companies ({count}/{max})...",
+    "searching": "Searching...",
+    "noResults": "No companies found.",
+    "companies": "Companies",
+    "removeCompany": "Remove company",
+    "minCompanies": "Select at least {min} companies to start comparison.",
+    "maxCompanies": "Maximum number of companies ({max}) reached.",
+    "noDataAvailable": "No financial data available"
+  },
+  "compare": {
+    "title": "Company Comparison",
+    "subtitle": "Compare up to 5 companies by financial data",
+    "selection": {
+      "title": "Select Companies",
+      "description": "Select 2 to 5 companies for comparison",
+      "compare": "Compare Companies",
+      "loading": "Loading..."
+    },
+    "errors": {
+      "loadFailed": "Failed to load companies",
+      "generic": "An error occurred"
+    },
+    "basicInfo": {
+      "title": "Basic Information",
+      "company": "Company",
+      "status": "Status",
+      "legalForm": "Legal Form",
+      "shareCapital": "Share Capital",
+      "vehicles": "CSDD Vehicles",
+      "registrationDate": "Registration Date"
+    },
+    "yearSelector": {
+      "label": "Select year:"
+    },
+    "financialRatios": {
+      "title": "Financial Ratios",
+      "profitability": "Profitability",
+      "liquidity": "Liquidity",
+      "leverage": "Leverage",
+      "efficiency": "Efficiency",
+      "ratio": "Ratio"
+    },
+    "taxPayments": {
+      "title": "Tax Payments",
+      "company": "Company",
+      "amount": "Amount",
+      "date": "Date",
+      "noData": "No data"
+    }
+  }
+}
