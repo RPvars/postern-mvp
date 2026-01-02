@@ -21,11 +21,11 @@ export const searchQuerySchema = z
   );
 
 /**
- * Company ID validation schema (UUID format)
+ * Company ID validation schema (CUID format)
  */
 export const companyIdSchema = z
   .string()
-  .uuid('Invalid company ID format');
+  .cuid('Invalid company ID format');
 
 /**
  * Company ID array validation schema

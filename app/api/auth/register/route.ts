@@ -32,29 +32,30 @@ export async function POST(request: Request) {
     const { name, email, password } = validated.data;
     const normalizedEmail = email.toLowerCase();
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'An account with this email already exists' },
-        { status: 400 }
-      );
-    }
-
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create user
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email: normalizedEmail,
-        password: hashedPassword,
-      },
-    });
+    // Create user - rely on database unique constraint to prevent duplicates
+    let user;
+    try {
+      user = await prisma.user.create({
+        data: {
+          name,
+          email: normalizedEmail,
+          password: hashedPassword,
+        },
+      });
+    } catch (error: any) {
+      // Handle unique constraint violation (duplicate email)
+      if (error.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'An account with this email already exists' },
+          { status: 400 }
+        );
+      }
+      // Re-throw other errors to be caught by outer try-catch
+      throw error;
+    }
 
     // Create verification token
     const token = generateVerificationToken();

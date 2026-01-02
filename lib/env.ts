@@ -28,6 +28,13 @@ const envSchema = z.object({
   // Feature flags
   SITE_ENABLED: z.string().optional().default('true'),
 
+  // Cron jobs
+  CRON_SECRET: z.string().optional(),
+
+  // Error monitoring (Sentry)
+  SENTRY_DSN: z.string().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().optional(),
+
   // Environment
   NODE_ENV: z.enum(['development', 'production', 'test']).optional().default('development'),
 });

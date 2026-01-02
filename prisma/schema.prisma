@@ -16,8 +16,11 @@ datasource db {
 model Company {
   id                String   @id @default(cuid())
   name              String
+  nameNormalized    String   @default("")  // Normalized name for fast search
   registrationNumber String  @unique
+  registrationNumberNormalized String  @default("")  // Normalized registration number for search
   taxNumber         String   @unique
+  taxNumberNormalized String  @default("")  // Normalized tax number for search
   legalAddress      String
   registrationDate  DateTime
   phone             String?
@@ -51,6 +54,7 @@ model Company {
   financialRatios   FinancialRatio[]
 
   @@index([name])
+  @@index([nameNormalized])
   @@index([registrationNumber])
   @@index([taxNumber])
 }
@@ -91,6 +95,7 @@ model Ownership {
   @@index([companyId])
   @@index([ownerId])
   @@index([isHistorical])
+  @@index([companyId, isHistorical])
 }
 
 model TaxPayment {
@@ -105,6 +110,7 @@ model TaxPayment {
 
   @@index([companyId])
   @@index([year])
+  @@index([companyId, year])
 }
 
 model FinancialRatio {
@@ -171,6 +177,7 @@ model BoardMember {
 
   @@index([companyId])
   @@index([isHistorical])
+  @@index([companyId, isHistorical])
 }
 
 model BeneficialOwner {
@@ -259,6 +266,7 @@ model VerificationToken {
   @@unique([identifier, token])
   @@index([identifier])
   @@index([token])
+  @@index([token, type, expires])
 }
 
 // Enums

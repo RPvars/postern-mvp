@@ -4,6 +4,7 @@ import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { comparisonSchema } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
+import { captureException } from '@/lib/sentry';
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -41,6 +42,11 @@ export async function POST(request: NextRequest) {
 
     const { companyIds } = validationResult.data;
 
+    // Parse query parameters for historical data pagination
+    const years = body.years || 5; // Default to last 5 years
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - years;
+
     // Fetch all companies with their financial data
     const companies = await prisma.company.findMany({
       where: {
@@ -74,14 +80,26 @@ export async function POST(request: NextRequest) {
           },
         },
         taxPayments: {
+          where: {
+            year: {
+              gte: startYear,
+            },
+          },
           orderBy: {
             year: 'desc',
           },
+          take: 10, // Max 10 records
         },
         financialRatios: {
+          where: {
+            year: {
+              gte: startYear,
+            },
+          },
           orderBy: {
             year: 'desc',
           },
+          take: 10, // Max 10 records
         },
       },
     });
@@ -106,6 +124,9 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ companies: orderedCompanies });
   } catch (error) {
+    // Capture error with Sentry
+    captureException(error, { endpoint: 'compare' });
+
     // Log error in development only
     if (env.NODE_ENV === 'development') {
       console.error('Comparison fetch error:', error);

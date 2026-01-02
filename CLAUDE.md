@@ -108,3 +108,4 @@ The `FinancialRatio` model includes comprehensive financial metrics organized by
 2. **Prisma not finding database**: Ensure `lib/prisma.ts` uses absolute path via `path.join(process.cwd(), 'prisma', 'dev.db')`
 3. **Auth not working after schema change**: Run `npx prisma generate` and restart dev server
 4. **Compare page state lost on language change**: URL parameters preserve state across reloads
+5. **"Company not found" (404) errors after database schema changes**: This happens when the dev server is running with stale build cache after Prisma schema modifications. The search may find companies but detail pages fail to load. Fix: Stop dev server (Ctrl+C), run `rm -rf .next && npx prisma generate`, then restart with `npm run dev`. Always clear cache after schema changes to avoid this issue.

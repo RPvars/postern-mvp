@@ -4,6 +4,7 @@ import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { validateSearchQuery } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
+import { captureException } from '@/lib/sentry';
 
 // Normalize string by removing Latvian diacritics for better search matching
 function normalizeString(str: string): string {
@@ -59,28 +60,40 @@ export async function GET(request: NextRequest) {
     const searchTerm = validationResult.data;
     const searchTermNormalized = normalizeString(searchTerm);
 
-    // Use database-level filtering for better performance
-    // Note: SQLite doesn't support case-insensitive search with mode parameter
-    // We fetch a limited set matching basic criteria, then apply normalization
-    const companies = await prisma.company.findMany({
+    // Use normalized fields for fast database-level filtering
+    // First, get matching company IDs without the heavy owner JOIN
+    const matchingCompanies = await prisma.company.findMany({
       where: {
         OR: [
           {
-            name: {
-              contains: searchTerm,
+            nameNormalized: {
+              contains: searchTermNormalized,
             },
           },
           {
-            registrationNumber: {
-              contains: searchTerm,
+            registrationNumberNormalized: {
+              contains: searchTermNormalized,
             },
           },
           {
-            taxNumber: {
-              contains: searchTerm,
+            taxNumberNormalized: {
+              contains: searchTermNormalized,
             },
           },
         ],
+      },
+      select: {
+        id: true,
+      },
+      take: APP_CONFIG.search.maxResults, // Only fetch what we need
+    });
+
+    // Now fetch full data with owners only for matching companies
+    const companies = await prisma.company.findMany({
+      where: {
+        id: {
+          in: matchingCompanies.map(c => c.id),
+        },
       },
       include: {
         owners: {
@@ -89,18 +102,9 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      take: APP_CONFIG.search.dbQueryLimit, // Limit for diacritic normalization filtering
     });
 
-    // Apply diacritic normalization filtering on the limited result set
-    const filteredCompanies = companies
-      .filter(company =>
-        normalizeString(company.name).includes(searchTermNormalized) ||
-        normalizeString(company.registrationNumber).includes(searchTermNormalized) ||
-        normalizeString(company.taxNumber).includes(searchTermNormalized) ||
-        company.owners.some(o => normalizeString(o.owner.name).includes(searchTermNormalized))
-      )
-      .slice(0, APP_CONFIG.search.maxResults);
+    const filteredCompanies = companies;
 
     const results = filteredCompanies.map((company) => ({
       id: company.id,
@@ -115,6 +119,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ results });
   } catch (error) {
+    // Capture error with Sentry
+    captureException(error, { endpoint: 'search' });
+
     // Log error in development only
     if (env.NODE_ENV === 'development') {
       console.error('Search error:', error);

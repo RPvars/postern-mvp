@@ -4,6 +4,7 @@ import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { companyIdSchema } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
+import { captureException } from '@/lib/sentry';
 
 export async function GET(
   request: NextRequest,
@@ -42,6 +43,13 @@ export async function GET(
       );
     }
 
+    // Parse query parameters for historical data pagination
+    const searchParams = request.nextUrl.searchParams;
+    const yearsParam = searchParams.get('years');
+    const years = yearsParam ? parseInt(yearsParam, 10) : 5; // Default to last 5 years
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - years;
+
     const company = await prisma.company.findUnique({
       where: { id },
       include: {
@@ -70,14 +78,26 @@ export async function GET(
           },
         },
         taxPayments: {
+          where: {
+            year: {
+              gte: startYear,
+            },
+          },
           orderBy: {
             year: 'desc',
           },
+          take: 10, // Max 10 records
         },
         financialRatios: {
+          where: {
+            year: {
+              gte: startYear,
+            },
+          },
           orderBy: {
             year: 'desc',
           },
+          take: 10, // Max 10 records
         },
       },
     });
@@ -91,6 +111,9 @@ export async function GET(
 
     return NextResponse.json({ company });
   } catch (error) {
+    // Capture error with Sentry
+    captureException(error, { endpoint: 'company-detail' });
+
     // Log error in development only
     if (env.NODE_ENV === 'development') {
       console.error('Company fetch error:', error);
