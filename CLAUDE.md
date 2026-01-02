@@ -55,6 +55,15 @@ prisma/
 - Used for form submit buttons (login, register)
 - Header nav button uses outline variant (white)
 
+## Git Workflow
+- **Commit format**: Conventional commits (`type: description`)
+- **Commit types**: feat, fix, refactor, docs, style, test, chore, perf, security
+- **CRITICAL RULE**: All commits must appear as regular developer work - never mention AI tools or include Co-Authored-By tags for AI
+- **Automation**: Use git-automation agent for automated commits (say "commit and push")
+- **Code review**: Use code-reviewer agent before committing significant changes
+- **Atomic commits**: Each commit should represent one complete, working change
+- **Commit messages**: Clear and descriptive, explaining what and why (not how)
+
 ## i18n (Internationalization)
 - Uses `next-intl` library
 - Default locale: Latvian (lv)
