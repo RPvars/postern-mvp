@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
+import { validateSearchQuery } from '@/lib/validations/search';
+import { APP_CONFIG } from '@/lib/config';
+import { env } from '@/lib/env';
 
 // Normalize string by removing Latvian diacritics for better search matching
 function normalizeString(str: string): string {
@@ -22,9 +25,13 @@ function normalizeString(str: string): string {
 }
 
 export async function GET(request: NextRequest) {
-  // Rate limiting: 20 requests per minute per IP
+  // Rate limiting
   const identifier = getClientIdentifier(request);
-  const rateLimitResult = rateLimit(`search:${identifier}`, 20, 60000);
+  const rateLimitResult = rateLimit(
+    `search:${identifier}`,
+    APP_CONFIG.rateLimit.endpoints.search.maxRequests,
+    APP_CONFIG.rateLimit.endpoints.search.windowMs
+  );
 
   if (!rateLimitResult.success) {
     return NextResponse.json(
@@ -43,11 +50,13 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q');
 
-    if (!query || query.trim().length < 2) {
-      return NextResponse.json({ results: [] });
+    // Validate and sanitize search query
+    const validationResult = validateSearchQuery(query);
+    if (!validationResult.success) {
+      return NextResponse.json({ error: validationResult.error, results: [] }, { status: 400 });
     }
 
-    const searchTerm = query.trim();
+    const searchTerm = validationResult.data;
     const searchTermNormalized = normalizeString(searchTerm);
 
     // Use database-level filtering for better performance
@@ -80,7 +89,7 @@ export async function GET(request: NextRequest) {
           },
         },
       },
-      take: 50, // Limit to 50 companies for diacritic normalization filtering
+      take: APP_CONFIG.search.dbQueryLimit, // Limit for diacritic normalization filtering
     });
 
     // Apply diacritic normalization filtering on the limited result set
@@ -91,7 +100,7 @@ export async function GET(request: NextRequest) {
         normalizeString(company.taxNumber).includes(searchTermNormalized) ||
         company.owners.some(o => normalizeString(o.owner.name).includes(searchTermNormalized))
       )
-      .slice(0, 10); // Limit to 10 results
+      .slice(0, APP_CONFIG.search.maxResults);
 
     const results = filteredCompanies.map((company) => ({
       id: company.id,
@@ -107,7 +116,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ results });
   } catch (error) {
     // Log error in development only
-    if (process.env.NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       console.error('Search error:', error);
     }
     return NextResponse.json(

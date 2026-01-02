@@ -2,12 +2,13 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import NextAuth from 'next-auth';
 import { authConfig } from '@/lib/auth.config';
+import { env } from '@/lib/env';
 
 const { auth } = NextAuth(authConfig);
 
 export default auth((request) => {
   // Check if site is enabled via environment variable
-  const siteEnabled = process.env.SITE_ENABLED !== 'false';
+  const siteEnabled = env.SITE_ENABLED !== 'false';
 
   // If already on maintenance page, allow access
   if (request.nextUrl.pathname === '/maintenance') {

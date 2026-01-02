@@ -1,19 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-
-interface SearchResult {
-  id: string;
-  name: string;
-  registrationNumber: string;
-  taxNumber: string;
-  owners: { name: string; share: number }[];
-}
+import { useCompanySearch } from '@/hooks/use-company-search';
 
 interface SearchBarProps {
   country: string;
@@ -23,42 +15,20 @@ interface SearchBarProps {
 export function SearchBar({ country, onCountryChange }: SearchBarProps) {
   const router = useRouter();
   const t = useTranslations('home');
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-
-  const searchCompanies = useCallback(async (searchQuery: string) => {
-    if (searchQuery.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-      const data = await response.json();
-      setResults(data.results || []);
-    } catch (error) {
-      console.error('Search failed:', error);
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      searchCompanies(query);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query, searchCompanies]);
+  const {
+    query,
+    results,
+    isLoading,
+    isOpen,
+    handleQueryChange,
+    handleFocus,
+    handleBlur,
+    clearSearch,
+  } = useCompanySearch();
 
   const handleSelect = (companyId: string) => {
     router.push(`/company/${companyId}`);
-    setIsOpen(false);
-    setQuery('');
+    clearSearch();
   };
 
   const getCountryFlag = (countryCode: string) => {
@@ -85,12 +55,9 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
               <CommandInput
                 placeholder=""
                 value={query}
-                onValueChange={(value) => {
-                  setQuery(value);
-                  setIsOpen(value.length >= 2);
-                }}
-                onFocus={() => query.length >= 2 && setIsOpen(true)}
-                onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+                onValueChange={handleQueryChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
                 className="h-28 text-lg border-0 focus-visible:ring-0 px-4"
               />
               <div className={cn(

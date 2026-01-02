@@ -1,65 +1,28 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
-import { cn } from '@/lib/utils';
-
-interface SearchResult {
-  id: string;
-  name: string;
-  registrationNumber: string;
-  taxNumber: string;
-}
+import { Command, CommandInput } from '@/components/ui/command';
+import { useCompanySearch } from '@/hooks/use-company-search';
 
 export function HeaderSearch() {
   const router = useRouter();
   const t = useTranslations('navigation');
   const home = useTranslations('home');
-  const [query, setQuery] = useState('');
-  const [results, setResults] = useState<SearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
-
-  const searchCompanies = useCallback(async (searchQuery: string) => {
-    if (searchQuery.trim().length < 2) {
-      setResults([]);
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(searchQuery)}`);
-      const data = await response.json();
-      console.log('[HeaderSearch] API Response:', data);
-      console.log('[HeaderSearch] Results count:', data.results?.length || 0);
-      setResults(data.results || []);
-    } catch (error) {
-      console.error('Search failed:', error);
-      setResults([]);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      console.log('[HeaderSearch] Debounced search for query:', query);
-      searchCompanies(query);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [query, searchCompanies]);
-
-  useEffect(() => {
-    console.log('[HeaderSearch] State update - isOpen:', isOpen, 'results.length:', results.length, 'query:', query);
-  }, [isOpen, results, query]);
+  const {
+    query,
+    results,
+    isLoading,
+    isOpen,
+    handleQueryChange,
+    handleFocus,
+    handleBlur,
+    clearSearch,
+  } = useCompanySearch();
 
   const handleSelect = (companyId: string) => {
     router.push(`/company/${companyId}`);
-    setIsOpen(false);
-    setQuery('');
+    clearSearch();
   };
 
   return (
@@ -68,12 +31,9 @@ export function HeaderSearch() {
         <CommandInput
           placeholder={t('searchPlaceholder')}
           value={query}
-          onValueChange={(value) => {
-            setQuery(value);
-            setIsOpen(value.length >= 2);
-          }}
-          onFocus={() => query.length >= 2 && setIsOpen(true)}
-          onBlur={() => setTimeout(() => setIsOpen(false), 200)}
+          onValueChange={handleQueryChange}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           className="h-9 text-sm px-3"
         />
       </Command>

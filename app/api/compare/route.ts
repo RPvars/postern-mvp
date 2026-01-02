@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
+import { comparisonSchema } from '@/lib/validations/search';
+import { APP_CONFIG } from '@/lib/config';
+import { env } from '@/lib/env';
 
 export async function POST(request: NextRequest) {
-  // Rate limiting: 15 requests per minute per IP
+  // Rate limiting
   const identifier = getClientIdentifier(request);
-  const rateLimitResult = rateLimit(`compare:${identifier}`, 15, 60000);
+  const rateLimitResult = rateLimit(
+    `compare:${identifier}`,
+    APP_CONFIG.rateLimit.endpoints.compare.maxRequests,
+    APP_CONFIG.rateLimit.endpoints.compare.windowMs
+  );
 
   if (!rateLimitResult.success) {
     return NextResponse.json(
@@ -22,33 +29,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { companyIds } = body;
 
-    // Validate companyIds
-    if (!companyIds || !Array.isArray(companyIds)) {
+    // Validate request body with schema
+    const validationResult = comparisonSchema.safeParse(body);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid request. companyIds must be an array.' },
+        { error: validationResult.error.issues[0]?.message || 'Invalid request data' },
         { status: 400 }
       );
     }
 
-    if (companyIds.length < 2 || companyIds.length > 5) {
-      return NextResponse.json(
-        { error: 'You must select between 2 and 5 companies to compare.' },
-        { status: 400 }
-      );
-    }
-
-    // Validate UUID format for all IDs
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const invalidIds = companyIds.filter((id: string) => !uuidRegex.test(id));
-
-    if (invalidIds.length > 0) {
-      return NextResponse.json(
-        { error: 'Invalid company ID format', invalidIds },
-        { status: 400 }
-      );
-    }
+    const { companyIds } = validationResult.data;
 
     // Fetch all companies with their financial data
     const companies = await prisma.company.findMany({
@@ -116,7 +107,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ companies: orderedCompanies });
   } catch (error) {
     // Log error in development only
-    if (process.env.NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       console.error('Comparison fetch error:', error);
     }
     return NextResponse.json(

@@ -1,14 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
+import { companyIdSchema } from '@/lib/validations/search';
+import { APP_CONFIG } from '@/lib/config';
+import { env } from '@/lib/env';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  // Rate limiting: 30 requests per minute per IP
+  // Rate limiting
   const identifier = getClientIdentifier(request);
-  const rateLimitResult = rateLimit(`company:${identifier}`, 30, 60000);
+  const rateLimitResult = rateLimit(
+    `company:${identifier}`,
+    APP_CONFIG.rateLimit.endpoints.companyDetail.maxRequests,
+    APP_CONFIG.rateLimit.endpoints.companyDetail.windowMs
+  );
 
   if (!rateLimitResult.success) {
     return NextResponse.json(
@@ -26,9 +33,9 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(id)) {
+    // Validate company ID format
+    const validationResult = companyIdSchema.safeParse(id);
+    if (!validationResult.success) {
       return NextResponse.json(
         { error: 'Invalid company ID format' },
         { status: 400 }
@@ -85,7 +92,7 @@ export async function GET(
     return NextResponse.json({ company });
   } catch (error) {
     // Log error in development only
-    if (process.env.NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       console.error('Company fetch error:', error);
     }
     return NextResponse.json(

@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
+import { companyIdsSchema } from '@/lib/validations/search';
+import { APP_CONFIG } from '@/lib/config';
+import { env } from '@/lib/env';
 
 export async function GET(request: NextRequest) {
-  // Rate limiting: 20 requests per minute per IP
+  // Rate limiting
   const identifier = getClientIdentifier(request);
-  const rateLimitResult = rateLimit(`batch:${identifier}`, 20, 60000);
+  const rateLimitResult = rateLimit(
+    `batch:${identifier}`,
+    APP_CONFIG.rateLimit.endpoints.batch.maxRequests,
+    APP_CONFIG.rateLimit.endpoints.batch.windowMs
+  );
 
   if (!rateLimitResult.success) {
     return NextResponse.json(
@@ -34,24 +41,21 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ companies: [] });
     }
 
-    // Validate UUID format for all IDs
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const invalidIds = ids.filter(id => !uuidRegex.test(id));
-
-    if (invalidIds.length > 0) {
+    // Validate company IDs with schema
+    const validationResult = companyIdsSchema.safeParse(ids);
+    if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'Invalid company ID format', invalidIds },
+        { error: validationResult.error.issues[0]?.message || 'Invalid company IDs' },
         { status: 400 }
       );
     }
 
-    // Limit to 10 companies max for safety
-    const limitedIds = ids.slice(0, 10);
+    const validatedIds = validationResult.data;
 
     const companies = await prisma.company.findMany({
       where: {
         id: {
-          in: limitedIds,
+          in: validatedIds,
         },
       },
       select: {
@@ -64,7 +68,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ companies });
   } catch (error) {
     // Log error in development only
-    if (process.env.NODE_ENV === 'development') {
+    if (env.NODE_ENV === 'development') {
       console.error('Batch fetch error:', error);
     }
     return NextResponse.json(

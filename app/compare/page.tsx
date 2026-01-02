@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Navigation } from '@/components/navigation';
@@ -209,49 +209,50 @@ export default function ComparePage() {
     }
   };
 
-  const formatCurrency = (amount: number | null) => {
+  const formatCurrency = useCallback((amount: number | null) => {
     if (amount === null) return 'N/A';
     return new Intl.NumberFormat('lv-LV', {
       style: 'currency',
       currency: 'EUR',
     }).format(amount);
-  };
+  }, []);
 
-  const formatPercent = (value: number | null) => {
+  const formatPercent = useCallback((value: number | null) => {
     if (value === null) return 'N/A';
     return `${(value * 100).toFixed(2)}%`;
-  };
+  }, []);
 
-  const formatRatio = (value: number | null, decimals: number = 2) => {
+  const formatRatio = useCallback((value: number | null, decimals: number = 2) => {
     if (value === null) return 'N/A';
     return value.toFixed(decimals);
-  };
+  }, []);
 
-  const formatDate = (dateString: string) => {
+  const formatDate = useCallback((dateString: string) => {
     return new Date(dateString).toLocaleDateString('lv-LV');
-  };
+  }, []);
 
-  // Get all available years
-  const availableYears = companies.length > 0
-    ? Array.from(
-        new Set(
-          companies.flatMap((c) => c.financialRatios.map((r) => r.year))
-        )
-      ).sort((a, b) => b - a)
-    : [];
+  // Get all available years (memoized)
+  const availableYears = useMemo(() => {
+    if (companies.length === 0) return [];
+    return Array.from(
+      new Set(
+        companies.flatMap((c) => c.financialRatios.map((r) => r.year))
+      )
+    ).sort((a, b) => b - a);
+  }, [companies]);
 
-  // Get financial ratios for selected year
-  const getFinancialRatios = (company: Company) => {
+  // Get financial ratios for selected year (memoized callback)
+  const getFinancialRatios = useCallback((company: Company) => {
     return company.financialRatios.find((r) => r.year === selectedYear) || null;
-  };
+  }, [selectedYear]);
 
-  // Get tax payment for selected year
-  const getTaxPayment = (company: Company) => {
+  // Get tax payment for selected year (memoized callback)
+  const getTaxPayment = useCallback((company: Company) => {
     return company.taxPayments.find((t) => t.year === selectedYear) || null;
-  };
+  }, [selectedYear]);
 
-  // Get best and worst values for highlighting
-  const getBestWorst = (values: (number | null)[], higherIsBetter: boolean = true) => {
+  // Get best and worst values for highlighting (memoized callback)
+  const getBestWorst = useCallback((values: (number | null)[], higherIsBetter: boolean = true) => {
     const validValues = values.filter((v): v is number => v !== null);
     if (validValues.length === 0) return { best: null, worst: null };
 
@@ -259,14 +260,54 @@ export default function ComparePage() {
     const worst = higherIsBetter ? Math.min(...validValues) : Math.max(...validValues);
 
     return { best, worst };
-  };
+  }, []);
 
-  const getCellColor = (value: number | null, best: number | null, worst: number | null) => {
+  const getCellColor = useCallback((value: number | null, best: number | null, worst: number | null) => {
     if (value === null || best === null || worst === null) return '';
     if (value === best) return 'bg-green-50 border-green-200';
     if (value === worst) return 'bg-red-50 border-red-200';
     return '';
-  };
+  }, []);
+
+  // Memoize line chart data for tax payments
+  const taxPaymentsChartData = useMemo(() => {
+    if (companies.length === 0) return [];
+
+    // Get all unique years from all companies
+    const allYears = Array.from(
+      new Set(
+        companies.flatMap(c => c.taxPayments.map(t => t.year))
+      )
+    ).sort((a, b) => a - b);
+
+    // Create data points for each year
+    return allYears.map(year => {
+      const dataPoint: any = { year };
+      companies.forEach(company => {
+        const payment = company.taxPayments.find(t => t.year === year);
+        dataPoint[company.name] = payment ? payment.amount : null;
+      });
+      return dataPoint;
+    });
+  }, [companies]);
+
+  // Memoize Y-axis domain calculation
+  const taxPaymentsYAxisDomain = useMemo(() => {
+    const allValues = companies.flatMap(c =>
+      c.taxPayments.map(t => t.amount)
+    ).filter(v => v !== null && v !== undefined);
+
+    if (allValues.length === 0) return [0, 'auto'];
+
+    const minValue = Math.min(...allValues);
+    const maxValue = Math.max(...allValues);
+    const padding = (maxValue - minValue) * 0.1;
+
+    return [
+      Math.max(0, minValue - padding),
+      maxValue + padding
+    ];
+  }, [companies]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -852,45 +893,12 @@ export default function ComparePage() {
                   {/* Tax Payments Line Chart */}
                   <div className="mt-6 h-80">
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={(() => {
-                        // Get all unique years from all companies
-                        const allYears = Array.from(
-                          new Set(
-                            companies.flatMap(c => c.taxPayments.map(t => t.year))
-                          )
-                        ).sort((a, b) => a - b);
-
-                        // Create data points for each year
-                        return allYears.map(year => {
-                          const dataPoint: any = { year };
-                          companies.forEach(company => {
-                            const payment = company.taxPayments.find(t => t.year === year);
-                            dataPoint[company.name] = payment ? payment.amount : null;
-                          });
-                          return dataPoint;
-                        });
-                      })()}>
+                      <LineChart data={taxPaymentsChartData}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="year" />
                         <YAxis
                           tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
-                          domain={(() => {
-                            // Calculate dynamic Y-axis range based on actual data
-                            const allValues = companies.flatMap(c =>
-                              c.taxPayments.map(t => t.amount)
-                            ).filter(v => v !== null && v !== undefined);
-
-                            if (allValues.length === 0) return [0, 'auto'];
-
-                            const minValue = Math.min(...allValues);
-                            const maxValue = Math.max(...allValues);
-                            const padding = (maxValue - minValue) * 0.1;
-
-                            return [
-                              Math.max(0, minValue - padding),
-                              maxValue + padding
-                            ];
-                          })()}
+                          domain={taxPaymentsYAxisDomain as [number, number]}
                         />
                         <Tooltip formatter={(value) => formatCurrency(value as number)} />
                         <Legend formatter={(value) => <span style={{ color: '#000000' }}>{value}</span>} />

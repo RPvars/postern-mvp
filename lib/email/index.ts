@@ -1,10 +1,11 @@
 import { Resend } from 'resend';
+import { env } from '@/lib/env';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(env.RESEND_API_KEY);
 
-const FROM_EMAIL = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+const FROM_EMAIL = env.EMAIL_FROM;
 const APP_NAME = 'Posterns';
-const APP_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+const APP_URL = env.NEXTAUTH_URL;
 
 interface SendEmailOptions {
   to: string;
