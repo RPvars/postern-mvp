@@ -48,3 +48,6 @@ next-env.d.ts
 
 # turso
 .turso
+
+# API documentation (contains false positive secrets)
+api-parvaldnieka-izmantosanas-vadlinijas.pdf
