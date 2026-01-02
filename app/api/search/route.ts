@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 
 // Normalize string by removing Latvian diacritics for better search matching
 function normalizeString(str: string): string {
@@ -21,6 +22,23 @@ function normalizeString(str: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  // Rate limiting: 20 requests per minute per IP
+  const identifier = getClientIdentifier(request);
+  const rateLimitResult = rateLimit(`search:${identifier}`, 20, 60000);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': Math.ceil(rateLimitResult.resetIn / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q');
@@ -30,11 +48,31 @@ export async function GET(request: NextRequest) {
     }
 
     const searchTerm = query.trim();
-
-    // For SQLite, fetch all companies and filter in memory for case-insensitive search
     const searchTermNormalized = normalizeString(searchTerm);
 
-    const allCompanies = await prisma.company.findMany({
+    // Use database-level filtering for better performance
+    // Note: SQLite doesn't support case-insensitive search with mode parameter
+    // We fetch a limited set matching basic criteria, then apply normalization
+    const companies = await prisma.company.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: searchTerm,
+            },
+          },
+          {
+            registrationNumber: {
+              contains: searchTerm,
+            },
+          },
+          {
+            taxNumber: {
+              contains: searchTerm,
+            },
+          },
+        ],
+      },
       include: {
         owners: {
           include: {
@@ -42,13 +80,11 @@ export async function GET(request: NextRequest) {
           },
         },
       },
+      take: 50, // Limit to 50 companies for diacritic normalization filtering
     });
 
-    console.log('Total companies fetched:', allCompanies.length);
-    console.log('Search term normalized:', searchTermNormalized);
-
-    // Manual case-insensitive filtering with diacritic normalization for SQLite
-    const filteredCompanies = allCompanies
+    // Apply diacritic normalization filtering on the limited result set
+    const filteredCompanies = companies
       .filter(company =>
         normalizeString(company.name).includes(searchTermNormalized) ||
         normalizeString(company.registrationNumber).includes(searchTermNormalized) ||
@@ -56,8 +92,6 @@ export async function GET(request: NextRequest) {
         company.owners.some(o => normalizeString(o.owner.name).includes(searchTermNormalized))
       )
       .slice(0, 10); // Limit to 10 results
-
-    console.log('Filtered companies:', filteredCompanies.length);
 
     const results = filteredCompanies.map((company) => ({
       id: company.id,
@@ -72,7 +106,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ results });
   } catch (error) {
-    console.error('Search error:', error);
+    // Log error in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Search error:', error);
+    }
     return NextResponse.json(
       { error: 'Failed to search companies' },
       { status: 500 }

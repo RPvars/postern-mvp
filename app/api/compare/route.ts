@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  // Rate limiting: 15 requests per minute per IP
+  const identifier = getClientIdentifier(request);
+  const rateLimitResult = rateLimit(`compare:${identifier}`, 15, 60000);
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      {
+        status: 429,
+        headers: {
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': Math.ceil(rateLimitResult.resetIn / 1000).toString(),
+        },
+      }
+    );
+  }
+
   try {
     const body = await request.json();
     const { companyIds } = body;
@@ -17,6 +35,17 @@ export async function POST(request: NextRequest) {
     if (companyIds.length < 2 || companyIds.length > 5) {
       return NextResponse.json(
         { error: 'You must select between 2 and 5 companies to compare.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate UUID format for all IDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const invalidIds = companyIds.filter((id: string) => !uuidRegex.test(id));
+
+    if (invalidIds.length > 0) {
+      return NextResponse.json(
+        { error: 'Invalid company ID format', invalidIds },
         { status: 400 }
       );
     }
@@ -86,7 +115,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ companies: orderedCompanies });
   } catch (error) {
-    console.error('Comparison fetch error:', error);
+    // Log error in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Comparison fetch error:', error);
+    }
     return NextResponse.json(
       { error: 'Failed to fetch companies for comparison' },
       { status: 500 }
