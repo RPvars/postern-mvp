@@ -35,13 +35,101 @@
     "active": "Active",
     "inactive": "Inactive",
     "companyStatus": {
-      "Aktīvs": "Active",
-      "Likvidēts": "Liquidated",
-      "Izslēgts": "Excluded",
-      "Apturēta darbība": "Suspended",
-      "Maksātnespēja": "Insolvent",
-      "Reorganizācija": "Reorganization",
+      "REGISTERED": "Active",
+      "REMOVED": "Liquidated",
+      "STRUCK_OFF": "Excluded",
+      "SUSPENDED": "Suspended",
+      "INSOLVENT": "Insolvent",
+      "REORGANIZATION": "Reorganization",
       "unknown": "Unknown"
+    },
+    "legalForm": {
+      "LIMITED_LIABILITY_COMPANY_SIA": "Limited Liability Company",
+      "PUBLIC_LIMITED_COMPANY_AS": "Public Limited Company",
+      "INDIVIDUAL_MERCHANT": "Individual Merchant",
+      "COOPERATIVE_SOCIETY": "Cooperative Society",
+      "GENERAL_PARTNERSHIP": "General Partnership",
+      "LIMITED_PARTNERSHIP": "Limited Partnership",
+      "ASSOCIATION": "Association",
+      "FOUNDATION": "Foundation",
+      "TRADE_UNION": "Trade Union",
+      "RELIGIOUS_ORGANIZATION": "Religious Organization",
+      "POLITICAL_PARTY": "Political Party",
+      "EUROPEAN_COMPANY_SE": "European Company (SE)",
+      "EUROPEAN_COOPERATIVE_SOCIETY": "European Cooperative Society",
+      "EUROPEAN_ECONOMIC_INTEREST_GROUPING": "European Economic Interest Grouping",
+      "BRANCH_OF_FOREIGN_COMPANY": "Branch of Foreign Company",
+      "STATE_ENTERPRISE": "State Enterprise",
+      "MUNICIPAL_ENTERPRISE": "Municipal Enterprise",
+      "FARM_ENTERPRISE": "Farm Enterprise",
+      "FISHING_ENTERPRISE": "Fishing Enterprise"
+    },
+    "register": {
+      "COMMERCIAL": "Commercial Register",
+      "ASSOCIATION_AND_FOUNDATION": "Association and Foundation Register",
+      "TRADE_UNION": "Trade Union Register",
+      "RELIGIOUS": "Religious Organization Register",
+      "POLITICAL_PARTY": "Political Party Register"
+    },
+    "position": {
+      "CHAIR_OF_BOARD": "Chair of the Board",
+      "BOARD_MEMBER": "Board Member",
+      "COUNCIL_MEMBER": "Council Member",
+      "CHAIR_OF_COUNCIL": "Chair of the Council",
+      "DEPUTY_CHAIR_OF_COUNCIL": "Deputy Chair of the Council",
+      "DEPUTY_CHAIR_OF_BOARD": "Deputy Chair of the Board",
+      "LIQUIDATOR": "Liquidator",
+      "ADMINISTRATOR": "Administrator",
+      "AUDITOR": "Auditor",
+      "PROCURATOR": "Procurator"
+    },
+    "governingBody": {
+      "EXECUTIVE_BOARD": "Board",
+      "SUPERVISORY_BOARD": "Supervisory Board",
+      "AUDIT_COMMITTEE": "Audit Committee"
+    },
+    "representationRights": {
+      "INDIVIDUALLY": "Right to represent individually",
+      "WITH_AT_LEAST": "Together with at least {count}"
+    },
+    "controlType": {
+      "AS_MEMBER": "As member",
+      "AS_SHAREHOLDER": "As shareholder",
+      "AS_BOARD_MEMBER": "As board member",
+      "AS_COUNCIL_MEMBER": "As council member",
+      "THROUGH_OWNERSHIP": "Through ownership",
+      "THROUGH_CONTROL": "Through control",
+      "THROUGH_OTHER_MEANS": "Through other means",
+      "JOINT_CONTROL": "Joint control",
+      "SENIOR_MANAGEMENT": "Senior management"
+    },
+    "country": {
+      "LV": "Latvia",
+      "LT": "Lithuania",
+      "EE": "Estonia",
+      "DE": "Germany",
+      "GB": "United Kingdom",
+      "US": "United States",
+      "RU": "Russia",
+      "SE": "Sweden",
+      "FI": "Finland",
+      "NO": "Norway",
+      "DK": "Denmark",
+      "PL": "Poland",
+      "FR": "France",
+      "NL": "Netherlands",
+      "BE": "Belgium",
+      "AT": "Austria",
+      "CH": "Switzerland",
+      "IT": "Italy",
+      "ES": "Spain",
+      "CZ": "Czech Republic",
+      "UA": "Ukraine",
+      "BY": "Belarus",
+      "CY": "Cyprus",
+      "IE": "Ireland",
+      "LU": "Luxembourg",
+      "MT": "Malta"
     }
   },
   "navigation": {
@@ -207,7 +295,9 @@
     "companyInfo": {
       "title": "Company Information",
       "registrationNumber": "Registration Number",
-      "taxNumber": "Tax Number",
+      "registrationNumberDate": "Registration number, date",
+      "taxNumber": "VAT Number",
+      "vidDataRequired": "Not available — SRS data",
       "legalForm": "Legal Form",
       "registry": "Registry",
       "registrationDate": "Registration Date",
@@ -216,10 +306,33 @@
       "vehicles": "CSDD Registered Vehicles",
       "legalAddress": "Legal Address",
       "phone": "Phone",
-      "email": "Email"
+      "email": "Email",
+      "register": "Register",
+      "shortName": "Short Name",
+      "lastModified": "Last Modified",
+      "sepaId": "SEPA Creditor ID",
+      "businessPurpose": "Business Purpose",
+      "duration": "Duration",
+      "durationIndefinite": "Indefinite",
+      "durationDefinite": "Fixed term",
+      "articlesDate": "Articles of Association Date",
+      "basicData": "Basic Data",
+      "registrationSection": "Registration",
+      "capital": "Capital",
+      "operations": "Operations",
+      "postalCode": "Postal Code",
+      "city": "City",
+      "atvkCode": "ATVK Code",
+      "isAnnulledWarning": "Registration annulled",
+      "specialStatuses": "Special Statuses",
+      "specialStatusType": "Type",
+      "specialStatusDateFrom": "Date from",
+      "specialStatusRegisteredOn": "Registered",
+      "securingMeasuresCount": "Securing measures count"
     },
     "risk": {
       "title": "Encumbrances",
+      "sanctionsRisk": "Sanctions Risk",
       "liquidation": "Liquidation Process",
       "insolvency": "Entry in Insolvency Register",
       "paymentClaims": "Active Payment Claims",
@@ -228,6 +341,7 @@
       "taxDebts": "Tax Debts (as of date)",
       "hasValue": "Yes",
       "noValue": "No",
+      "noDataSource": "Data not available",
       "loginRequired": "Sign In",
       "asOf": "as of"
     },
@@ -239,7 +353,18 @@
       "totalValue": "Total Value",
       "votingRights": "Voting Rights",
       "memberSince": "Member Since",
-      "nominal": "nom."
+      "registeredOn": "Registered at CR",
+      "nominal": "nom.",
+      "personallyLiable": "Personally Liable",
+      "noData": "Ownership data is not available",
+      "showMore": "Show more",
+      "showLess": "Show less",
+      "showing": "Showing {count} of {total}",
+      "totalOwners": "Total Owners",
+      "totalShares": "Total Shares",
+      "totalCapital": "Total Capital",
+      "personallyLiableCount": "Personally Liable",
+      "other": "Other"
     },
     "boardMembers": {
       "title": "Board Members",
@@ -248,7 +373,9 @@
       "institution": "Institution",
       "position": "Position",
       "appointedDate": "Appointed Date",
-      "representationRights": "Representation Rights"
+      "representationRights": "Representation Rights",
+      "endDate": "End Date",
+      "note": "Note"
     },
     "beneficialOwners": {
       "title": "Beneficial Owners",
@@ -257,13 +384,19 @@
       "statusSince": "Status Since",
       "residenceCountry": "Residence Country",
       "citizenship": "Citizenship",
-      "controlType": "Control Type"
+      "controlType": "Control Type",
+      "birthDate": "Date of Birth",
+      "registeredOn": "Registered at CR",
+      "isMinor": "Minor"
     },
     "taxPayments": {
       "title": "Tax Payments to State Budget",
       "year": "Year",
       "amount": "Amount",
       "date": "Date"
+    },
+    "financial": {
+      "noData": "Financial data is not available"
     },
     "documents": {
       "title": "Documents",

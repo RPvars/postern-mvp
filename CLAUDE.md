@@ -70,7 +70,8 @@ prisma/
 - Supported locales: lv, en
 - Translation files: `messages/lv.json`, `messages/en.json`
 - Key namespaces: `common`, `navigation`, `home`, `auth`, `company`, `compare`, `companySelector`
-- Company status values (from DB in Latvian) are translated via `common.companyStatus` mapping
+- **i18n pattern**: API returns raw enum values (e.g., `REGISTERED`, `BOARD_MEMBER`), frontend translates via `tCommon('namespace.ENUM_VALUE')`
+- Translation namespaces for enums: `companyStatus`, `legalForm`, `register`, `position`, `governingBody`, `representationRights`, `controlType`, `country`
 - Use `useTranslations('namespace')` hook in client components
 
 ## Common Commands
@@ -79,6 +80,7 @@ npm run dev           # Start dev server
 npx prisma generate   # Regenerate Prisma client
 npx prisma db push    # Push schema to database
 npx prisma studio     # Open database GUI
+/ship                 # Run shipping pipeline (review, fix, build, commit, push)
 ```
 
 ## Environment Variables
@@ -89,6 +91,19 @@ Required in `.env`:
 - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` - Google OAuth (optional)
 - `RESEND_API_KEY` - Email service API key
 - `EMAIL_FROM` - Sender email address
+- `BR_AUTH_URL` - Business Register OAuth2 token endpoint
+- `BR_CONSUMER_KEY` / `BR_CONSUMER_SECRET` - API credentials from VDAA developer portal
+- `BR_CERTIFICATE_PATH` / `BR_CERTIFICATE_PASSWORD` - PFAS certificate for API auth
+- `BR_API_GATEWAY_URL` - API gateway base URL (default: `https://apigw.viss.gov.lv`)
+- `BR_USE_MOCK_DATA` - Set to `"true"` for development without certificate
+
+## Business Register API Integration
+- **Auth flow**: PFAS certificate → JWT client assertion → OAuth2 token → Bearer auth on API calls
+- **Client**: `lib/business-register/client/http.ts` — authenticated HTTPS with 5min response cache
+- **Mappers**: `lib/business-register/mappers/company.ts` — transform API responses, abbreviate legal forms (SIA/AS), return raw enums for i18n
+- **Name resolution**: Company detail route resolves legal entity names for members/officers missing `legalName` (max 10 parallel lookups, cached)
+- **Mock mode**: Set `BR_USE_MOCK_DATA=true` to bypass certificate requirement in development
+- **Key API endpoints used**: `/searchlegalentities/search/legal-entities`, `/legalentity/legal-entity/{regcode}`
 
 ## Financial Ratios
 The `FinancialRatio` model includes comprehensive financial metrics organized by category:

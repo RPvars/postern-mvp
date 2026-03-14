@@ -1,15 +1,12 @@
 import { httpClient } from '../client/http';
-import { companyMapper } from '../mappers/company';
-import type { CompanyApiResponse, Company } from '../types/api-responses';
+import { companyMapper, boardMemberMapper } from '../mappers/company';
+import type { Company, BoardMember } from '../types/api-responses';
 
 export class CompanyService {
   async getCompany(registrationNumber: string): Promise<Company | null> {
     try {
-      const apiResponse = await httpClient.request<CompanyApiResponse>(
-        `/companies/${registrationNumber}`
-      );
-
-      return companyMapper.toInternalFormat(apiResponse);
+      const apiResponse = await httpClient.getLegalEntity(registrationNumber);
+      return companyMapper.fromLegalEntity(apiResponse);
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Failed to fetch company:', error);
@@ -20,11 +17,8 @@ export class CompanyService {
 
   async searchCompanies(query: string, limit: number = 10): Promise<Company[]> {
     try {
-      const apiResponse = await httpClient.request<{ companies: CompanyApiResponse[] }>(
-        `/companies/search?q=${encodeURIComponent(query)}&limit=${limit}`
-      );
-
-      return apiResponse.companies.map(c => companyMapper.toInternalFormat(c));
+      const results = await httpClient.searchCompanies(query);
+      return results.slice(0, limit).map(r => companyMapper.fromSearchResult(r));
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Failed to search companies:', error);
@@ -41,6 +35,21 @@ export class CompanyService {
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Failed to fetch batch companies:', error);
+      }
+      return [];
+    }
+  }
+
+  async getBoardMembers(registrationNumber: string): Promise<BoardMember[]> {
+    try {
+      const apiResponse = await httpClient.getLegalEntity(registrationNumber);
+      const companyId = apiResponse.registrationNumber;
+      return (apiResponse.officers || []).map(o =>
+        boardMemberMapper.fromOfficer(o, companyId)
+      );
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Failed to fetch board members:', error);
       }
       return [];
     }

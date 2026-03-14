@@ -1,29 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { validateSearchQuery } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
 import { captureException } from '@/lib/sentry';
-
-// Normalize string by removing Latvian diacritics for better search matching
-function normalizeString(str: string): string {
-  return str
-    .toLowerCase()
-    .normalize('NFD') // Decompose combined characters
-    .replace(/[\u0300-\u036f]/g, '') // Remove diacritical marks
-    .replace(/[āĀ]/g, 'a')
-    .replace(/[čČ]/g, 'c')
-    .replace(/[ēĒ]/g, 'e')
-    .replace(/[ģĢ]/g, 'g')
-    .replace(/[īĪ]/g, 'i')
-    .replace(/[ķĶ]/g, 'k')
-    .replace(/[ļĻ]/g, 'l')
-    .replace(/[ņŅ]/g, 'n')
-    .replace(/[šŠ]/g, 's')
-    .replace(/[ūŪ]/g, 'u')
-    .replace(/[žŽ]/g, 'z');
-}
+import { httpClient } from '@/lib/business-register/client/http';
 
 export async function GET(request: NextRequest) {
   // Rate limiting
@@ -58,71 +39,23 @@ export async function GET(request: NextRequest) {
     }
 
     const searchTerm = validationResult.data;
-    const searchTermNormalized = normalizeString(searchTerm);
 
-    // Use normalized fields for fast database-level filtering
-    // First, get matching company IDs without the heavy owner JOIN
-    const matchingCompanies = await prisma.company.findMany({
-      where: {
-        OR: [
-          {
-            nameNormalized: {
-              contains: searchTermNormalized,
-            },
-          },
-          {
-            registrationNumberNormalized: {
-              contains: searchTermNormalized,
-            },
-          },
-          {
-            taxNumberNormalized: {
-              contains: searchTermNormalized,
-            },
-          },
-        ],
-      },
-      select: {
-        id: true,
-      },
-      take: APP_CONFIG.search.maxResults, // Only fetch what we need
-    });
+    const searchResults = await httpClient.searchCompanies(searchTerm);
 
-    // Now fetch full data with owners only for matching companies
-    const companies = await prisma.company.findMany({
-      where: {
-        id: {
-          in: matchingCompanies.map(c => c.id),
-        },
-      },
-      include: {
-        owners: {
-          include: {
-            owner: true,
-          },
-        },
-      },
-    });
-
-    const filteredCompanies = companies;
-
-    const results = filteredCompanies.map((company) => ({
-      id: company.id,
-      name: company.name,
-      registrationNumber: company.registrationNumber,
-      taxNumber: company.taxNumber,
-      owners: company.owners.map((o) => ({
-        name: o.owner.name,
-        share: o.sharePercentage,
-      })),
-    }));
+    const results = searchResults
+      .filter(r => r.status === 'REGISTERED')
+      .slice(0, APP_CONFIG.search.maxResults)
+      .map((item) => ({
+        id: item.registrationNumber,
+        name: item.currentName,
+        registrationNumber: item.registrationNumber,
+        taxNumber: '',
+      }));
 
     return NextResponse.json({ results });
   } catch (error) {
-    // Capture error with Sentry
     captureException(error, { endpoint: 'search' });
 
-    // Log error in development only
     if (env.NODE_ENV === 'development') {
       console.error('Search error:', error);
     }

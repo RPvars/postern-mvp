@@ -35,13 +35,101 @@
     "active": "Aktīvs",
     "inactive": "Neaktīvs",
     "companyStatus": {
-      "Aktīvs": "Aktīvs",
-      "Likvidēts": "Likvidēts",
-      "Izslēgts": "Izslēgts",
-      "Apturēta darbība": "Apturēta darbība",
-      "Maksātnespēja": "Maksātnespēja",
-      "Reorganizācija": "Reorganizācija",
+      "REGISTERED": "Aktīvs",
+      "REMOVED": "Likvidēts",
+      "STRUCK_OFF": "Izslēgts",
+      "SUSPENDED": "Apturēta darbība",
+      "INSOLVENT": "Maksātnespēja",
+      "REORGANIZATION": "Reorganizācija",
       "unknown": "Nezināms"
+    },
+    "legalForm": {
+      "LIMITED_LIABILITY_COMPANY_SIA": "Sabiedrība ar ierobežotu atbildību",
+      "PUBLIC_LIMITED_COMPANY_AS": "Akciju sabiedrība",
+      "INDIVIDUAL_MERCHANT": "Individuālais komersants",
+      "COOPERATIVE_SOCIETY": "Kooperatīvā sabiedrība",
+      "GENERAL_PARTNERSHIP": "Pilnsabiedrība",
+      "LIMITED_PARTNERSHIP": "Komandītsabiedrība",
+      "ASSOCIATION": "Biedrība",
+      "FOUNDATION": "Nodibinājums",
+      "TRADE_UNION": "Arodbiedrība",
+      "RELIGIOUS_ORGANIZATION": "Reliģiskā organizācija",
+      "POLITICAL_PARTY": "Politiskā partija",
+      "EUROPEAN_COMPANY_SE": "Eiropas komercsabiedrība (SE)",
+      "EUROPEAN_COOPERATIVE_SOCIETY": "Eiropas kooperatīvā sabiedrība",
+      "EUROPEAN_ECONOMIC_INTEREST_GROUPING": "Eiropas ekonomisko interešu grupa",
+      "BRANCH_OF_FOREIGN_COMPANY": "Ārvalstu komersanta filiāle",
+      "STATE_ENTERPRISE": "Valsts uzņēmums",
+      "MUNICIPAL_ENTERPRISE": "Pašvaldības uzņēmums",
+      "FARM_ENTERPRISE": "Zemnieku saimniecība",
+      "FISHING_ENTERPRISE": "Zvejnieku saimniecība"
+    },
+    "register": {
+      "COMMERCIAL": "Komercreģistrs",
+      "ASSOCIATION_AND_FOUNDATION": "Biedrību un nodibinājumu reģistrs",
+      "TRADE_UNION": "Arodbiedrību reģistrs",
+      "RELIGIOUS": "Reliģisko organizāciju reģistrs",
+      "POLITICAL_PARTY": "Politisko partiju reģistrs"
+    },
+    "position": {
+      "CHAIR_OF_BOARD": "Valdes priekšsēdētājs",
+      "BOARD_MEMBER": "Valdes loceklis",
+      "COUNCIL_MEMBER": "Padomes loceklis",
+      "CHAIR_OF_COUNCIL": "Padomes priekšsēdētājs",
+      "DEPUTY_CHAIR_OF_COUNCIL": "Padomes priekšsēdētāja vietnieks",
+      "DEPUTY_CHAIR_OF_BOARD": "Valdes priekšsēdētāja vietnieks",
+      "LIQUIDATOR": "Likvidators",
+      "ADMINISTRATOR": "Administrators",
+      "AUDITOR": "Revidents",
+      "PROCURATOR": "Prokurists"
+    },
+    "governingBody": {
+      "EXECUTIVE_BOARD": "Valde",
+      "SUPERVISORY_BOARD": "Padome",
+      "AUDIT_COMMITTEE": "Revīzijas komisija"
+    },
+    "representationRights": {
+      "INDIVIDUALLY": "Tiesības pārstāvēt atsevišķi",
+      "WITH_AT_LEAST": "Kopā ar vismaz {count}"
+    },
+    "controlType": {
+      "AS_MEMBER": "Kā dalībnieks",
+      "AS_SHAREHOLDER": "Kā akcionārs",
+      "AS_BOARD_MEMBER": "Kā valdes loceklis",
+      "AS_COUNCIL_MEMBER": "Kā padomes loceklis",
+      "THROUGH_OWNERSHIP": "Caur īpašumtiesībām",
+      "THROUGH_CONTROL": "Caur kontroli",
+      "THROUGH_OTHER_MEANS": "Ar citiem līdzekļiem",
+      "JOINT_CONTROL": "Kopīga kontrole",
+      "SENIOR_MANAGEMENT": "Augstākā vadība"
+    },
+    "country": {
+      "LV": "Latvija",
+      "LT": "Lietuva",
+      "EE": "Igaunija",
+      "DE": "Vācija",
+      "GB": "Lielbritānija",
+      "US": "ASV",
+      "RU": "Krievija",
+      "SE": "Zviedrija",
+      "FI": "Somija",
+      "NO": "Norvēģija",
+      "DK": "Dānija",
+      "PL": "Polija",
+      "FR": "Francija",
+      "NL": "Nīderlande",
+      "BE": "Beļģija",
+      "AT": "Austrija",
+      "CH": "Šveice",
+      "IT": "Itālija",
+      "ES": "Spānija",
+      "CZ": "Čehija",
+      "UA": "Ukraina",
+      "BY": "Baltkrievija",
+      "CY": "Kipra",
+      "IE": "Īrija",
+      "LU": "Luksemburga",
+      "MT": "Malta"
     }
   },
   "navigation": {
@@ -207,7 +295,9 @@
     "companyInfo": {
       "title": "Uzņēmuma Informācija",
       "registrationNumber": "Reģistrācijas numurs",
-      "taxNumber": "Nodokļu numurs",
+      "registrationNumberDate": "Reģistrācijas numurs, datums",
+      "taxNumber": "PVN maksātāja numurs",
+      "vidDataRequired": "Nav pieejams — VID dati",
       "legalForm": "Uzņēmējdarbības forma",
       "registry": "Reģistrs",
       "registrationDate": "Reģistrācijas datums",
@@ -216,7 +306,29 @@
       "vehicles": "CSDD reģistrētie transportlīdzekļi",
       "legalAddress": "Juridiskā adrese",
       "phone": "Tālrunis",
-      "email": "E-pasts"
+      "email": "E-pasts",
+      "register": "Reģistrs",
+      "shortName": "Saīsinātais nosaukums",
+      "lastModified": "Pēdējās izmaiņas",
+      "sepaId": "SEPA kreditora ID",
+      "businessPurpose": "Darbības mērķi",
+      "duration": "Darbības termiņš",
+      "durationIndefinite": "Beztermiņa",
+      "durationDefinite": "Noteikts termiņš",
+      "articlesDate": "Statūtu spēkā stāšanās datums",
+      "basicData": "Pamatdati",
+      "registrationSection": "Reģistrācija",
+      "capital": "Kapitāls",
+      "operations": "Darbība",
+      "postalCode": "Pasta indekss",
+      "city": "Pilsēta",
+      "atvkCode": "ATVK kods",
+      "isAnnulledWarning": "Reģistrācija anulēta",
+      "specialStatuses": "Speciālie statusi",
+      "specialStatusType": "Tips",
+      "specialStatusDateFrom": "Datums no",
+      "specialStatusRegisteredOn": "Reģistrēts",
+      "securingMeasuresCount": "Nodrošinājumu skaits"
     },
     "risk": {
       "title": "Apgrūtinājumi",
@@ -225,9 +337,11 @@
       "paymentClaims": "Aktuālās pretenzijas par maksājumiem",
       "commercialPledges": "Aktuāli komercķīlu akti",
       "securities": "Aktuālie nodrošinājumi",
+      "sanctionsRisk": "Sankciju risks",
       "taxDebts": "Nodokļu parādi VID (uz datumu)",
       "hasValue": "Ir",
       "noValue": "Nav",
+      "noDataSource": "Dati nav pieejami",
       "loginRequired": "Pieslēgties",
       "asOf": "uz"
     },
@@ -239,7 +353,18 @@
       "totalValue": "Kopējā vērtība",
       "votingRights": "Balsstiesības",
       "memberSince": "Dalībnieks kopš",
-      "nominal": "nom."
+      "registeredOn": "Reģistrēts UR",
+      "nominal": "nom.",
+      "personallyLiable": "Personīgā atbildība",
+      "noData": "Īpašumtiesību dati nav pieejami",
+      "showMore": "Rādīt vēl",
+      "showLess": "Rādīt mazāk",
+      "showing": "Rāda {count} no {total}",
+      "totalOwners": "Dalībnieki",
+      "totalShares": "Kopā daļas",
+      "totalCapital": "Kopējais kapitāls",
+      "personallyLiableCount": "Personīgi atbildīgi",
+      "other": "Citi"
     },
     "boardMembers": {
       "title": "Amatpersonas",
@@ -248,7 +373,9 @@
       "institution": "Institūcija",
       "position": "Amats",
       "appointedDate": "Apstiprināšanas datums",
-      "representationRights": "Pārstāvības tiesības"
+      "representationRights": "Pārstāvības tiesības",
+      "endDate": "Beigu datums",
+      "note": "Piezīme"
     },
     "beneficialOwners": {
       "title": "Patiesie labuma guvēji",
@@ -257,13 +384,19 @@
       "statusSince": "Statuss kopš",
       "residenceCountry": "Dzīvesvietas valsts",
       "citizenship": "Pilsonība",
-      "controlType": "Kontroles veids"
+      "controlType": "Kontroles veids",
+      "birthDate": "Dzimšanas datums",
+      "registeredOn": "Reģistrēts UR",
+      "isMinor": "Nepilngadīgs"
     },
     "taxPayments": {
       "title": "Nodokļu Maksājumi Valsts Budžetā",
       "year": "Gads",
       "amount": "Summa",
       "date": "Datums"
+    },
+    "financial": {
+      "noData": "Finanšu dati nav pieejami"
     },
     "documents": {
       "title": "Dokumenti",

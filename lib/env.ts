@@ -46,13 +46,11 @@ function validateEnv(): Env {
     return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const missingVars = error.errors.map(err => `  - ${err.path.join('.')}: ${err.message}`).join('\n');
+      const missingVars = error.issues.map((err: z.ZodIssue) => `  - ${err.path.join('.')}: ${err.message}`).join('\n');
 
       console.error('❌ Environment validation failed:\n');
       console.error(missingVars);
       console.error('\nPlease check your .env file and ensure all required variables are set.');
-
-      process.exit(1);
     }
     throw error;
   }

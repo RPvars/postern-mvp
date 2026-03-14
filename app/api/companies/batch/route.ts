@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { companyIdsSchema } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
+import { httpClient } from '@/lib/business-register/client/http';
 
 export async function GET(request: NextRequest) {
   // Rate limiting
@@ -52,22 +52,25 @@ export async function GET(request: NextRequest) {
 
     const validatedIds = validationResult.data;
 
-    const companies = await prisma.company.findMany({
-      where: {
-        id: {
-          in: validatedIds,
-        },
-      },
-      select: {
-        id: true,
-        name: true,
-        registrationNumber: true,
-      },
-    });
+    const companies = await Promise.all(
+      validatedIds.map(async (regcode) => {
+        try {
+          const entity = await httpClient.getLegalEntity(regcode);
+          return {
+            id: entity.registrationNumber,
+            name: entity.legalName,
+            registrationNumber: entity.registrationNumber,
+          };
+        } catch {
+          return null;
+        }
+      })
+    );
 
-    return NextResponse.json({ companies });
+    return NextResponse.json({
+      companies: companies.filter(Boolean),
+    });
   } catch (error) {
-    // Log error in development only
     if (env.NODE_ENV === 'development') {
       console.error('Batch fetch error:', error);
     }

@@ -1,73 +1,184 @@
 import { randomUUID } from 'crypto';
-import type { CompanyApiResponse, Company, BoardMemberApiResponse, BoardMember } from '../types/api-responses';
+import type {
+  LegalEntityApiResponse,
+  SearchResultItem,
+  OfficerApiResponse,
+  MemberApiResponse,
+  BeneficialOwnerApiResponse,
+  Company,
+  BoardMember,
+} from '../types/api-responses';
+
+const LEGAL_FORM_ABBREVIATIONS: [RegExp, string][] = [
+  [/Sabiedrība ar ierobežotu atbildību/gi, 'SIA'],
+  [/Akciju sabiedrība/gi, 'AS'],
+];
+
+function abbreviateLegalForm(name: string): string {
+  let result = name;
+  for (const [pattern, abbr] of LEGAL_FORM_ABBREVIATIONS) {
+    result = result.replace(pattern, abbr);
+  }
+  return result;
+}
 
 export class CompanyMapper {
-  toInternalFormat(apiResponse: CompanyApiResponse): Company {
+  fromLegalEntity(api: LegalEntityApiResponse): Company {
     return {
-      id: randomUUID(), // Generate UUID for internal use
-      name: apiResponse.name,
-      registrationNumber: apiResponse.regcode,
-      taxNumber: apiResponse.taxNumber || '',
-      address: apiResponse.address,
-      legalForm: apiResponse.legalForm || null,
-      status: apiResponse.status,
-      registrationDate: apiResponse.registrationDate
-        ? new Date(apiResponse.registrationDate)
+      id: randomUUID(),
+      name: api.legalName,
+      registrationNumber: api.registrationNumber,
+      taxNumber: '',
+      address: api.address.addressComplete,
+      legalForm: api.type || null,
+      status: api.status || 'unknown',
+      registrationDate: api.registeredOn ? new Date(api.registeredOn) : null,
+      closedDate: null,
+      sepaId: api.sepaCreditorId || null,
+      liquidationType: api.liquidations?.[0]?.type || null,
+      liquidationDate: api.liquidations?.[0]?.dateFrom
+        ? new Date(api.liquidations[0].dateFrom)
         : null,
-      // Additional fields (set to null as API may not provide them)
+      insolvencyDate: null,
+      vatNumber: null,
+      seatAddress: api.address.addressComplete,
+      postalAddress: api.address.addressComplete,
+    };
+  }
+
+  fromSearchResult(item: SearchResultItem): Company {
+    return {
+      id: randomUUID(),
+      name: item.currentName,
+      registrationNumber: item.registrationNumber,
+      taxNumber: '',
+      address: item.address,
+      legalForm: item.type || null,
+      status: item.status || 'unknown',
+      registrationDate: null,
       closedDate: null,
       sepaId: null,
       liquidationType: null,
       liquidationDate: null,
       insolvencyDate: null,
-      vatNumber: apiResponse.taxNumber || null,
-      seatAddress: apiResponse.address,
-      postalAddress: apiResponse.address,
-    };
-  }
-
-  toApiFormat(company: Company): CompanyApiResponse {
-    return {
-      regcode: company.registrationNumber,
-      name: company.name,
-      address: company.address,
-      legalForm: company.legalForm || '',
-      status: company.status,
-      registrationDate: company.registrationDate?.toISOString() || '',
-      taxNumber: company.taxNumber,
+      vatNumber: null,
+      seatAddress: item.address,
+      postalAddress: item.address,
     };
   }
 }
 
 export class BoardMemberMapper {
-  toInternalFormat(apiResponse: BoardMemberApiResponse, companyId: string): BoardMember {
+  fromOfficer(officer: OfficerApiResponse, companyId: string): BoardMember {
+    const rawName = officer.naturalPerson?.name
+      || officer.legalEntity?.legalName
+      || officer.legalEntity?.registrationNumber
+      || 'Unknown';
+    const name = abbreviateLegalForm(rawName);
+
+    // Return raw representation rights data for frontend i18n
+    let representationRights: string | null = null;
+    if (officer.rightsOfRepresentation?.length) {
+      const right = officer.rightsOfRepresentation[0];
+      if (right.type === 'WITH_AT_LEAST' && right.withAtLeast) {
+        representationRights = `WITH_AT_LEAST:${right.withAtLeast}`;
+      } else {
+        representationRights = right.type;
+      }
+    }
+
     return {
       id: randomUUID(),
       companyId,
-      name: apiResponse.name,
-      personalCode: apiResponse.personalCode || null,
-      position: apiResponse.position,
-      appointedDate: apiResponse.appointedDate
-        ? new Date(apiResponse.appointedDate)
-        : null,
-      endDate: apiResponse.endDate
-        ? new Date(apiResponse.endDate)
-        : null,
-      isHistorical: apiResponse.isHistorical,
+      name,
+      personalCode: officer.naturalPerson?.latvianIdentityNumber || null,
+      institution: officer.governingBody || null,
+      position: officer.position,
+      appointedDate: officer.appointedOn ? new Date(officer.appointedOn) : null,
+      endDate: officer.removedOn ? new Date(officer.removedOn) : null,
+      representationRights,
+      note: officer.note || null,
+      isHistorical: officer.isAnnulled || !!officer.removedOn,
     };
   }
+}
 
-  toApiFormat(boardMember: BoardMember): BoardMemberApiResponse {
+export interface OwnerMapped {
+  id: string;
+  owner: { name: string; personalCode: string | null };
+  sharePercentage: number;
+  sharesCount: number | null;
+  nominalValue: number | null;
+  totalValue: number | null;
+  votingRights: number | null;
+  memberSince: string | null;
+  registeredOn: string | null;
+  isPersonallyLiable: boolean;
+  notes: string | null;
+}
+
+export class MemberMapper {
+  fromMember(member: MemberApiResponse): OwnerMapped {
+    const rawName = member.naturalPerson?.name
+      || member.legalEntity?.legalName
+      || member.legalEntity?.registrationNumber
+      || 'Unknown';
+    const name = abbreviateLegalForm(rawName);
+    const personalCode = member.naturalPerson?.latvianIdentityNumber
+      || member.legalEntity?.registrationNumber
+      || null;
+    const details = member.shareHolderDetails;
+
     return {
-      name: boardMember.name,
-      personalCode: boardMember.personalCode || undefined,
-      position: boardMember.position,
-      appointedDate: boardMember.appointedDate?.toISOString() || '',
-      endDate: boardMember.endDate?.toISOString() || undefined,
-      isHistorical: boardMember.isHistorical,
+      id: randomUUID(),
+      owner: { name, personalCode },
+      sharePercentage: details?.inPercent ?? 0,
+      sharesCount: details?.numberOfShares ?? null,
+      nominalValue: details?.shareNominalValue ?? null,
+      totalValue: details ? details.numberOfShares * details.shareNominalValue : null,
+      votingRights: details?.votes ?? null,
+      memberSince: member.dateFrom || null,
+      registeredOn: member.registeredOn || null,
+      isPersonallyLiable: member.isPersonallyLiable ?? false,
+      notes: null,
+    };
+  }
+}
+
+export interface BeneficialOwnerMapped {
+  id: string;
+  name: string;
+  personalCode: string | null;
+  dateFrom: string | null;
+  registeredOn: string | null;
+  residenceCountry: string | null;
+  citizenship: string | null;
+  controlType: string | null;
+  birthDate: string | null;
+  isMinor: boolean;
+}
+
+export class BeneficialOwnerMapper {
+  fromApiResponse(bo: BeneficialOwnerApiResponse): BeneficialOwnerMapped {
+    const np = bo.naturalPerson;
+    const name = np ? `${np.forename || ''} ${np.surname || ''}`.trim() : 'Unknown';
+
+    return {
+      id: randomUUID(),
+      name,
+      personalCode: np?.latvianIdentityNumber || null,
+      dateFrom: bo.dateFrom || null,
+      registeredOn: bo.registeredOn || null,
+      residenceCountry: np?.countryOfResidence || np?.country || null,
+      citizenship: np?.country || null,
+      controlType: bo.meansOfControl?.[0]?.natureOfControl || null,
+      birthDate: np?.birthDate || null,
+      isMinor: bo.isMinor ?? false,
     };
   }
 }
 
 export const companyMapper = new CompanyMapper();
 export const boardMemberMapper = new BoardMemberMapper();
+export const memberMapper = new MemberMapper();
+export const beneficialOwnerMapper = new BeneficialOwnerMapper();

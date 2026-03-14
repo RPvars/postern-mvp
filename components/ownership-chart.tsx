@@ -9,28 +9,37 @@ interface Owner {
 
 interface OwnershipChartProps {
   owners: Owner[];
+  otherLabel?: string;
 }
 
-// Posterns Yellow RGB values
+const MAX_SLICES = 5;
+const OTHER_COLOR = '#d1d5db';
+
+// Posterns Yellow with varying opacity for visual distinction
 const POSTERNS_YELLOW_RGB = { r: 254, g: 194, b: 0 };
 
-// Generate Posterns yellow with varying opacity based on index
-// Largest shareholder (index 0) gets 100% opacity
-// Smallest shareholder gets 40% opacity
 const getColorWithOpacity = (index: number, total: number): string => {
   if (total === 1) return `rgba(${POSTERNS_YELLOW_RGB.r}, ${POSTERNS_YELLOW_RGB.g}, ${POSTERNS_YELLOW_RGB.b}, 1.0)`;
-
-  // Calculate opacity: 100% for first owner, 40% for last owner
   const opacity = 1.0 - (index / (total - 1)) * 0.6;
-
   return `rgba(${POSTERNS_YELLOW_RGB.r}, ${POSTERNS_YELLOW_RGB.g}, ${POSTERNS_YELLOW_RGB.b}, ${opacity})`;
 };
 
-export function OwnershipChart({ owners }: OwnershipChartProps) {
-  const chartData = owners.map((owner) => ({
-    name: owner.name,
-    value: owner.sharePercentage,
-  }));
+export function OwnershipChart({ owners, otherLabel = 'Other' }: OwnershipChartProps) {
+  let chartData: { name: string; value: number; isOther?: boolean }[];
+
+  if (owners.length <= MAX_SLICES + 1) {
+    chartData = owners.map((o) => ({ name: o.name, value: o.sharePercentage }));
+  } else {
+    const top = owners.slice(0, MAX_SLICES);
+    const rest = owners.slice(MAX_SLICES);
+    const restSum = rest.reduce((sum, o) => sum + o.sharePercentage, 0);
+    chartData = [
+      ...top.map((o) => ({ name: o.name, value: o.sharePercentage })),
+      { name: `${otherLabel} (${rest.length})`, value: Math.round(restSum * 100) / 100, isOther: true },
+    ];
+  }
+
+  const namedSlices = chartData.filter((d) => !d.isOther).length;
 
   return (
     <div className="w-full h-[300px]">
@@ -46,7 +55,10 @@ export function OwnershipChart({ owners }: OwnershipChartProps) {
             dataKey="value"
           >
             {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={getColorWithOpacity(index, chartData.length)} />
+              <Cell
+                key={`cell-${index}`}
+                fill={entry.isOther ? OTHER_COLOR : getColorWithOpacity(index, namedSlices)}
+              />
             ))}
           </Pie>
           <Tooltip formatter={(value) => `${value}%`} />

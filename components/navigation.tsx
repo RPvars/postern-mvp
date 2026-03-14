@@ -69,7 +69,7 @@ export function Navigation() {
             </div>
             {/* Language Selector */}
             <Select value={locale} onValueChange={handleLocaleChange}>
-              <SelectTrigger className="w-[110px] h-9">
+              <SelectTrigger className="w-[70px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

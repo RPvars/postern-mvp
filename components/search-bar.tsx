@@ -85,7 +85,7 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
                             <div className="text-sm text-muted-foreground">
                               {company.registrationNumber} • {company.taxNumber}
                             </div>
-                            {company.owners.length > 0 && (
+                            {company.owners && company.owners.length > 0 && (
                               <div className="text-xs text-muted-foreground">
                                 {t('search.owners')}: {company.owners.map((o) => `${o.name} (${o.share}%)`).join(', ')}
                               </div>

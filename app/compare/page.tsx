@@ -398,7 +398,7 @@ export default function ComparePage() {
                           <TableCell className="font-medium">{t('basicInfo.status')}</TableCell>
                           {companies.map((company) => (
                             <TableCell key={company.id}>
-                              <Badge variant={company.status === 'Aktīvs' ? 'default' : 'destructive'}>
+                              <Badge variant={company.status === 'REGISTERED' ? 'default' : 'destructive'}>
                                 {tCommon(`companyStatus.${company.status}`) || company.status}
                               </Badge>
                             </TableCell>
@@ -408,7 +408,7 @@ export default function ComparePage() {
                           <TableCell className="font-medium">{t('basicInfo.legalForm')}</TableCell>
                           {companies.map((company) => (
                             <TableCell key={company.id} className="text-sm">
-                              {company.legalForm || tCommon('notAvailable')}
+                              {company.legalForm ? (tCommon(`legalForm.${company.legalForm}`) || company.legalForm) : tCommon('notAvailable')}
                             </TableCell>
                           ))}
                         </TableRow>

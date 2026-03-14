@@ -1,107 +1,146 @@
 import { authClient } from './auth';
-import { transactionManager } from './transaction';
 import { businessRegisterConfig } from '../config';
-import type { CompanyApiResponse, BoardMemberApiResponse, SearchApiResponse } from '../types/api-responses';
+import { httpsRequestWithCert } from './https-util';
+import type { SearchApiResponse, LegalEntityApiResponse, SearchResultItem } from '../types/api-responses';
+
+const API_GATEWAY = () => businessRegisterConfig.apiGatewayUrl;
+
+// Simple in-memory cache with TTL and size limit
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const MAX_CACHE_ENTRIES = 500;
+const cache = new Map<string, { data: unknown; expiry: number }>();
+
+function getCached<T>(key: string): T | null {
+  const entry = cache.get(key);
+  if (entry && Date.now() < entry.expiry) return entry.data as T;
+  cache.delete(key);
+  return null;
+}
+
+function setCache(key: string, data: unknown): void {
+  if (cache.size > MAX_CACHE_ENTRIES) {
+    const oldest = cache.keys().next().value;
+    if (oldest) cache.delete(oldest);
+  }
+  cache.set(key, { data, expiry: Date.now() + CACHE_TTL });
+}
+
+const API_PATHS = {
+  searchLegalEntities: (query: string) =>
+    `${API_GATEWAY()}/searchlegalentities/search/legal-entities?q=${encodeURIComponent(query)}`,
+  legalEntity: (regcode: string) =>
+    `${API_GATEWAY()}/legalentity/legal-entity/${regcode}`,
+  annualReport: (regcode: string) =>
+    `${API_GATEWAY()}/annualreport/annual-report/${regcode}`,
+} as const;
 
 export class HttpClient {
-  private baseUrl = 'https://api.ur.gov.lv/v1'; // Placeholder - update with real URL from API docs
-
-  async request<T>(
-    endpoint: string,
-    options: RequestInit = {}
-  ): Promise<T> {
-    // Return mock data if enabled
-    if (businessRegisterConfig.useMockData) {
-      return this.getMockData<T>(endpoint);
-    }
-
+  private async authenticatedRequest<T>(url: string): Promise<T> {
     const token = await authClient.getAccessToken();
-    const transactionId = transactionManager.generateTransactionId();
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
+    const response = await httpsRequestWithCert({
+      url,
+      method: 'GET',
       headers: {
-        ...options.headers,
         'Authorization': `Bearer ${token}`,
-        ...transactionManager.createTransactionHeaders(transactionId),
+        'Accept': 'application/json',
       },
     });
 
-    if (!response.ok) {
-      throw new Error(`API request failed: ${response.statusText}`);
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw new Error(`API request failed: ${response.statusCode} - ${response.body}`);
     }
 
-    return response.json();
+    try {
+      return JSON.parse(response.body) as T;
+    } catch {
+      throw new Error(`Failed to parse API response: ${response.body}`);
+    }
   }
 
-  private getMockData<T>(endpoint: string): Promise<T> {
-    // Parse endpoint to determine what mock data to return
-
-    // Company detail: /companies/{regcode}
-    if (endpoint.match(/^\/companies\/\d+$/)) {
-      const regcode = endpoint.split('/')[2];
-      return Promise.resolve({
-        regcode,
-        name: `Mock Company ${regcode}`,
-        address: 'Rīga, Brīvības iela 12, LV-1010',
-        legalForm: 'SIA',
-        status: 'Reģistrēts',
-        registrationDate: '2020-01-15',
-        taxNumber: `LV${regcode}`,
-      } as T);
+  async searchCompanies(query: string): Promise<SearchResultItem[]> {
+    if (businessRegisterConfig.useMockData) {
+      return this.getMockSearchResults();
     }
 
-    // Search: /companies/search?q=...
-    if (endpoint.startsWith('/companies/search')) {
-      const searchApiResponse: SearchApiResponse = {
-        companies: [
-          {
-            regcode: '40003123456',
-            name: 'Mock Company 1',
-            address: 'Rīga, Brīvības iela 12, LV-1010',
-            legalForm: 'SIA',
-            status: 'Reģistrēts',
-            registrationDate: '2020-01-15',
-            taxNumber: 'LV40003123456',
-          },
-          {
-            regcode: '40003654321',
-            name: 'Mock Company 2',
-            address: 'Rīga, Elizabetes iela 45, LV-1011',
-            legalForm: 'AS',
-            status: 'Reģistrēts',
-            registrationDate: '2018-05-20',
-            taxNumber: 'LV40003654321',
-          },
-        ],
-        totalResults: 2,
-      };
-      return Promise.resolve(searchApiResponse as T);
+    const cacheKey = `search:${query.toLowerCase().trim()}`;
+    const cached = getCached<SearchResultItem[]>(cacheKey);
+    if (cached) return cached;
+
+    const data = await this.authenticatedRequest<SearchApiResponse>(
+      API_PATHS.searchLegalEntities(query)
+    );
+
+    const results = data._embedded?.legalEntityList || [];
+    setCache(cacheKey, results);
+    return results;
+  }
+
+  async getLegalEntity(regcode: string): Promise<LegalEntityApiResponse> {
+    if (businessRegisterConfig.useMockData) {
+      return this.getMockLegalEntity(regcode);
     }
 
-    // Board members: /companies/{regcode}/board-members
-    if (endpoint.match(/^\/companies\/\d+\/board-members$/)) {
-      const boardMembers: BoardMemberApiResponse[] = [
+    const cacheKey = `entity:${regcode}`;
+    const cached = getCached<LegalEntityApiResponse>(cacheKey);
+    if (cached) return cached;
+
+    const data = await this.authenticatedRequest<LegalEntityApiResponse>(
+      API_PATHS.legalEntity(regcode)
+    );
+
+    setCache(cacheKey, data);
+    return data;
+  }
+
+  // Mock data for development
+  private getMockSearchResults(): SearchResultItem[] {
+    return [
+      {
+        registrationNumber: '40003032949',
+        currentName: 'Akciju sabiedrība "Latvenergo"',
+        address: 'Pulkveža Brieža iela 12, Rīga, LV-1010',
+        status: 'REGISTERED',
+        register: 'COMMERCIAL',
+        type: 'PUBLIC_LIMITED_COMPANY_AS',
+        links: { self: '/legal-entity/40003032949' },
+      },
+      {
+        registrationNumber: '40003575743',
+        currentName: 'Sabiedrība ar ierobežotu atbildību "Tet"',
+        address: 'Dzirnavu iela 105, Rīga, LV-1011',
+        status: 'REGISTERED',
+        register: 'COMMERCIAL',
+        type: 'LIMITED_LIABILITY_COMPANY_SIA',
+        links: { self: '/legal-entity/40003575743' },
+      },
+    ];
+  }
+
+  private getMockLegalEntity(regcode: string): LegalEntityApiResponse {
+    return {
+      registrationNumber: regcode,
+      status: 'REGISTERED',
+      register: 'COMMERCIAL',
+      type: 'LIMITED_LIABILITY_COMPANY_SIA',
+      legalName: `Mock Company ${regcode}`,
+      isAnnulled: false,
+      address: {
+        addressComplete: 'Brīvības iela 12, Rīga, LV-1010',
+        city: 'Rīga',
+        postalCode: 'LV-1010',
+      },
+      links: {},
+      officers: [
         {
-          name: 'Jānis Bērziņš',
-          personalCode: '123456-12345',
-          position: 'Valdes loceklis',
-          appointedDate: '2020-01-15',
-          isHistorical: false,
+          id: 1,
+          naturalPerson: { name: 'Jānis Bērziņš' },
+          position: 'BOARD_MEMBER',
+          appointedOn: '2020-01-15',
+          isAnnulled: false,
         },
-        {
-          name: 'Anna Kalna',
-          personalCode: '234567-23456',
-          position: 'Valdes priekšsēdētājs',
-          appointedDate: '2020-01-15',
-          isHistorical: false,
-        },
-      ];
-      return Promise.resolve(boardMembers as T);
-    }
-
-    // Default: throw error for unknown endpoints
-    throw new Error(`Mock data not implemented for endpoint: ${endpoint}`);
+      ],
+    };
   }
 }
 

@@ -10,7 +10,7 @@ export { businessRegisterConfig } from './config';
 export type {
   Company,
   BoardMember,
-  CompanyApiResponse,
-  BoardMemberApiResponse,
+  SearchResultItem,
+  LegalEntityApiResponse,
   SearchApiResponse,
 } from './types/api-responses';

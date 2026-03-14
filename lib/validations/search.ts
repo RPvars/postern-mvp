@@ -25,7 +25,7 @@ export const searchQuerySchema = z
  */
 export const companyIdSchema = z
   .string()
-  .cuid('Invalid company ID format');
+  .regex(/^\d{9,11}$/, 'Invalid company registration number format');
 
 /**
  * Company ID array validation schema
@@ -58,7 +58,7 @@ export function validateSearchQuery(query: unknown): { success: true; data: stri
 
   return {
     success: false,
-    error: result.error.errors[0]?.message || 'Invalid search query',
+    error: result.error.issues[0]?.message || 'Invalid search query',
   };
 }
 
@@ -74,6 +74,6 @@ export function validateCompanyIds(ids: unknown): { success: true; data: string[
 
   return {
     success: false,
-    error: result.error.errors[0]?.message || 'Invalid company IDs',
+    error: result.error.issues[0]?.message || 'Invalid company IDs',
   };
 }
