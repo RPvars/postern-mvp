@@ -56,3 +56,10 @@ next-env.d.ts
 
 # API documentation (contains false positive secrets)
 api-parvaldnieka-izmantosanas-vadlinijas.pdf
+
+# Certificate request/archive files
+*.7z
+*.req
+
+# Personal/business documents
+*.docx

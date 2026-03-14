@@ -1,0 +1,3 @@
+#!/bin/bash
+# Pre-commit hook: blocks commits containing secrets
+exec "$(git rev-parse --show-toplevel)/scripts/check-secrets.sh"
