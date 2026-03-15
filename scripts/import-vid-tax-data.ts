@@ -1,18 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import { createReadStream } from 'fs';
-import { createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
 import { createInterface } from 'readline';
-import https from 'https';
-import path from 'path';
+import { downloadCSV, parseCSVLine } from '@/lib/import-utils';
 
 const CSV_URL =
   'https://data.gov.lv/dati/dataset/5ed74664-b49d-4b28-aacb-040931646e9b/resource/a42d6e8c-1768-4939-ba9b-7700d4f1dd3a/download/pdb_nm_komersantu_samaksato_nodoklu_kopsumas_odata.csv';
 
-const LOCAL_CSV = path.join(process.cwd(), 'data', 'vid-tax-payments.csv');
 const BATCH_SIZE = 1000;
 
-/** Parse CSV amount: removes non-breaking spaces, converts from thousands EUR to EUR */
 function parseAmount(value: string): number {
   const cleaned = value.replace(/\u00a0/g, '').replace(/\s/g, '').replace(',', '.');
   const num = parseFloat(cleaned);
@@ -25,69 +20,9 @@ function parseEmployeeCount(value: string): number | null {
   return isNaN(num) ? null : num;
 }
 
-/** Simple CSV field parser handling quoted fields with escaped quotes */
-function parseCSVLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++; // skip escaped quote
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ',') {
-        fields.push(current);
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-  }
-  fields.push(current);
-  return fields;
-}
-
-async function downloadCSV(): Promise<void> {
-  const { mkdirSync, existsSync } = await import('fs');
-  const dir = path.dirname(LOCAL_CSV);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-  console.log('Downloading VID tax payment data...');
-
-  return new Promise((resolve, reject) => {
-    const follow = (url: string, redirects = 0) => {
-      if (redirects > 5) return reject(new Error('Too many redirects'));
-
-      https.get(url, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return follow(res.headers.location, redirects + 1);
-        }
-        if (res.statusCode !== 200) {
-          return reject(new Error(`HTTP ${res.statusCode}`));
-        }
-        const file = createWriteStream(LOCAL_CSV);
-        pipeline(res, file).then(resolve).catch(reject);
-      }).on('error', reject);
-    };
-    follow(CSV_URL);
-  });
-}
-
-async function importData(): Promise<void> {
+async function importData(csvPath: string): Promise<void> {
   const rl = createInterface({
-    input: createReadStream(LOCAL_CSV, 'utf-8'),
+    input: createReadStream(csvPath, 'utf-8'),
     crlfDelay: Infinity,
   });
 
@@ -183,11 +118,12 @@ async function upsertBatch(
 async function main() {
   console.log('=== VID Tax Payment Data Import ===\n');
 
-  await downloadCSV();
-  console.log(`CSV saved to ${LOCAL_CSV}\n`);
+  console.log('Downloading VID tax payment data...');
+  const csvPath = await downloadCSV(CSV_URL, 'vid-tax-payments.csv');
+  console.log(`CSV saved to ${csvPath}\n`);
 
   console.log('Importing into database...');
-  await importData();
+  await importData(csvPath);
 
   // Summary
   const count = await prisma.taxPayment.count();

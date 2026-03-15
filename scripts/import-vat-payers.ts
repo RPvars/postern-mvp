@@ -1,86 +1,17 @@
 import { prisma } from '@/lib/prisma';
-import { createReadStream, createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
+import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import https from 'https';
-import path from 'path';
+import { downloadCSV, parseCSVLine, parseLvDate } from '@/lib/import-utils';
 
 const CSV_URL =
   'https://data.gov.lv/dati/dataset/9a5eae1c-2438-48cf-854b-6a2c170f918f/resource/610910e9-e086-4c5b-a7ea-0a896a697672/download/pdb_pvnmaksataji_odata.csv';
 
-const LOCAL_CSV = path.join(process.cwd(), 'data', 'vat-payers.csv');
 const BATCH_SIZE = 1000;
 
-function parseCSVLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ',') {
-        fields.push(current.trim());
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-  }
-  fields.push(current.trim());
-  return fields;
-}
-
-function parseLvDate(value: string): Date | null {
-  const trimmed = value.trim();
-  if (!trimmed) return null;
-  // Format: DD.MM.YYYY
-  const parts = trimmed.split('.');
-  if (parts.length !== 3) return null;
-  const d = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-async function downloadCSV(): Promise<void> {
-  const { mkdirSync, existsSync } = await import('fs');
-  const dir = path.dirname(LOCAL_CSV);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-  console.log('Downloading VID VAT payers data...');
-
-  return new Promise((resolve, reject) => {
-    const follow = (url: string, redirects = 0) => {
-      if (redirects > 5) return reject(new Error('Too many redirects'));
-      https.get(url, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return follow(res.headers.location, redirects + 1);
-        }
-        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-        const file = createWriteStream(LOCAL_CSV);
-        pipeline(res, file).then(resolve).catch(reject);
-      }).on('error', reject);
-    };
-    follow(CSV_URL);
-  });
-}
-
-async function importData(): Promise<void> {
+async function importData(csvPath: string): Promise<void> {
   // CSV is ISO-8859-1 encoded
   const rl = createInterface({
-    input: createReadStream(LOCAL_CSV, 'latin1'),
+    input: createReadStream(csvPath, 'latin1'),
     crlfDelay: Infinity,
   });
 
@@ -164,11 +95,12 @@ async function upsertBatch(
 async function main() {
   console.log('=== VID VAT Payers Import ===\n');
 
-  await downloadCSV();
-  console.log(`CSV saved to ${LOCAL_CSV}\n`);
+  console.log('Downloading VID VAT payers data...');
+  const csvPath = await downloadCSV(CSV_URL, 'vat-payers.csv');
+  console.log(`CSV saved to ${csvPath}\n`);
 
   console.log('Importing into database...');
-  await importData();
+  await importData(csvPath);
 
   const total = await prisma.vatPayer.count();
   const active = await prisma.vatPayer.count({ where: { isActive: true } });

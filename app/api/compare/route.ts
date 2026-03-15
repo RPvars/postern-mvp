@@ -114,6 +114,17 @@ export async function POST(request: NextRequest) {
       taxPaymentsByRegNr.set(tp.registrationNumber, list);
     }
 
+    // Fetch VAT payer data
+    const vatNumbers = companies.map((c) => `LV${c.registrationNumber}`);
+    const vatPayers = await prisma.vatPayer.findMany({
+      where: { vatNumber: { in: vatNumbers } },
+    });
+    const vatPayerByRegNr = new Map<string, typeof vatPayers[number]>();
+    for (const vp of vatPayers) {
+      // Strip "LV" prefix to map back to registration number
+      vatPayerByRegNr.set(vp.vatNumber.slice(2), vp);
+    }
+
     // Fetch financial data from data.gov.lv for all companies in parallel
     const financialDataResults = await Promise.allSettled(
       companies.map((c) => getFinancialData(c.registrationNumber))
@@ -135,6 +146,7 @@ export async function POST(request: NextRequest) {
         ...company,
         taxPayments: taxPaymentsByRegNr.get(company.registrationNumber) || [],
         financialRatios: financialDataByRegNr.get(company.registrationNumber) || [],
+        vatPayer: vatPayerByRegNr.get(company.registrationNumber) || null,
       };
     });
 

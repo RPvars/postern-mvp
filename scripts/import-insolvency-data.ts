@@ -1,14 +1,11 @@
 import { prisma } from '@/lib/prisma';
-import { createReadStream, createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
+import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import https from 'https';
-import path from 'path';
+import { downloadCSV, parseCSVLine } from '@/lib/import-utils';
 
 const CSV_URL =
   'https://data.gov.lv/dati/dataset/bb54838d-9365-4f76-8513-804f4efa8ab6/resource/8065ad80-1a4d-4afb-b1d1-d93b9a62b1cc/download/insolvency_legal_person_proceeding.csv';
 
-const LOCAL_CSV = path.join(process.cwd(), 'data', 'insolvency-proceedings.csv');
 const BATCH_SIZE = 1000;
 
 function parseDate(value: string): Date | null {
@@ -17,66 +14,9 @@ function parseDate(value: string): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
-async function downloadCSV(): Promise<void> {
-  const { mkdirSync, existsSync } = await import('fs');
-  const dir = path.dirname(LOCAL_CSV);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-  console.log('Downloading insolvency proceedings data...');
-
-  return new Promise((resolve, reject) => {
-    const follow = (url: string, redirects = 0) => {
-      if (redirects > 5) return reject(new Error('Too many redirects'));
-      https.get(url, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return follow(res.headers.location, redirects + 1);
-        }
-        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-        const file = createWriteStream(LOCAL_CSV);
-        pipeline(res, file).then(resolve).catch(reject);
-      }).on('error', reject);
-    };
-    follow(CSV_URL);
-  });
-}
-
-// Semicolon-delimited CSV with quoted fields
-function parseSemicolonLine(line: string): string[] {
-  const fields: string[] = [];
-  let current = '';
-  let inQuotes = false;
-
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = false;
-        }
-      } else {
-        current += ch;
-      }
-    } else {
-      if (ch === '"') {
-        inQuotes = true;
-      } else if (ch === ';') {
-        fields.push(current.trim());
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-  }
-  fields.push(current.trim());
-  return fields;
-}
-
-async function importData(): Promise<void> {
+async function importData(csvPath: string): Promise<void> {
   const rl = createInterface({
-    input: createReadStream(LOCAL_CSV, 'utf-8'),
+    input: createReadStream(csvPath, 'utf-8'),
     crlfDelay: Infinity,
   });
 
@@ -99,13 +39,13 @@ async function importData(): Promise<void> {
     const line = rawLine.replace(/^\uFEFF/, '');
 
     if (isHeader) {
-      const headers = parseSemicolonLine(line);
+      const headers = parseCSVLine(line, ';');
       headers.forEach((h, i) => headerMap.set(h, i));
       isHeader = false;
       continue;
     }
 
-    const fields = parseSemicolonLine(line);
+    const fields = parseCSVLine(line, ';');
     const regNr = fields[headerMap.get('debtor_registration_number') ?? 2];
     const proceedingId = fields[headerMap.get('proceeding_id') ?? 0];
 
@@ -178,11 +118,12 @@ async function upsertBatch(
 async function main() {
   console.log('=== Insolvency Proceedings Data Import ===\n');
 
-  await downloadCSV();
-  console.log(`CSV saved to ${LOCAL_CSV}\n`);
+  console.log('Downloading insolvency proceedings data...');
+  const csvPath = await downloadCSV(CSV_URL, 'insolvency-proceedings.csv');
+  console.log(`CSV saved to ${csvPath}\n`);
 
   console.log('Importing into database...');
-  await importData();
+  await importData(csvPath);
 
   const count = await prisma.insolvencyProceeding.count();
   const active = await prisma.insolvencyProceeding.count({
