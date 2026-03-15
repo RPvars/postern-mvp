@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getFinancialData } from '@/lib/data-gov/client';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { comparisonSchema } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
@@ -79,28 +80,6 @@ export async function POST(request: NextRequest) {
             dateFrom: 'desc',
           },
         },
-        taxPayments: {
-          where: {
-            year: {
-              gte: startYear,
-            },
-          },
-          orderBy: {
-            year: 'desc',
-          },
-          take: 10, // Max 10 records
-        },
-        financialRatios: {
-          where: {
-            year: {
-              gte: startYear,
-            },
-          },
-          orderBy: {
-            year: 'desc',
-          },
-          take: 10, // Max 10 records
-        },
       },
     });
 
@@ -117,10 +96,47 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Return companies in the same order as requested
-    const orderedCompanies = companyIds.map((id) =>
-      companies.find((c) => c.id === id)
+    // Fetch tax payments separately (no longer a Company relation)
+    const regNumbers = companies.map((c) => c.registrationNumber);
+    const taxPayments = await prisma.taxPayment.findMany({
+      where: {
+        registrationNumber: { in: regNumbers },
+        year: { gte: startYear },
+      },
+      orderBy: { year: 'desc' },
+    });
+
+    // Group tax payments by registration number
+    const taxPaymentsByRegNr = new Map<string, typeof taxPayments>();
+    for (const tp of taxPayments) {
+      const list = taxPaymentsByRegNr.get(tp.registrationNumber) || [];
+      list.push(tp);
+      taxPaymentsByRegNr.set(tp.registrationNumber, list);
+    }
+
+    // Fetch financial data from data.gov.lv for all companies in parallel
+    const financialDataResults = await Promise.allSettled(
+      companies.map((c) => getFinancialData(c.registrationNumber))
     );
+    const financialDataByRegNr = new Map<string, Awaited<ReturnType<typeof getFinancialData>>>();
+    companies.forEach((c, i) => {
+      const result = financialDataResults[i];
+      financialDataByRegNr.set(
+        c.registrationNumber,
+        result.status === 'fulfilled' ? result.value : []
+      );
+    });
+
+    // Return companies in the same order as requested, with tax payments and financial data attached
+    const orderedCompanies = companyIds.map((id) => {
+      const company = companies.find((c) => c.id === id);
+      if (!company) return null;
+      return {
+        ...company,
+        taxPayments: taxPaymentsByRegNr.get(company.registrationNumber) || [],
+        financialRatios: financialDataByRegNr.get(company.registrationNumber) || [],
+      };
+    });
 
     return NextResponse.json({ companies: orderedCompanies });
   } catch (error) {

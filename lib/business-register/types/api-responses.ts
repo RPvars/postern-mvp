@@ -115,7 +115,7 @@ export interface MemberApiResponse {
   };
   legalEntity?: {
     registrationNumber: string;
-    legalName: string;
+    legalName?: string;
   };
   shareHolderDetails?: {
     numberOfShares: number;

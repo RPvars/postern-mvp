@@ -81,7 +81,10 @@
       "LIQUIDATOR": "Liquidator",
       "ADMINISTRATOR": "Administrator",
       "AUDITOR": "Auditor",
-      "PROCURATOR": "Procurator"
+      "PROCURATOR": "Procurator",
+      "CHAIR_OF_SUPERVISORY_BOARD": "Chair of the Supervisory Board",
+      "DEPUTY_CHAIR_OF_SUPERVISORY_BOARD": "Deputy Chair of the Supervisory Board",
+      "SUPERVISORY_BOARD_MEMBER": "Supervisory Board Member"
     },
     "governingBody": {
       "EXECUTIVE_BOARD": "Board",
@@ -286,6 +289,7 @@
     "error": "Error",
     "notFound": "Company not found",
     "loadError": "Failed to load company",
+    "dataWarning": "Some data (VAT registry, insolvency, VID rating) is imported from open data and may not be fully up-to-date. Automatic data refresh needs to be configured.",
     "tabs": {
       "basic": "Basic Information",
       "people": "People",
@@ -339,11 +343,23 @@
       "commercialPledges": "Active Commercial Pledges",
       "securities": "Active Securities",
       "taxDebts": "Tax Debts (as of date)",
+      "taxpayerRating": "VID Taxpayer Rating",
       "hasValue": "Yes",
       "noValue": "No",
       "noDataSource": "Data not available",
       "loginRequired": "Sign In",
       "asOf": "as of"
+    },
+    "vatRegistry": {
+      "title": "VAT Payer Registry Data",
+      "vatNumber": "VAT Number",
+      "status": "Status",
+      "registered": "Registered",
+      "deregistered": "Deregistered",
+      "viewEuRegistry": "View in EU VAT Registry",
+      "active": "Active",
+      "inactive": "Inactive",
+      "notRegistered": "Not registered in the VAT payer registry"
     },
     "ownership": {
       "title": "Ownership Structure",
@@ -392,8 +408,10 @@
     "taxPayments": {
       "title": "Tax Payments to State Budget",
       "year": "Year",
-      "amount": "Amount",
-      "date": "Date"
+      "amount": "Total (EUR)",
+      "iinAmount": "incl. PIT",
+      "vsaoiAmount": "incl. SSC",
+      "employeeCount": "Avg. Employees"
     },
     "financial": {
       "noData": "Financial data is not available"
@@ -403,6 +421,17 @@
       "description": "Company documents and registration materials",
       "comingSoon": "Documents section is under development",
       "comingSoonDescription": "Soon you will be able to access company documents, financial reports, registration certificates, and other important materials here."
+    },
+    "financialSummary": {
+      "title": "Financial Indicators (recent years)",
+      "netIncome": "Net Income",
+      "revenue": "Revenue",
+      "totalAssets": "Total Assets",
+      "equity": "Equity",
+      "totalDebt": "Total Debt",
+      "liquidityRatio": "Liquidity",
+      "returnOnAssets": "Return on Assets",
+      "employees": "Employees"
     },
     "financialRatios": {
       "title": "Financial Ratios",
@@ -435,7 +464,8 @@
       "payablesTurnover": "Payables Turnover",
       "dso": "Days Sales Outstanding (DSO)",
       "dpo": "Days Payable Outstanding (DPO)",
-      "cashConversionCycle": "Cash Conversion Cycle (days)"
+      "cashConversionCycle": "Cash Conversion Cycle (days)",
+      "unitDays": "days"
     }
   },
   "maintenance": {
@@ -490,7 +520,7 @@
       "title": "Tax Payments",
       "company": "Company",
       "amount": "Amount",
-      "date": "Date",
+      "employeeCount": "Avg. Employees",
       "noData": "No data"
     }
   }

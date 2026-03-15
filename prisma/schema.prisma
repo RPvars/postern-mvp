@@ -50,8 +50,6 @@ model Company {
   owners            Ownership[]
   boardMembers      BoardMember[]
   beneficialOwners  BeneficialOwner[]
-  taxPayments       TaxPayment[]
-  financialRatios   FinancialRatio[]
 
   @@index([name])
   @@index([nameNormalized])
@@ -99,66 +97,23 @@ model Ownership {
 }
 
 model TaxPayment {
-  id        String   @id @default(cuid())
-  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId String
-  year      Int
-  amount    Float
-  date      DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  registrationNumber String
+  year               Int
+  amount             Float    // Total VID taxes paid (EUR)
+  iinAmount          Float?   // Personal income tax portion (EUR)
+  vsaoiAmount        Float?   // Social insurance portion (EUR)
+  employeeCount      Int?     // Average employee count
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
-  @@index([companyId])
-  @@index([year])
-  @@index([companyId, year])
-}
-
-model FinancialRatio {
-  id                      String   @id @default(cuid())
-  company                 Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  companyId               String
-  year                    Int
-
-  // Profitability Ratios
-  returnOnEquity          Float?   // ROE - Net Income / Shareholder's Equity
-  returnOnAssets          Float?   // ROA - Net Income / Total Assets
-  roce                    Float?   // ROCE - EBIT / Capital Employed
-  netProfitMargin         Float?   // Net Income / Revenue
-  grossProfitMargin       Float?   // Gross Profit / Revenue
-  operatingProfitMargin   Float?   // Operating Income / Revenue (EBIT Margin)
-  ebitdaMargin            Float?   // EBITDA / Revenue
-  cashFlowMargin          Float?   // Operating Cash Flow / Revenue
-  revenuePerEmployee      Float?   // Revenue / Number of Employees
-  profitPerEmployee       Float?   // Net Profit / Number of Employees
-
-  // Liquidity Ratios
-  currentRatio            Float?   // Current Assets / Current Liabilities
-  quickRatio              Float?   // (Current Assets - Inventory) / Current Liabilities
-  cashRatio               Float?   // Cash & Cash Equivalents / Current Liabilities
-  workingCapitalRatio     Float?   // Working Capital / Total Assets
-
-  // Leverage Ratios
-  debtToEquity            Float?   // Total Debt / Total Equity
-  debtRatio               Float?   // Total Debt / Total Assets
-  interestCoverageRatio   Float?   // EBIT / Interest Expense
-  equityMultiplier        Float?   // Total Assets / Total Equity
-
-  // Efficiency Ratios
-  assetTurnover           Float?   // Revenue / Total Assets
-  inventoryTurnover       Float?   // Cost of Goods Sold / Average Inventory
-  receivablesTurnover     Float?   // Revenue / Average Accounts Receivable
-  payablesTurnover        Float?   // COGS / Average Accounts Payable
-  dso                     Float?   // Days Sales Outstanding (365 / Receivables Turnover)
-  dpo                     Float?   // Days Payable Outstanding (365 / Payables Turnover)
-  cashConversionCycle     Float?   // Days Inventory + Days Receivables - Days Payables
-
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
-
-  @@unique([companyId, year])
-  @@index([companyId])
+  @@unique([registrationNumber, year])
+  @@index([registrationNumber])
   @@index([year])
 }
+
+// FinancialRatio data is fetched on-demand from data.gov.lv CKAN API
+// See lib/data-gov/client.ts
 
 model BoardMember {
   id                  String    @id @default(cuid())
@@ -194,6 +149,49 @@ model BeneficialOwner {
   updatedAt         DateTime  @updatedAt
 
   @@index([companyId])
+}
+
+model InsolvencyProceeding {
+  id                    String    @id @default(cuid())
+  registrationNumber    String
+  proceedingId          String?
+  proceedingForm        String?   // INSOLVENCY, LEGAL_PROTECTION
+  proceedingType        String?   // NATIONAL
+  status                String?   // e.g., "pabeigta bankrota procedūra"
+  dateFrom              DateTime?
+  dateTo                DateTime?
+  court                 String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@unique([registrationNumber, proceedingId])
+  @@index([registrationNumber])
+}
+
+model TaxpayerRating {
+  id                    String    @id @default(cuid())
+  registrationNumber    String    @unique
+  rating                String    // A, B, C, N, J
+  ratingDescription     String?   // e.g., "Laba saistību izpilde"
+  ratingDate            DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([registrationNumber])
+  @@index([rating])
+}
+
+model VatPayer {
+  id                 String    @id @default(cuid())
+  vatNumber          String    @unique   // e.g. "LV40003051954"
+  name               String?
+  isActive           Boolean   @default(false)
+  registeredDate     DateTime?
+  deregisteredDate   DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  @@index([vatNumber])
 }
 
 // ============================================

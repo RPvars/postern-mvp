@@ -81,7 +81,10 @@
       "LIQUIDATOR": "Likvidators",
       "ADMINISTRATOR": "Administrators",
       "AUDITOR": "Revidents",
-      "PROCURATOR": "Prokurists"
+      "PROCURATOR": "Prokurists",
+      "CHAIR_OF_SUPERVISORY_BOARD": "Uzraudzības padomes priekšsēdētājs",
+      "DEPUTY_CHAIR_OF_SUPERVISORY_BOARD": "Uzraudzības padomes priekšsēdētāja vietnieks",
+      "SUPERVISORY_BOARD_MEMBER": "Uzraudzības padomes loceklis"
     },
     "governingBody": {
       "EXECUTIVE_BOARD": "Valde",
@@ -286,6 +289,7 @@
     "error": "Kļūda",
     "notFound": "Uzņēmums nav atrasts",
     "loadError": "Neizdevās ielādēt uzņēmumu",
+    "dataWarning": "Daļa datu (PVN reģistrs, maksātnespējas, VID reitings) tiek importēta no atvērtajiem datiem un var nebūt pilnībā aktuāla. Nepieciešams iestatīt automātisko datu atjaunošanu.",
     "tabs": {
       "basic": "Pamatinformācija",
       "people": "Personas",
@@ -339,11 +343,23 @@
       "securities": "Aktuālie nodrošinājumi",
       "sanctionsRisk": "Sankciju risks",
       "taxDebts": "Nodokļu parādi VID (uz datumu)",
+      "taxpayerRating": "VID nodokļu maksātāja reitings",
       "hasValue": "Ir",
       "noValue": "Nav",
       "noDataSource": "Dati nav pieejami",
       "loginRequired": "Pieslēgties",
       "asOf": "uz"
+    },
+    "vatRegistry": {
+      "title": "Dati no PVN maksātāju reģistra",
+      "vatNumber": "PVN maksātāja numurs",
+      "status": "Statuss",
+      "registered": "Reģistrēts",
+      "deregistered": "Izslēgts",
+      "viewEuRegistry": "Skatīt ES PVN reģistrā",
+      "active": "Aktīvs",
+      "inactive": "Neaktīvs",
+      "notRegistered": "Nav reģistrēts PVN maksātāju reģistrā"
     },
     "ownership": {
       "title": "Īpašumtiesību Struktūra",
@@ -392,8 +408,10 @@
     "taxPayments": {
       "title": "Nodokļu Maksājumi Valsts Budžetā",
       "year": "Gads",
-      "amount": "Summa",
-      "date": "Datums"
+      "amount": "Kopā (EUR)",
+      "iinAmount": "t.sk. IIN",
+      "vsaoiAmount": "t.sk. VSAOI",
+      "employeeCount": "Vid. darbinieki"
     },
     "financial": {
       "noData": "Finanšu dati nav pieejami"
@@ -403,6 +421,17 @@
       "description": "Uzņēmuma dokumenti un reģistrācijas materiāli",
       "comingSoon": "Dokumentu sadaļa ir izstrādes procesā",
       "comingSoonDescription": "Drīzumā šeit būs pieejami uzņēmuma dokumenti, finanšu pārskati, reģistrācijas apliecības un citi svarīgi materiāli."
+    },
+    "financialSummary": {
+      "title": "Finanšu Rādītāji (pēdējie iesniegtie gadi)",
+      "netIncome": "Peļņa pēc nodokļiem",
+      "revenue": "Apgrozījums",
+      "totalAssets": "Bilances aktīvs",
+      "equity": "Pašu kapitāls",
+      "totalDebt": "Kopējais parāds",
+      "liquidityRatio": "Likviditāte",
+      "returnOnAssets": "Rentabilitāte (aktīvu atdeve)",
+      "employees": "Darbinieku skaits"
     },
     "financialRatios": {
       "title": "Finanšu Rādītāji",
@@ -435,7 +464,8 @@
       "payablesTurnover": "Kreditoru apgrozījums",
       "dso": "Debitoru apgrozījuma periods (DSO)",
       "dpo": "Kreditoru apgrozījuma periods (DPO)",
-      "cashConversionCycle": "Naudas konversijas cikls (dienas)"
+      "cashConversionCycle": "Naudas konversijas cikls (dienas)",
+      "unitDays": "dienas"
     }
   },
   "maintenance": {
@@ -490,7 +520,7 @@
       "title": "Nodokļu Maksājumi",
       "company": "Uzņēmums",
       "amount": "Summa",
-      "date": "Datums",
+      "employeeCount": "Vid. darbinieki",
       "noData": "Nav datu"
     }
   }

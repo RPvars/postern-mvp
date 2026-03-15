@@ -44,10 +44,12 @@ interface FinancialRatiosDisplayProps {
   ratios: FinancialRatio[];
 }
 
-const formatRatio = (value: number | null, isPercentage: boolean = false, decimals: number = 2): string => {
+const formatRatio = (value: number | null, isPercentage: boolean = false, decimals: number = 2, unit?: string): string => {
   if (value == null) return 'N/A';
+  if (isPercentage) return `${(value * 100).toFixed(2)}%`;
   const formatted = value.toFixed(decimals);
-  return isPercentage ? `${(parseFloat(formatted) * 100).toFixed(2)}%` : formatted;
+  if (unit) return `${formatted} ${unit}`;
+  return formatted;
 };
 
 // Calculate trend direction and percentage change
@@ -78,11 +80,13 @@ const FinancialChart = ({
   data,
   isPercentage = false,
   decimals = 2,
+  unit,
   noDataText = 'No data available'
 }: {
   data: (number | null)[];
   isPercentage?: boolean;
   decimals?: number;
+  unit?: string;
   noDataText?: string;
 }) => {
   // Don't render if all values are null or no data
@@ -108,7 +112,7 @@ const FinancialChart = ({
         <div className="bg-background border border-border rounded-md px-3 py-2 shadow-md">
           <p className="text-sm font-semibold">{payload[0].payload.year}</p>
           <p className="text-sm text-[#fec200]">
-            {formatRatio(value, isPercentage, decimals)}
+            {formatRatio(value, isPercentage, decimals, unit)}
           </p>
         </div>
       );
@@ -155,6 +159,7 @@ const RatioCard = ({
   historicalValues,
   isPercentage = false,
   decimals = 2,
+  unit,
   description,
   noDataText = 'No data available'
 }: {
@@ -163,6 +168,7 @@ const RatioCard = ({
   historicalValues: (number | null)[];
   isPercentage?: boolean;
   decimals?: number;
+  unit?: string;
   description: string;
   noDataText?: string;
 }) => {
@@ -189,7 +195,7 @@ const RatioCard = ({
             <div className="flex items-center gap-1">
               <TrendIcon className={`h-4 w-4 ${trend.color}`} />
               <span className={`font-mono text-sm font-semibold ${trend.color}`}>
-                {formatRatio(value, isPercentage, decimals)}
+                {formatRatio(value, isPercentage, decimals, unit)}
               </span>
             </div>
             {trend.change != null && (
@@ -205,6 +211,7 @@ const RatioCard = ({
           data={historicalValues}
           isPercentage={isPercentage}
           decimals={decimals}
+          unit={unit}
           noDataText={noDataText}
         />
       </CardContent>
@@ -328,6 +335,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('revenuePerEmployee')}
                 value={currentYearData.revenuePerEmployee}
                 historicalValues={getHistoricalValues('revenuePerEmployee')}
+                unit="EUR"
                 description="Revenue / Number of Employees"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -335,6 +343,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('profitPerEmployee')}
                 value={currentYearData.profitPerEmployee}
                 historicalValues={getHistoricalValues('profitPerEmployee')}
+                unit="EUR"
                 description="Net Profit / Number of Employees"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -347,6 +356,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('currentRatio')}
                 value={currentYearData.currentRatio}
                 historicalValues={getHistoricalValues('currentRatio')}
+                unit="×"
                 description="Current Assets / Current Liabilities"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -354,6 +364,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('quickRatio')}
                 value={currentYearData.quickRatio}
                 historicalValues={getHistoricalValues('quickRatio')}
+                unit="×"
                 description="(Current Assets - Inventory) / Current Liabilities"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -361,6 +372,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('cashRatio')}
                 value={currentYearData.cashRatio}
                 historicalValues={getHistoricalValues('cashRatio')}
+                unit="×"
                 description="Cash & Equivalents / Current Liabilities"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -381,6 +393,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('debtToEquity')}
                 value={currentYearData.debtToEquity}
                 historicalValues={getHistoricalValues('debtToEquity')}
+                unit="×"
                 description="Total Debt / Total Equity"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -388,6 +401,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('debtRatio')}
                 value={currentYearData.debtRatio}
                 historicalValues={getHistoricalValues('debtRatio')}
+                unit="×"
                 description="Total Debt / Total Assets"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -395,6 +409,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('interestCoverageRatio')}
                 value={currentYearData.interestCoverageRatio}
                 historicalValues={getHistoricalValues('interestCoverageRatio')}
+                unit="×"
                 description="EBIT / Interest Expense"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -402,6 +417,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('equityMultiplier')}
                 value={currentYearData.equityMultiplier}
                 historicalValues={getHistoricalValues('equityMultiplier')}
+                unit="×"
                 description="Total Assets / Total Equity"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -414,6 +430,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('assetTurnover')}
                 value={currentYearData.assetTurnover}
                 historicalValues={getHistoricalValues('assetTurnover')}
+                unit="×"
                 description="Revenue / Total Assets"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -421,6 +438,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('inventoryTurnover')}
                 value={currentYearData.inventoryTurnover}
                 historicalValues={getHistoricalValues('inventoryTurnover')}
+                unit="×"
                 description="Cost of Goods Sold / Average Inventory"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -428,6 +446,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('receivablesTurnover')}
                 value={currentYearData.receivablesTurnover}
                 historicalValues={getHistoricalValues('receivablesTurnover')}
+                unit="×"
                 description="Revenue / Average Accounts Receivable"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -435,6 +454,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 label={t('payablesTurnover')}
                 value={currentYearData.payablesTurnover}
                 historicalValues={getHistoricalValues('payablesTurnover')}
+                unit="×"
                 description="COGS / Average Accounts Payable"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -443,6 +463,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 value={currentYearData.dso}
                 historicalValues={getHistoricalValues('dso')}
                 decimals={0}
+                unit={t('unitDays')}
                 description="365 / Receivables Turnover"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -451,6 +472,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 value={currentYearData.dpo}
                 historicalValues={getHistoricalValues('dpo')}
                 decimals={0}
+                unit={t('unitDays')}
                 description="365 / Payables Turnover"
                 noDataText={tSelector('noDataAvailable')}
               />
@@ -459,6 +481,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 value={currentYearData.cashConversionCycle}
                 historicalValues={getHistoricalValues('cashConversionCycle')}
                 decimals={0}
+                unit={t('unitDays')}
                 description="Days Inventory + Days Receivables - Days Payables"
                 noDataText={tSelector('noDataAvailable')}
               />

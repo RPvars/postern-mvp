@@ -28,7 +28,10 @@ components/
 lib/
   auth.ts              # NextAuth configuration
   prisma.ts            # Prisma client (uses absolute path for SQLite)
+  data-gov/client.ts   # CKAN API client for financial data (on-demand)
+  business-register/   # Business Register API client, mappers, types
   i18n/                # i18n configuration
+scripts/               # Data import scripts (CSV from data.gov.lv)
 messages/
   lv.json              # Latvian translations
   en.json              # English translations
@@ -80,6 +83,8 @@ npm run dev           # Start dev server
 npx prisma generate   # Regenerate Prisma client
 npx prisma db push    # Push schema to database
 npx prisma studio     # Open database GUI
+npm run import:all    # Import all CSV data (tax, insolvency, ratings, VAT)
+npm run import:vat    # Import VAT payer data only
 /ship                 # Run shipping pipeline (review, fix, build, commit, push)
 ```
 
@@ -105,12 +110,19 @@ Required in `.env`:
 - **Mock mode**: Set `BR_USE_MOCK_DATA=true` to bypass certificate requirement in development
 - **Key API endpoints used**: `/searchlegalentities/search/legal-entities`, `/legalentity/legal-entity/{regcode}`
 
-## Financial Ratios
-The `FinancialRatio` model includes comprehensive financial metrics organized by category:
-- **Profitability**: ROE, ROA, ROCE, Net/Gross/EBIT/EBITDA margins, Cash Flow Margin, Revenue/Profit per Employee
-- **Liquidity**: Current Ratio, Quick Ratio, Cash Ratio, Working Capital Ratio
-- **Leverage**: Debt-to-Equity, Debt-to-Assets, Interest Coverage, Equity Multiplier
-- **Efficiency**: Asset/Inventory/Receivables/Payables Turnover, DSO, DPO, Cash Conversion Cycle
+## Financial Data (On-Demand API)
+Financial ratios are fetched on-demand from data.gov.lv CKAN Datastore API (no auth, CC0 license).
+- **Client**: `lib/data-gov/client.ts` — SQL JOIN across CKAN resources, 10min cache, LVL→EUR conversion for pre-2014 data
+- **27 ratios** calculated: profitability, liquidity, leverage, efficiency + raw figures (revenue, assets, equity, etc.)
+- Units on charts: `%` (profitability), `×` (ratios), `EUR` (per-employee), `dienas/days` (DSO/DPO/CCC)
+
+## Imported Data (CSV from data.gov.lv)
+Data imported via scripts from VID/UR open data (CC0). Run `npm run import:all` to refresh.
+- **Tax payments**: `scripts/import-vid-tax-data.ts` — VID tax payment records (~428K)
+- **Insolvency**: `scripts/import-insolvency-data.ts` — insolvency proceedings (~17K)
+- **Taxpayer ratings**: `scripts/import-taxpayer-rating.ts` — VID A/B/C/N/J ratings (~141K)
+- **VAT payers**: `scripts/import-vat-payers.ts` — PVN registry from VID (~280K, ISO-8859-1 encoding)
+- **Note**: Imported data is static snapshots — needs periodic re-import to stay current
 
 ## Compare Page
 - URL state persistence: Selected companies stored in `?companies=id1,id2,id3` parameter

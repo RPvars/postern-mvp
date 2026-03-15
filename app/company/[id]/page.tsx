@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Navigation } from '@/components/navigation';
@@ -9,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Users, FileText, TrendingUp, Phone, Mail, MapPin, Calendar, AlertCircle, FolderOpen, MessageSquare } from 'lucide-react';
+import { Building2, Users, FileText, TrendingUp, Calendar, AlertCircle, FolderOpen, MessageSquare, BarChart3, CheckCircle2, XCircle, ExternalLink, X, Info } from 'lucide-react';
 import { OwnershipChart } from '@/components/ownership-chart';
 import { FinancialRatiosDisplay } from '@/components/financial-ratios-display';
 
@@ -38,6 +39,12 @@ interface Company {
   cleanedShortName: string | null;
   lastModifiedAt: string | null;
   sepaCreditorId: string | null;
+  vatPayer: {
+    vatNumber: string;
+    isActive: boolean;
+    registeredDate: string | null;
+    deregisteredDate: string | null;
+  } | null;
   businessPurpose: string | null;
   durationIndefinite: boolean | null;
   articlesDate: string | null;
@@ -63,11 +70,21 @@ interface Company {
     isAnnulled: boolean;
   }>;
   securingMeasures: Array<Record<string, unknown>>;
+  taxpayerRating: string | null;
+  taxpayerRatingDescription: string | null;
+  insolvencyProceedings: Array<{
+    proceedingForm: string | null;
+    status: string | null;
+    dateFrom: string | null;
+    dateTo: string | null;
+    court: string | null;
+  }>;
 
   owners: {
     id: string;
     owner: {
       name: string;
+      isLegalEntity: boolean;
       personalCode: string | null;
     };
     sharePercentage: number;
@@ -107,11 +124,19 @@ interface Company {
     id: string;
     year: number;
     amount: number;
-    date: string;
+    iinAmount: number | null;
+    vsaoiAmount: number | null;
+    employeeCount: number | null;
   }[];
   financialRatios: {
-    id: string;
     year: number;
+    // Raw financial figures
+    revenue: number | null;
+    netIncome: number | null;
+    totalAssets: number | null;
+    equity: number | null;
+    totalDebt: number | null;
+    employees: number | null;
     // Profitability Ratios
     returnOnEquity: number | null;
     returnOnAssets: number | null;
@@ -156,6 +181,7 @@ export default function CompanyPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [ownersLimit, setOwnersLimit] = useState(10);
+  const [showDataWarning, setShowDataWarning] = useState(true);
 
   // Get active tab from URL or default to 'basic'
   const activeTab = searchParams.get('tab') || 'basic';
@@ -261,6 +287,23 @@ export default function CompanyPage() {
         </div>
       )}
 
+      {showDataWarning && (
+        <div className="container mx-auto px-4 pt-4">
+          <div className="flex items-center justify-between gap-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 shrink-0" />
+              {t('dataWarning')}
+            </div>
+            <button
+              onClick={() => setShowDataWarning(false)}
+              className="shrink-0 rounded-sm p-0.5 hover:bg-amber-100"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4 bg-white border shadow-sm rounded-lg">
@@ -332,10 +375,6 @@ export default function CompanyPage() {
                     <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.registrationNumberDate')}</div>
                     <div className="text-sm">{company.registrationNumber}, {formatDate(company.registrationDate)}</div>
                   </div>
-                  <div>
-                    <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.taxNumber')}</div>
-                    <div className="text-sm text-muted-foreground italic">{t('companyInfo.vidDataRequired')}</div>
-                  </div>
                   {company.articlesDate && (
                     <div>
                       <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.articlesDate')}</div>
@@ -348,6 +387,52 @@ export default function CompanyPage() {
                       <div className="text-sm">{formatDate(company.lastModifiedAt)}</div>
                     </div>
                   )}
+                  {/* PVN maksātāju reģistrs */}
+                  <div className="border-t pt-3 mt-1">
+                    <div className="text-xs font-medium text-muted-foreground">{t('vatRegistry.title')}</div>
+                    {company.vatPayer ? (
+                      <div>
+                        <div className="text-sm flex items-center gap-1 flex-wrap">
+                          <span className="font-medium">{company.vatPayer.vatNumber}</span>
+                          <span className="text-muted-foreground">·</span>
+                          {company.vatPayer.isActive ? (
+                            <span className="inline-flex items-center gap-1 text-green-600">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              {t('vatRegistry.active')}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-red-600">
+                              <XCircle className="h-3.5 w-3.5" />
+                              {t('vatRegistry.inactive')}
+                            </span>
+                          )}
+                          {company.vatPayer.registeredDate && (
+                            <>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-muted-foreground">{t('vatRegistry.registered')} {formatDate(company.vatPayer.registeredDate)}</span>
+                            </>
+                          )}
+                          {company.vatPayer.deregisteredDate && (
+                            <>
+                              <span className="text-muted-foreground">·</span>
+                              <span className="text-muted-foreground">{t('vatRegistry.deregistered')} {formatDate(company.vatPayer.deregisteredDate)}</span>
+                            </>
+                          )}
+                        </div>
+                        <a
+                          href="https://ec.europa.eu/taxation_customs/vies/#/vat-validation"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-muted-foreground hover:text-foreground inline-flex items-center gap-1 mt-1"
+                        >
+                          {t('vatRegistry.viewEuRegistry')}
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">{t('vatRegistry.notRegistered')}</div>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -430,10 +515,10 @@ export default function CompanyPage() {
                       {company.inLiquidation ? t('risk.hasValue') : t('risk.noValue')}
                     </TableCell>
                   </TableRow>
-                  <TableRow className="opacity-50">
+                  <TableRow>
                     <TableCell className="font-medium">{t('risk.insolvency')}</TableCell>
-                    <TableCell>
-                      <span className="text-xs text-muted-foreground italic">{t('risk.noDataSource')}</span>
+                    <TableCell className={company.inInsolvencyRegister ? 'text-red-600 font-semibold' : ''}>
+                      {company.inInsolvencyRegister ? t('risk.hasValue') : t('risk.noValue')}
                     </TableCell>
                   </TableRow>
                   <TableRow className="opacity-50">
@@ -462,10 +547,24 @@ export default function CompanyPage() {
                       {company.sanctionsRisk ? t('risk.hasValue') : t('risk.noValue')}
                     </TableCell>
                   </TableRow>
-                  <TableRow className="opacity-50">
-                    <TableCell className="font-medium">{t('risk.taxDebts')}</TableCell>
+                  <TableRow>
+                    <TableCell className="font-medium">{t('risk.taxpayerRating')}</TableCell>
                     <TableCell>
-                      <span className="text-xs text-muted-foreground italic">{t('risk.noDataSource')}</span>
+                      {company.taxpayerRating ? (
+                        <span className={`font-semibold ${
+                          company.taxpayerRating === 'A' ? 'text-green-600' :
+                          company.taxpayerRating === 'B' ? 'text-yellow-600' :
+                          company.taxpayerRating === 'C' ? 'text-red-600' :
+                          'text-muted-foreground'
+                        }`}>
+                          {company.taxpayerRating}
+                          {company.taxpayerRatingDescription && (
+                            <span className="font-normal text-muted-foreground text-sm ml-2">
+                              ({company.taxpayerRatingDescription})
+                            </span>
+                          )}
+                        </span>
+                      ) : t('risk.noValue')}
                     </TableCell>
                   </TableRow>
                 </TableBody>
@@ -505,6 +604,7 @@ export default function CompanyPage() {
               </CardContent>
             </Card>
           )}
+
             </div>
           </TabsContent>
 
@@ -588,7 +688,13 @@ export default function CompanyPage() {
                           <TableRow key={ownership.id}>
                             <TableCell>
                               <div>
-                                <div className="font-medium">{ownership.owner.name}</div>
+                                {ownership.owner.isLegalEntity && ownership.owner.personalCode ? (
+                                  <Link href={`/company/${ownership.owner.personalCode}`} className="font-medium text-primary hover:underline">
+                                    {ownership.owner.name}
+                                  </Link>
+                                ) : (
+                                  <div className="font-medium">{ownership.owner.name}</div>
+                                )}
                                 {ownership.owner.personalCode && (
                                   <div className="text-xs text-muted-foreground">
                                     {ownership.owner.personalCode}
@@ -798,41 +904,147 @@ export default function CompanyPage() {
           {/* Tab 3: Finanšu informācija */}
           <TabsContent value="financial">
             <div className="grid gap-6 lg:grid-cols-2">
+              {/* Financial Summary Table */}
+              {company.financialRatios && company.financialRatios.length > 0 && (() => {
+                const recentYears = company.financialRatios.slice(0, 3);
+                const summaryRows: { label: string; key: string; format: 'currency' | 'ratio' | 'percent' | 'integer' }[] = [
+                  { label: t('financialSummary.netIncome'), key: 'netIncome', format: 'currency' },
+                  { label: t('financialSummary.revenue'), key: 'revenue', format: 'currency' },
+                  { label: t('financialSummary.totalAssets'), key: 'totalAssets', format: 'currency' },
+                  { label: t('financialSummary.equity'), key: 'equity', format: 'currency' },
+                  { label: t('financialSummary.totalDebt'), key: 'totalDebt', format: 'currency' },
+                  { label: t('financialSummary.liquidityRatio'), key: 'currentRatio', format: 'ratio' },
+                  { label: t('financialSummary.returnOnAssets'), key: 'returnOnAssets', format: 'percent' },
+                  { label: t('financialSummary.employees'), key: 'employees', format: 'integer' },
+                ];
+
+                const formatValue = (value: number | null, format: string) => {
+                  if (value == null) return '-';
+                  switch (format) {
+                    case 'currency': return formatCurrency(value);
+                    case 'ratio': return value.toFixed(2);
+                    case 'percent': return `${(value * 100).toFixed(2)}`;
+                    case 'integer': return value.toLocaleString('lv-LV');
+                    default: return String(value);
+                  }
+                };
+
+                const getTrend = (current: number | null, previous: number | null) => {
+                  if (current == null || previous == null || previous === 0) return null;
+                  return current > previous ? 'up' : current < previous ? 'down' : null;
+                };
+
+                return (
+                  <Card className="lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        {t('financialSummary.title')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead></TableHead>
+                            {recentYears.map((ry) => (
+                              <TableHead key={ry.year} className="text-right">{ry.year}</TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {summaryRows.map((row) => (
+                            <TableRow key={row.key}>
+                              <TableCell className="font-medium">{row.label}</TableCell>
+                              {recentYears.map((ry, idx) => {
+                                const value = (ry as Record<string, number | null>)[row.key] ?? null;
+                                const prevYear = recentYears[idx + 1];
+                                const prevValue = prevYear ? (prevYear as Record<string, number | null>)[row.key] ?? null : null;
+                                const trend = getTrend(value, prevValue);
+                                return (
+                                  <TableCell key={ry.year} className="text-right">
+                                    <span className="inline-flex items-center gap-1">
+                                      {formatValue(value, row.format)}
+                                      {row.format === 'currency' && value != null && ' EUR'}
+                                      {trend === 'up' && <span className="text-green-600 text-xs">↑</span>}
+                                      {trend === 'down' && <span className="text-red-600 text-xs">↓</span>}
+                                    </span>
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
+
               {/* Tax Payments */}
-              <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="h-5 w-5" />
-                {t('taxPayments.title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {company.taxPayments && company.taxPayments.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('taxPayments.year')}</TableHead>
-                    <TableHead>{t('taxPayments.amount')}</TableHead>
-                    <TableHead>{t('taxPayments.date')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {company.taxPayments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell className="font-medium">{payment.year}</TableCell>
-                      <TableCell>{formatCurrency(payment.amount)}</TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {formatDate(payment.date)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              ) : (
-                <p className="text-sm text-muted-foreground py-4">{t('financial.noData')}</p>
-              )}
-            </CardContent>
-          </Card>
+              {company.taxPayments && company.taxPayments.length > 0 && (() => {
+                const recentTax = company.taxPayments.slice(0, 3);
+                const taxRows: { label: string; key: 'amount' | 'iinAmount' | 'vsaoiAmount' | 'employeeCount'; format: 'currency' | 'integer' }[] = [
+                  { label: t('taxPayments.amount'), key: 'amount', format: 'currency' },
+                  { label: t('taxPayments.iinAmount'), key: 'iinAmount', format: 'currency' },
+                  { label: t('taxPayments.vsaoiAmount'), key: 'vsaoiAmount', format: 'currency' },
+                  { label: t('taxPayments.employeeCount'), key: 'employeeCount', format: 'integer' },
+                ];
+
+                const getTaxTrend = (current: number | null, previous: number | null) => {
+                  if (current == null || previous == null || previous === 0) return null;
+                  return current > previous ? 'up' : current < previous ? 'down' : null;
+                };
+
+                return (
+                  <Card className="lg:col-span-2">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5" />
+                        {t('taxPayments.title')}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead></TableHead>
+                            {recentTax.map((tp) => (
+                              <TableHead key={tp.year} className="text-right">{tp.year}</TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {taxRows.map((row) => (
+                            <TableRow key={row.key}>
+                              <TableCell className="font-medium">{row.label}</TableCell>
+                              {recentTax.map((tp, idx) => {
+                                const value = tp[row.key];
+                                const prevTp = recentTax[idx + 1];
+                                const prevValue = prevTp ? prevTp[row.key] : null;
+                                const trend = getTaxTrend(value, prevValue);
+                                return (
+                                  <TableCell key={tp.year} className="text-right">
+                                    <span className="inline-flex items-center gap-1">
+                                      {value != null
+                                        ? row.format === 'currency'
+                                          ? `${formatCurrency(value)}`
+                                          : value.toLocaleString('lv-LV')
+                                        : '-'}
+                                      {trend === 'up' && <span className="text-green-600 text-xs">↑</span>}
+                                      {trend === 'down' && <span className="text-red-600 text-xs">↓</span>}
+                                    </span>
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </CardContent>
+                  </Card>
+                );
+              })()}
 
               {/* Financial Ratios */}
               {company.financialRatios && company.financialRatios.length > 0 && (

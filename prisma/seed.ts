@@ -6,8 +6,6 @@ async function main() {
   console.log('Starting seed...');
 
   // Clear existing data
-  await prisma.financialRatio.deleteMany();
-  await prisma.taxPayment.deleteMany();
   await prisma.beneficialOwner.deleteMany();
   await prisma.boardMember.deleteMany();
   await prisma.ownership.deleteMany();
@@ -469,56 +467,8 @@ async function main() {
       });
     }
 
-    // Create tax payments based on company age (realistic historical data)
-    const currentYear = new Date().getFullYear();
-    const registrationYear = company.registrationDate.getFullYear();
-    const startYear = Math.max(registrationYear, 2015); // Don't go back further than 2015
-
-    // Generate tax payment data from company founding (or 2015) to current year
-    for (let year = startYear; year <= currentYear; year++) {
-      await prisma.taxPayment.create({
-        data: {
-          companyId: company.id,
-          year,
-          amount: Math.random() * 50000 + 10000, // Random amount between 10k and 60k EUR
-          date: new Date(`${year}-12-31`),
-        },
-      });
-    }
-
-    // Create financial ratios based on company age (realistic historical data)
-    for (let year = startYear; year <= currentYear; year++) {
-      await prisma.financialRatio.create({
-        data: {
-          companyId: company.id,
-          year,
-          // Profitability Ratios
-          returnOnEquity: Math.random() * 0.3 - 0.05, // -5% to 25%
-          returnOnAssets: Math.random() * 0.15, // 0% to 15%
-          netProfitMargin: Math.random() * 0.2, // 0% to 20%
-          grossProfitMargin: Math.random() * 0.4 + 0.1, // 10% to 50%
-          operatingProfitMargin: Math.random() * 0.25 + 0.05, // 5% to 30%
-          ebitdaMargin: Math.random() * 0.35 + 0.1, // 10% to 45%
-          cashFlowMargin: Math.random() * 0.25, // 0% to 25%
-          // Liquidity Ratios
-          currentRatio: Math.random() * 2 + 0.5, // 0.5 to 2.5
-          quickRatio: Math.random() * 1.5 + 0.3, // 0.3 to 1.8
-          cashRatio: Math.random() * 0.8 + 0.1, // 0.1 to 0.9
-          workingCapitalRatio: Math.random() * 0.4 - 0.1, // -10% to 30%
-          // Leverage Ratios
-          debtToEquity: Math.random() * 2, // 0 to 2
-          debtRatio: Math.random() * 0.7, // 0 to 0.7
-          interestCoverageRatio: Math.random() * 8 + 2, // 2 to 10
-          equityMultiplier: Math.random() * 2 + 1, // 1 to 3
-          // Efficiency Ratios
-          assetTurnover: Math.random() * 2 + 0.5, // 0.5 to 2.5
-          inventoryTurnover: Math.random() * 8 + 2, // 2 to 10
-          receivablesTurnover: Math.random() * 10 + 4, // 4 to 14
-          payablesTurnover: Math.random() * 8 + 3, // 3 to 11
-          cashConversionCycle: Math.random() * 60 + 20, // 20 to 80 days
-        },
-      });
-    }
+    // Tax payments are imported from VID open data (scripts/import-vid-tax-data.ts)
+    // Financial ratios are fetched on-demand from data.gov.lv CKAN API
 
     console.log(`Created company: ${company.name}`);
   }

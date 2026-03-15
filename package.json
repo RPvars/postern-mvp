@@ -11,6 +11,11 @@
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
+    "import:tax": "tsx scripts/import-vid-tax-data.ts",
+    "import:insolvency": "tsx scripts/import-insolvency-data.ts",
+    "import:rating": "tsx scripts/import-taxpayer-rating.ts",
+    "import:vat": "tsx scripts/import-vat-payers.ts",
+    "import:all": "npm run import:tax && npm run import:insolvency && npm run import:rating && npm run import:vat",
     "postinstall": "prisma generate"
   },
   "prisma": {

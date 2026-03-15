@@ -6,6 +6,8 @@ import { env } from '@/lib/env';
 import { captureException } from '@/lib/sentry';
 import { httpClient } from '@/lib/business-register/client/http';
 import { companyMapper, boardMemberMapper, memberMapper, beneficialOwnerMapper } from '@/lib/business-register/mappers/company';
+import { prisma } from '@/lib/prisma';
+import { getFinancialData } from '@/lib/data-gov/client';
 
 export async function GET(
   request: NextRequest,
@@ -44,7 +46,23 @@ export async function GET(
       );
     }
 
-    const legalEntity = await httpClient.getLegalEntity(id);
+    const [legalEntity, taxPaymentRecords, financialData, insolvencyRecords, taxpayerRatingRecord, vatPayerRecord] = await Promise.all([
+      httpClient.getLegalEntity(id),
+      prisma.taxPayment.findMany({
+        where: { registrationNumber: id },
+        orderBy: { year: 'desc' },
+      }),
+      getFinancialData(id).catch(() => []),
+      prisma.insolvencyProceeding.findMany({
+        where: { registrationNumber: id },
+      }),
+      prisma.taxpayerRating.findUnique({
+        where: { registrationNumber: id },
+      }),
+      prisma.vatPayer.findUnique({
+        where: { vatNumber: `LV${id}` },
+      }),
+    ]);
 
     // Resolve legal entity names for members/officers missing legalName (capped to avoid excessive API calls)
     const MAX_NAME_LOOKUPS = 10;
@@ -111,7 +129,7 @@ export async function GET(
       shareCapitalRegisteredDate: paidUpEquity?.registeredOn ?? null,
       // Risk flags derived from API data
       inLiquidation: (legalEntity.liquidations?.length ?? 0) > 0,
-      inInsolvencyRegister: false, // Requires separate API call
+      inInsolvencyRegister: insolvencyRecords.some(r => r.dateTo === null),
       hasPaymentClaims: false, // Not available from this API
       hasCommercialPledges: false, // Requires separate API call
       hasSecurities: (legalEntity.securingMeasures?.length ?? 0) > 0,
@@ -132,8 +150,30 @@ export async function GET(
       beneficialOwners: (legalEntity.beneficialOwners || [])
         .filter(bo => !bo.isAnnulled)
         .map(bo => beneficialOwnerMapper.fromApiResponse(bo)),
-      taxPayments: [],
-      financialRatios: [],
+      taxPayments: taxPaymentRecords.map((tp) => ({
+        id: tp.id,
+        year: tp.year,
+        amount: tp.amount,
+        iinAmount: tp.iinAmount,
+        vsaoiAmount: tp.vsaoiAmount,
+        employeeCount: tp.employeeCount,
+      })),
+      financialRatios: financialData,
+      taxpayerRating: taxpayerRatingRecord?.rating ?? null,
+      taxpayerRatingDescription: taxpayerRatingRecord?.ratingDescription ?? null,
+      insolvencyProceedings: insolvencyRecords.map((r) => ({
+        proceedingForm: r.proceedingForm,
+        status: r.status,
+        dateFrom: r.dateFrom,
+        dateTo: r.dateTo,
+        court: r.court,
+      })),
+      vatPayer: vatPayerRecord ? {
+        vatNumber: vatPayerRecord.vatNumber,
+        isActive: vatPayerRecord.isActive,
+        registeredDate: vatPayerRecord.registeredDate,
+        deregisteredDate: vatPayerRecord.deregisteredDate,
+      } : null,
     };
 
     return NextResponse.json({ company });

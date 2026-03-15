@@ -35,7 +35,9 @@ interface Company {
   taxPayments: {
     year: number;
     amount: number;
-    date: string;
+    iinAmount: number | null;
+    vsaoiAmount: number | null;
+    employeeCount: number | null;
   }[];
   financialRatios: {
     year: number;
@@ -868,7 +870,7 @@ export default function ComparePage() {
                         <TableRow>
                           <TableHead>{t('taxPayments.company')}</TableHead>
                           <TableHead className="text-right">{t('taxPayments.amount')} ({selectedYear})</TableHead>
-                          <TableHead>{t('taxPayments.date')}</TableHead>
+                          <TableHead className="text-right">{t('taxPayments.employeeCount')}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -880,8 +882,8 @@ export default function ComparePage() {
                               <TableCell className="text-right">
                                 {payment ? formatCurrency(payment.amount) : t('taxPayments.noData')}
                               </TableCell>
-                              <TableCell>
-                                {payment ? formatDate(payment.date) : tCommon('notAvailable')}
+                              <TableCell className="text-right">
+                                {payment?.employeeCount ?? '-'}
                               </TableCell>
                             </TableRow>
                           );
