@@ -6,42 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { BarChart3, TrendingUp, TrendingDown, Minus } from "lucide-react";
-
-interface FinancialRatio {
-  year: number;
-  // Profitability Ratios
-  returnOnEquity: number | null;
-  returnOnAssets: number | null;
-  roce: number | null;
-  netProfitMargin: number | null;
-  grossProfitMargin: number | null;
-  operatingProfitMargin: number | null;
-  ebitdaMargin: number | null;
-  cashFlowMargin: number | null;
-  revenuePerEmployee: number | null;
-  profitPerEmployee: number | null;
-  // Liquidity Ratios
-  currentRatio: number | null;
-  quickRatio: number | null;
-  cashRatio: number | null;
-  workingCapitalRatio: number | null;
-  // Leverage Ratios
-  debtToEquity: number | null;
-  debtRatio: number | null;
-  interestCoverageRatio: number | null;
-  equityMultiplier: number | null;
-  // Efficiency Ratios
-  assetTurnover: number | null;
-  inventoryTurnover: number | null;
-  receivablesTurnover: number | null;
-  payablesTurnover: number | null;
-  dso: number | null;
-  dpo: number | null;
-  cashConversionCycle: number | null;
-}
+import type { CompanyFinancialRatio } from '@/lib/types/company';
 
 interface FinancialRatiosDisplayProps {
-  ratios: FinancialRatio[];
+  ratios: CompanyFinancialRatio[];
 }
 
 const formatRatio = (value: number | null, isPercentage: boolean = false, decimals: number = 2, unit?: string): string => {
@@ -244,7 +212,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
   const currentYearData = ratios[0];
 
   // Helper to extract historical values for a specific ratio
-  const getHistoricalValues = (ratioKey: keyof FinancialRatio): (number | null)[] => {
+  const getHistoricalValues = (ratioKey: keyof CompanyFinancialRatio): (number | null)[] => {
     return ratios.map(r => r[ratioKey] as number | null);
   };
 

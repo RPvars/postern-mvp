@@ -1,11 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import { parseCSVLine } from '@/lib/import-utils';
-import { createWriteStream, mkdirSync, existsSync } from 'fs';
-import { pipeline } from 'stream/promises';
-import https from 'https';
-import path from 'path';
+import { downloadCSV, parseCSVLine } from '@/lib/import-utils';
 
 const CSV_URL = 'https://deminimis.fm.gov.lv/public/mekletajs/export_csv';
 const BATCH_SIZE = 200;
@@ -19,38 +15,6 @@ type StateAidRecord = {
   amount: number;
   instrumentTitle: string | null;
 };
-
-/**
- * Download CSV with SSL verification disabled (deminimis.fm.gov.lv has cert issues).
- */
-async function downloadStateAidCSV(): Promise<string> {
-  const localPath = path.join(process.cwd(), 'data', 'state-aid.csv');
-  const dir = path.dirname(localPath);
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-
-  return new Promise((resolve, reject) => {
-    const follow = (href: string, redirects = 0) => {
-      if (redirects > 5) return reject(new Error('Too many redirects'));
-      const url = new URL(href);
-      https.get(
-        {
-          hostname: url.hostname,
-          path: url.pathname + url.search,
-          rejectUnauthorized: false,
-        },
-        (res) => {
-          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-            return follow(res.headers.location, redirects + 1);
-          }
-          if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-          const file = createWriteStream(localPath);
-          pipeline(res, file).then(() => resolve(localPath)).catch(reject);
-        }
-      ).on('error', reject);
-    };
-    follow(CSV_URL);
-  });
-}
 
 /**
  * CSV columns: assign_date, person_reg_nr, person_title, project_title,
@@ -142,7 +106,7 @@ async function main() {
   console.log('=== De Minimis State Aid Import ===\n');
 
   console.log('Downloading state aid data...');
-  const csvPath = await downloadStateAidCSV();
+  const csvPath = await downloadCSV(CSV_URL, 'state-aid.csv', { rejectUnauthorized: false });
   console.log(`Downloaded to ${csvPath}\n`);
 
   await importStateAid(csvPath);

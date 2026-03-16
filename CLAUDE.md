@@ -23,11 +23,20 @@ app/                    # Next.js App Router pages
 components/
   auth/                # Auth UI components
   ui/                  # shadcn/ui components
+  company/             # Company detail tab components
+    basic-tab.tsx      # Company info, registration, capital, state aid, risk
+    people-tab.tsx     # Ownership, board members, beneficial owners
+    financial-tab.tsx  # Financial summary, tax payments (scrollable tables)
+    documents-tab.tsx  # Documents placeholder
+    company-skeleton.tsx  # Loading skeleton
+    company-error.tsx     # Error state
   financial-ratios-display.tsx  # Financial ratios with charts
   company-selector.tsx          # Multi-company selector for comparison
 lib/
   auth.ts              # NextAuth configuration
   prisma.ts            # Prisma client (uses absolute path for SQLite)
+  format.ts            # Shared formatting helpers (currency, percent, date)
+  types/company.ts     # Shared Company interface and sub-types
   data-gov/client.ts   # CKAN API client for financial data (on-demand)
   business-register/   # Business Register API client, mappers, types
   i18n/                # i18n configuration

@@ -3,27 +3,38 @@ import { pipeline } from 'stream/promises';
 import https from 'https';
 import path from 'path';
 
+interface DownloadOptions {
+  /** Disable SSL certificate verification (for servers with known cert issues) */
+  rejectUnauthorized?: boolean;
+}
+
 /**
  * Download a file from a URL with redirect following.
  * Saves to `data/<filename>` in the project root.
  */
-export async function downloadCSV(url: string, filename: string): Promise<string> {
+export async function downloadCSV(url: string, filename: string, options?: DownloadOptions): Promise<string> {
   const localPath = path.join(process.cwd(), 'data', filename);
   const { mkdirSync, existsSync } = await import('fs');
   const dir = path.dirname(localPath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
+  const requestOptions = options?.rejectUnauthorized === false ? { rejectUnauthorized: false } : {};
+
   return new Promise((resolve, reject) => {
     const follow = (href: string, redirects = 0) => {
       if (redirects > 5) return reject(new Error('Too many redirects'));
-      https.get(href, (res) => {
-        if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          return follow(res.headers.location, redirects + 1);
+      const parsed = new URL(href);
+      https.get(
+        { hostname: parsed.hostname, path: parsed.pathname + parsed.search, ...requestOptions },
+        (res) => {
+          if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            return follow(res.headers.location, redirects + 1);
+          }
+          if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
+          const file = createWriteStream(localPath);
+          pipeline(res, file).then(() => resolve(localPath)).catch(reject);
         }
-        if (res.statusCode !== 200) return reject(new Error(`HTTP ${res.statusCode}`));
-        const file = createWriteStream(localPath);
-        pipeline(res, file).then(() => resolve(localPath)).catch(reject);
-      }).on('error', reject);
+      ).on('error', reject);
     };
     follow(url);
   });
