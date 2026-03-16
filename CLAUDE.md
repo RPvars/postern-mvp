@@ -83,7 +83,7 @@ npm run dev           # Start dev server
 npx prisma generate   # Regenerate Prisma client
 npx prisma db push    # Push schema to database
 npx prisma studio     # Open database GUI
-npm run import:all    # Import all CSV data (tax, insolvency, ratings, VAT)
+npm run import:all    # Import all CSV data (NACE, tax, insolvency, ratings, VAT, state aid, names, reorganizations)
 npm run import:vat    # Import VAT payer data only
 /ship                 # Run shipping pipeline (review, fix, build, commit, push)
 ```
@@ -122,6 +122,10 @@ Data imported via scripts from VID/UR open data (CC0). Run `npm run import:all` 
 - **Insolvency**: `scripts/import-insolvency-data.ts` — insolvency proceedings (~17K)
 - **Taxpayer ratings**: `scripts/import-taxpayer-rating.ts` — VID A/B/C/N/J ratings (~141K)
 - **VAT payers**: `scripts/import-vat-payers.ts` — PVN registry from VID (~280K, ISO-8859-1 encoding)
+- **NACE codes**: `scripts/import-nace-codes.ts` — NACE 2.0 + 2.1 classifiers from data.gov.lv
+- **State aid**: `scripts/import-state-aid.ts` — de minimis aid from deminimis.fm.gov.lv
+- **Name history**: `scripts/import-name-history.ts` — previous company names from dati.ur.gov.lv (~93K)
+- **Reorganizations**: `scripts/import-reorganizations.ts` — company reorganizations from dati.ur.gov.lv (~10K)
 - **Note**: Imported data is static snapshots — needs periodic re-import to stay current
 
 ## Compare Page

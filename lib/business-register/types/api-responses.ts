@@ -114,8 +114,13 @@ export interface MemberApiResponse {
     country?: string;
   };
   legalEntity?: {
-    registrationNumber: string;
+    registrationNumber?: string;
     legalName?: string;
+    // Fields returned for foreign/government entities
+    externalObjectNumber?: string;
+    foreignRegistrationNumber?: string;
+    name?: string;
+    country?: string;
   };
   shareHolderDetails?: {
     numberOfShares: number;

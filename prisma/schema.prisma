@@ -104,12 +104,19 @@ model TaxPayment {
   iinAmount          Float?   // Personal income tax portion (EUR)
   vsaoiAmount        Float?   // Social insurance portion (EUR)
   employeeCount      Int?     // Average employee count
+  naceCode           String?  // Primary NACE activity code (e.g. "4100")
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
   @@unique([registrationNumber, year])
   @@index([registrationNumber])
   @@index([year])
+}
+
+model NaceCode {
+  code   String @id  // Formatted code e.g. "41.00", "95.31"
+  nameLv String      // Latvian description
+  nameEn String      // English description
 }
 
 // FinancialRatio data is fetched on-demand from data.gov.lv CKAN API
@@ -192,6 +199,46 @@ model VatPayer {
   updatedAt          DateTime  @updatedAt
 
   @@index([vatNumber])
+}
+
+model StateAid {
+  id                 String   @id @default(cuid())
+  registrationNumber String
+  assignDate         DateTime
+  projectTitle       String
+  assignerTitle      String
+  programTitle       String?
+  amount             Float
+  instrumentTitle    String?
+  createdAt          DateTime @default(now())
+
+  @@unique([registrationNumber, assignDate, assignerTitle, amount])
+  @@index([registrationNumber])
+}
+
+model CompanyNameHistory {
+  id                 String   @id @default(cuid())
+  registrationNumber String
+  name               String
+  dateTo             DateTime
+  createdAt          DateTime @default(now())
+
+  @@unique([registrationNumber, name, dateTo])
+  @@index([registrationNumber])
+}
+
+model Reorganization {
+  id                     String   @id @default(cuid())
+  externalId             Int      @unique
+  reorganizationType     String
+  reorganizationTypeText String
+  sourceEntityRegcode    String
+  finalEntityRegcode     String
+  registered             DateTime
+  createdAt              DateTime @default(now())
+
+  @@index([sourceEntityRegcode])
+  @@index([finalEntityRegcode])
 }
 
 // ============================================

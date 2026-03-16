@@ -105,7 +105,7 @@ export class BoardMemberMapper {
 
 export interface OwnerMapped {
   id: string;
-  owner: { name: string; personalCode: string | null; isLegalEntity: boolean };
+  owner: { name: string; personalCode: string | null; isLegalEntity: boolean; country: string | null; isForeignEntity: boolean };
   sharePercentage: number;
   sharesCount: number | null;
   nominalValue: number | null;
@@ -119,19 +119,31 @@ export interface OwnerMapped {
 
 export class MemberMapper {
   fromMember(member: MemberApiResponse): OwnerMapped {
-    const rawName = member.naturalPerson?.name
-      || member.legalEntity?.legalName
-      || member.legalEntity?.registrationNumber
+    const le = member.legalEntity;
+    const rawName = (member.naturalPerson?.name?.trim())
+      || (le?.legalName?.trim())
+      || (le?.name?.trim())
+      || le?.registrationNumber
+      || le?.foreignRegistrationNumber
+      || le?.externalObjectNumber
       || '—';
     const name = abbreviateLegalForm(rawName);
     const personalCode = member.naturalPerson?.latvianIdentityNumber
-      || member.legalEntity?.registrationNumber
+      || le?.registrationNumber
+      || le?.foreignRegistrationNumber
+      || le?.externalObjectNumber
       || null;
     const details = member.shareHolderDetails;
 
     return {
       id: randomUUID(),
-      owner: { name, personalCode, isLegalEntity: !!member.legalEntity },
+      owner: {
+        name,
+        personalCode,
+        isLegalEntity: !!member.legalEntity,
+        country: le?.country || member.naturalPerson?.country || null,
+        isForeignEntity: !!le && !le.registrationNumber,
+      },
       sharePercentage: details?.inPercent ?? 0,
       sharesCount: details?.numberOfShares ?? null,
       nominalValue: details?.shareNominalValue ?? null,

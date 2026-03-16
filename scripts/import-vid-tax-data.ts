@@ -34,6 +34,7 @@ async function importData(csvPath: string): Promise<void> {
     iinAmount: number | null;
     vsaoiAmount: number | null;
     employeeCount: number | null;
+    naceCode: string | null;
   }[] = [];
   let total = 0;
   let imported = 0;
@@ -62,6 +63,7 @@ async function importData(csvPath: string): Promise<void> {
       iinAmount: parseAmount(fields[8]) || null,
       vsaoiAmount: parseAmount(fields[9]) || null,
       employeeCount: parseEmployeeCount(fields[10]),
+      naceCode: fields[4]?.trim().replace(/\?/g, '').trim() || null,
     });
 
     if (batch.length >= BATCH_SIZE) {
@@ -89,10 +91,9 @@ async function upsertBatch(
     iinAmount: number | null;
     vsaoiAmount: number | null;
     employeeCount: number | null;
+    naceCode: string | null;
   }[]
 ): Promise<number> {
-  let count = 0;
-  // Use transaction for batch performance
   await prisma.$transaction(
     records.map((r) =>
       prisma.taxPayment.upsert({
@@ -107,6 +108,7 @@ async function upsertBatch(
           iinAmount: r.iinAmount,
           vsaoiAmount: r.vsaoiAmount,
           employeeCount: r.employeeCount,
+          naceCode: r.naceCode,
         },
         create: r,
       })

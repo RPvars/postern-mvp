@@ -5,6 +5,7 @@ import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
 import { captureException } from '@/lib/sentry';
 import { httpClient } from '@/lib/business-register/client/http';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   // Rate limiting
@@ -40,7 +41,53 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = validationResult.data;
 
-    const searchResults = await httpClient.searchCompanies(searchTerm);
+    // If query is numeric, search by registration number
+    const isNumericQuery = /^\d+$/.test(searchTerm) && searchTerm.length >= 2;
+
+    if (isNumericQuery) {
+      const results: { id: string; name: string; registrationNumber: string; taxNumber: string }[] = [];
+
+      // Full 11-digit reg number → direct BR API lookup
+      if (searchTerm.length === 11) {
+        try {
+          const entity = await httpClient.getLegalEntity(searchTerm);
+          results.push({
+            id: entity.registrationNumber || searchTerm,
+            name: entity.legalName || searchTerm,
+            registrationNumber: entity.registrationNumber || searchTerm,
+            taxNumber: '',
+          });
+        } catch {
+          // Not found, continue to local DB search
+        }
+      }
+
+      // Partial or full → search local DB with startsWith
+      if (results.length === 0) {
+        const dbResults = await prisma.company.findMany({
+          where: { registrationNumber: { startsWith: searchTerm } },
+          take: APP_CONFIG.search.maxResults,
+          select: { registrationNumber: true, name: true },
+        });
+        for (const c of dbResults) {
+          results.push({
+            id: c.registrationNumber,
+            name: c.name,
+            registrationNumber: c.registrationNumber,
+            taxNumber: '',
+          });
+        }
+      }
+
+      if (results.length > 0) {
+        return NextResponse.json({ results });
+      }
+      // Fall through to BR name search as last resort
+    }
+
+    // Trim trailing single-char word that BR API can't match (e.g. "citrus s" → "citrus")
+    const apiSearchTerm = searchTerm.replace(/\s+\S$/, '').trim() || searchTerm;
+    const searchResults = await httpClient.searchCompanies(apiSearchTerm);
 
     const results = searchResults
       .filter(r => r.status === 'REGISTERED')

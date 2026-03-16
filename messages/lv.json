@@ -93,7 +93,15 @@
     },
     "representationRights": {
       "INDIVIDUALLY": "Tiesības pārstāvēt atsevišķi",
-      "WITH_AT_LEAST": "Kopā ar vismaz {count}"
+      "WITH_AT_LEAST": "Kopā ar vismaz {count}",
+      "WITH_ALL": "Kopā ar visiem pārējiem"
+    },
+    "specialStatus": {
+      "SIGNIFICANT_TO_NATIONAL_SECURITY": "Nozīmīgs valsts drošībai"
+    },
+    "reorganizationType": {
+      "ACQUISITION": "Pievienošana",
+      "SEPARATION": "Nodalīšana"
     },
     "controlType": {
       "AS_MEMBER": "Kā dalībnieks",
@@ -289,10 +297,13 @@
     "error": "Kļūda",
     "notFound": "Uzņēmums nav atrasts",
     "loadError": "Neizdevās ielādēt uzņēmumu",
+    "errorDescription": "Uzņēmums ar šādu reģistrācijas numuru netika atrasts vai dati šobrīd nav pieejami.",
+    "backToSearch": "Atpakaļ uz meklēšanu",
+    "tryAgain": "Mēģināt vēlreiz",
     "dataWarning": "Daļa datu (PVN reģistrs, maksātnespējas, VID reitings) tiek importēta no atvērtajiem datiem un var nebūt pilnībā aktuāla. Nepieciešams iestatīt automātisko datu atjaunošanu.",
     "tabs": {
       "basic": "Pamatinformācija",
-      "people": "Personas",
+      "people": "Dalībnieki",
       "financial": "Finanšu informācija",
       "documents": "Dokumenti"
     },
@@ -324,6 +335,8 @@
       "registrationSection": "Reģistrācija",
       "capital": "Kapitāls",
       "operations": "Darbība",
+      "naceCode": "Pamatdarbības veids",
+      "naceSource": "Datu avots: VID",
       "postalCode": "Pasta indekss",
       "city": "Pilsēta",
       "atvkCode": "ATVK kods",
@@ -332,7 +345,32 @@
       "specialStatusType": "Tips",
       "specialStatusDateFrom": "Datums no",
       "specialStatusRegisteredOn": "Reģistrēts",
-      "securingMeasuresCount": "Nodrošinājumu skaits"
+      "securingMeasuresCount": "Nodrošinājumu skaits",
+      "sepaCreditorId": "SEPA identifikators"
+    },
+    "stateAid": {
+      "title": "Valsts atbalsts (de minimis)",
+      "date": "Datums",
+      "project": "Projekts",
+      "assigner": "Piešķīrējs",
+      "amount": "Summa (EUR)",
+      "program": "Programma",
+      "instrument": "Instruments",
+      "totalAmount": "Kopā piešķirts"
+    },
+    "previousNames": {
+      "title": "Iepriekšējie nosaukumi",
+      "validUntil": "līdz"
+    },
+    "reorganizations": {
+      "title": "Reorganizācijas"
+    },
+    "foreignEntity": {
+      "title": "Ārvalstu / valsts subjekts",
+      "registrationNumber": "Reģistrācijas numurs",
+      "country": "Valsts",
+      "memberSince": "Dalībnieks kopš",
+      "noAdditionalInfo": "Papildu informācija nav pieejama"
     },
     "risk": {
       "title": "Apgrūtinājumi",

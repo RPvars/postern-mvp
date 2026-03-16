@@ -46,7 +46,7 @@ export async function GET(
       );
     }
 
-    const [legalEntity, taxPaymentRecords, financialData, insolvencyRecords, taxpayerRatingRecord, vatPayerRecord] = await Promise.all([
+    const [legalEntity, taxPaymentRecords, financialData, insolvencyRecords, taxpayerRatingRecord, vatPayerRecord, stateAidRecords, nameHistoryRecords, reorganizationRecords] = await Promise.all([
       httpClient.getLegalEntity(id),
       prisma.taxPayment.findMany({
         where: { registrationNumber: id },
@@ -61,6 +61,24 @@ export async function GET(
       }),
       prisma.vatPayer.findUnique({
         where: { vatNumber: `LV${id}` },
+      }),
+      prisma.stateAid.findMany({
+        where: { registrationNumber: id },
+        orderBy: { assignDate: 'desc' },
+        take: 20,
+      }),
+      prisma.companyNameHistory.findMany({
+        where: { registrationNumber: id },
+        orderBy: { dateTo: 'desc' },
+      }),
+      prisma.reorganization.findMany({
+        where: {
+          OR: [
+            { sourceEntityRegcode: id },
+            { finalEntityRegcode: id },
+          ],
+        },
+        orderBy: { registered: 'desc' },
       }),
     ]);
 
@@ -82,24 +100,36 @@ export async function GET(
       const results = await Promise.allSettled(
         [...unresolvedRegNrs].slice(0, MAX_NAME_LOOKUPS).map(async (regNr) => {
           const entity = await httpClient.getLegalEntity(regNr);
-          return { regNr, name: entity.legalName };
+          return { regNr, name: entity.legalName?.trim() || '' };
         })
       );
       const nameMap = new Map<string, string>();
       for (const r of results) {
-        if (r.status === 'fulfilled') nameMap.set(r.value.regNr, r.value.name);
+        if (r.status === 'fulfilled' && r.value.name) nameMap.set(r.value.regNr, r.value.name);
       }
       for (const m of legalEntity.members || []) {
-        if (m.legalEntity && !m.legalEntity.legalName && nameMap.has(m.legalEntity.registrationNumber)) {
+        if (m.legalEntity?.registrationNumber && !m.legalEntity.legalName && nameMap.has(m.legalEntity.registrationNumber)) {
           m.legalEntity.legalName = nameMap.get(m.legalEntity.registrationNumber)!;
         }
       }
       for (const o of legalEntity.officers || []) {
-        if (o.legalEntity && !o.legalEntity.legalName && nameMap.has(o.legalEntity.registrationNumber)) {
+        if (o.legalEntity?.registrationNumber && !o.legalEntity.legalName && nameMap.has(o.legalEntity.registrationNumber)) {
           o.legalEntity.legalName = nameMap.get(o.legalEntity.registrationNumber)!;
         }
       }
     }
+
+    // Extract NACE code from latest tax payment year
+    const latestNaceRaw = taxPaymentRecords.length > 0
+      ? taxPaymentRecords[0]?.naceCode // already sorted desc by year
+      : null;
+    const formatNaceCode = (code: string) =>
+      code.includes('.') ? code : code.slice(0, 2) + '.' + code.slice(2);
+    const naceRecord = latestNaceRaw
+      ? await prisma.naceCode.findUnique({
+          where: { code: formatNaceCode(latestNaceRaw) },
+        })
+      : null;
 
     // Extract share capital from equity capitals
     const paidUpEquity = legalEntity.commercialEntityDetails?.equityCapitals?.find(
@@ -168,12 +198,33 @@ export async function GET(
         dateTo: r.dateTo,
         court: r.court,
       })),
+      naceCode: latestNaceRaw ? formatNaceCode(latestNaceRaw) : null,
+      naceDescription: naceRecord?.nameLv ?? null,
+      stateAid: stateAidRecords.map((sa) => ({
+        assignDate: sa.assignDate,
+        projectTitle: sa.projectTitle,
+        assignerTitle: sa.assignerTitle,
+        programTitle: sa.programTitle,
+        amount: sa.amount,
+        instrumentTitle: sa.instrumentTitle,
+      })),
       vatPayer: vatPayerRecord ? {
         vatNumber: vatPayerRecord.vatNumber,
         isActive: vatPayerRecord.isActive,
         registeredDate: vatPayerRecord.registeredDate,
         deregisteredDate: vatPayerRecord.deregisteredDate,
       } : null,
+      previousNames: nameHistoryRecords.map((r) => ({
+        name: r.name,
+        dateTo: r.dateTo,
+      })),
+      reorganizations: reorganizationRecords.map((r) => ({
+        type: r.reorganizationType,
+        typeText: r.reorganizationTypeText,
+        sourceRegcode: r.sourceEntityRegcode,
+        finalRegcode: r.finalEntityRegcode,
+        registered: r.registered,
+      })),
     };
 
     return NextResponse.json({ company });

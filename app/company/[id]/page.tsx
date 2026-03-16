@@ -10,7 +10,8 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Building2, Users, FileText, TrendingUp, Calendar, AlertCircle, FolderOpen, MessageSquare, BarChart3, CheckCircle2, XCircle, ExternalLink, X, Info } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Building2, Users, FileText, TrendingUp, Calendar, AlertCircle, FolderOpen, MessageSquare, BarChart3, CheckCircle2, XCircle, ExternalLink, X, Info, Landmark, Globe, History, ArrowRightLeft, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { OwnershipChart } from '@/components/ownership-chart';
 import { FinancialRatiosDisplay } from '@/components/financial-ratios-display';
 
@@ -45,6 +46,27 @@ interface Company {
     registeredDate: string | null;
     deregisteredDate: string | null;
   } | null;
+  naceCode: string | null;
+  naceDescription: string | null;
+  stateAid: Array<{
+    assignDate: string;
+    projectTitle: string;
+    assignerTitle: string;
+    programTitle: string | null;
+    amount: number;
+    instrumentTitle: string | null;
+  }>;
+  previousNames: Array<{
+    name: string;
+    dateTo: string;
+  }>;
+  reorganizations: Array<{
+    type: string;
+    typeText: string;
+    sourceRegcode: string;
+    finalRegcode: string;
+    registered: string;
+  }>;
   businessPurpose: string | null;
   durationIndefinite: boolean | null;
   articlesDate: string | null;
@@ -86,6 +108,8 @@ interface Company {
       name: string;
       isLegalEntity: boolean;
       personalCode: string | null;
+      country: string | null;
+      isForeignEntity: boolean;
     };
     sharePercentage: number;
     sharesCount: number | null;
@@ -181,7 +205,10 @@ export default function CompanyPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [ownersLimit, setOwnersLimit] = useState(10);
+  const [stateAidLimit, setStateAidLimit] = useState(3);
   const [showDataWarning, setShowDataWarning] = useState(true);
+  const [foreignEntityDetail, setForeignEntityDetail] = useState<Company['owners'][number] | null>(null);
+  const [boardSort, setBoardSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
 
   // Get active tab from URL or default to 'basic'
   const activeTab = searchParams.get('tab') || 'basic';
@@ -212,6 +239,14 @@ export default function CompanyPage() {
     fetchCompany();
   }, [params.id, t]);
 
+  useEffect(() => {
+    if (company) {
+      const shortName = company.cleanedShortName || company.name.replace(/^(Sabiedrība ar ierobežotu atbildību|Akciju sabiedrība)\s*/i, '').replace(/^[""]|[""]$/g, '');
+      document.title = `${shortName} — Posterns`;
+    }
+    return () => { document.title = 'Posterns - Latvijas Uzņēmumu Analīzes Platforma'; };
+  }, [company]);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('lv-LV', {
       style: 'currency',
@@ -232,12 +267,60 @@ export default function CompanyPage() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Navigation />
-        <div className="mx-auto max-w-7xl p-8 space-y-6">
-          <Skeleton className="h-12 w-64" />
-          <Skeleton className="h-64 w-full" />
-          <div className="grid gap-6 md:grid-cols-2">
-            <Skeleton className="h-48" />
-            <Skeleton className="h-48" />
+        <div className="border-b bg-white">
+          <div className="container mx-auto px-4 py-6">
+            <Skeleton className="h-9 w-80 mb-2" />
+            <Skeleton className="h-5 w-32" />
+          </div>
+        </div>
+        <div className="container mx-auto px-4 py-8 space-y-6">
+          <Skeleton className="h-10 w-full rounded-lg" />
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-5 w-32" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i}>
+                    <Skeleton className="h-3 w-24 mb-1" />
+                    <Skeleton className="h-4 w-48" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-5 w-28" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i}>
+                    <Skeleton className="h-3 w-20 mb-1" />
+                    <Skeleton className="h-4 w-40" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-5 w-24" />
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Skeleton className="h-3 w-32 mb-1" />
+                <Skeleton className="h-4 w-64" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-3">
+                <Skeleton className="h-5 w-36" />
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-5 w-full" />
+                ))}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
@@ -249,12 +332,42 @@ export default function CompanyPage() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
         <Navigation />
         <div className="flex items-center justify-center p-8">
-          <Card className="max-w-md">
-            <CardHeader>
-              <CardTitle>{t('error')}</CardTitle>
-              <CardDescription>{error || t('notFound')}</CardDescription>
-            </CardHeader>
-          </Card>
+          <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="mb-6 flex justify-center">
+              <div className="bg-red-50 rounded-full p-5">
+                <AlertCircle className="w-10 h-10 text-red-500" />
+              </div>
+            </div>
+
+            <h1 className="text-xl font-bold text-slate-900 mb-2">
+              {error || t('notFound')}
+            </h1>
+
+            <p className="text-slate-500 mb-2 leading-relaxed text-sm">
+              {t('errorDescription')}
+            </p>
+
+            {params.id && (
+              <p className="text-xs font-mono text-slate-400 mb-6">
+                {params.id}
+              </p>
+            )}
+
+            <div className="flex flex-col gap-2">
+              <Link
+                href="/"
+                className="inline-flex items-center justify-center rounded-lg bg-[#FEC200] px-4 py-2.5 text-sm font-semibold text-slate-900 hover:bg-[#e5af00] transition-colors"
+              >
+                {t('backToSearch')}
+              </Link>
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center justify-center rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors"
+              >
+                {t('tryAgain')}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -387,6 +500,12 @@ export default function CompanyPage() {
                       <div className="text-sm">{formatDate(company.lastModifiedAt)}</div>
                     </div>
                   )}
+                  {company.sepaCreditorId && (
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.sepaId')}</div>
+                      <div className="text-sm font-mono">{company.sepaCreditorId}</div>
+                    </div>
+                  )}
                   {/* PVN maksātāju reģistrs */}
                   <div className="border-t pt-3 mt-1">
                     <div className="text-xs font-medium text-muted-foreground">{t('vatRegistry.title')}</div>
@@ -478,6 +597,16 @@ export default function CompanyPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
+                  {company.naceCode && (
+                    <div>
+                      <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.naceCode')}</div>
+                      <div className="text-sm">
+                        {company.naceDescription || company.naceCode}
+                        <span className="text-muted-foreground ml-1">({company.naceCode})</span>
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{t('companyInfo.naceSource')}</div>
+                    </div>
+                  )}
                   {company.durationIndefinite != null && (
                     <div>
                       <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.duration')}</div>
@@ -492,11 +621,67 @@ export default function CompanyPage() {
                       <div className="text-sm">{company.businessPurpose}</div>
                     </div>
                   )}
-                  {!company.durationIndefinite && company.durationIndefinite == null && !company.businessPurpose && (
+                  {!company.naceCode && !company.durationIndefinite && company.durationIndefinite == null && !company.businessPurpose && (
                     <div className="text-sm text-muted-foreground">{tCommon('notAvailable')}</div>
                   )}
                 </CardContent>
               </Card>
+
+              {/* Valsts atbalsts (de minimis) */}
+              {company.stateAid && company.stateAid.length > 0 && (
+                <Card className="lg:col-span-2">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Landmark className="h-4 w-4" />
+                      {t('stateAid.title')}
+                    </CardTitle>
+                    <CardDescription>
+                      {t('stateAid.totalAmount')}: {company.stateAid.reduce((sum, sa) => sum + sa.amount, 0).toLocaleString('lv-LV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="divide-y">
+                      {company.stateAid.slice(0, stateAidLimit).map((sa, idx) => (
+                        <div key={idx} className="py-3 first:pt-0 last:pb-0">
+                          <div className="flex items-baseline justify-between gap-4 mb-1">
+                            <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(sa.assignDate)}</span>
+                            <span className="text-sm font-mono font-medium whitespace-nowrap">
+                              {sa.amount.toLocaleString('lv-LV', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} EUR
+                            </span>
+                          </div>
+                          <div className="text-sm">{sa.projectTitle}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {sa.assignerTitle}
+                            {sa.programTitle && <> · {sa.programTitle}</>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {company.stateAid.length > 3 && (
+                      <div className="border-t pt-4 mt-2 space-y-2">
+                        <div className="text-center text-xs text-muted-foreground">
+                          {t('ownership.showing', { count: Math.min(stateAidLimit, company.stateAid.length), total: company.stateAid.length })}
+                        </div>
+                        {stateAidLimit < company.stateAid.length ? (
+                          <button
+                            onClick={() => setStateAidLimit(company.stateAid.length)}
+                            className="w-full rounded-md bg-black text-white py-2.5 text-sm font-medium hover:bg-black/90 transition-colors"
+                          >
+                            {t('ownership.showMore')}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setStateAidLimit(3)}
+                            className="w-full rounded-md bg-black text-white py-2.5 text-sm font-medium hover:bg-black/90 transition-colors"
+                          >
+                            {t('ownership.showLess')}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
           {/* Risk & Compliance Information */}
           <Card className="lg:col-span-2">
@@ -592,7 +777,7 @@ export default function CompanyPage() {
                   <TableBody>
                     {company.specialStatuses.map((ss) => (
                       <TableRow key={ss.id}>
-                        <TableCell className="font-medium">{ss.type}</TableCell>
+                        <TableCell className="font-medium">{tCommon(`specialStatus.${ss.type}`) || ss.type}</TableCell>
                         <TableCell className="text-muted-foreground">{formatDate(ss.dateFrom)}</TableCell>
                         <TableCell className="text-muted-foreground">
                           {ss.registeredOn ? formatDate(ss.registeredOn) : '-'}
@@ -601,6 +786,67 @@ export default function CompanyPage() {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          )}
+
+          {company.previousNames.length > 0 && (
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <History className="h-4 w-4" />
+                  {t('previousNames.title')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {company.previousNames.map((pn, i) => (
+                    <div key={i} className="flex justify-between items-center py-1.5 border-b last:border-0">
+                      <span className="text-sm font-medium">{pn.name}</span>
+                      <span className="text-sm text-muted-foreground">{t('previousNames.validUntil')} {formatDate(pn.dateTo)}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {company.reorganizations.length > 0 && (
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ArrowRightLeft className="h-4 w-4" />
+                  {t('reorganizations.title')}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {company.reorganizations.map((reorg, i) => (
+                    <div key={i} className="py-2 border-b last:border-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant="outline">{tCommon(`reorganizationType.${reorg.type}`) || reorg.typeText}</Badge>
+                        <span className="text-sm text-muted-foreground">{formatDate(reorg.registered)}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        {/^\d{11}$/.test(reorg.sourceRegcode) ? (
+                          <Link href={`/company/${reorg.sourceRegcode}`} className="text-primary hover:underline">
+                            {reorg.sourceRegcode}
+                          </Link>
+                        ) : (
+                          <span>{reorg.sourceRegcode}</span>
+                        )}
+                        <ArrowRightLeft className="h-3 w-3 text-muted-foreground" />
+                        {/^\d{11}$/.test(reorg.finalRegcode) ? (
+                          <Link href={`/company/${reorg.finalRegcode}`} className="text-primary hover:underline">
+                            {reorg.finalRegcode}
+                          </Link>
+                        ) : (
+                          <span>{reorg.finalRegcode}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -688,10 +934,26 @@ export default function CompanyPage() {
                           <TableRow key={ownership.id}>
                             <TableCell>
                               <div>
-                                {ownership.owner.isLegalEntity && ownership.owner.personalCode ? (
-                                  <Link href={`/company/${ownership.owner.personalCode}`} className="font-medium text-primary hover:underline">
+                                {ownership.owner.isLegalEntity && ownership.owner.personalCode && /^\d{11}$/.test(ownership.owner.personalCode) ? (
+                                  <Link href={`/company/${ownership.owner.personalCode}`} className="font-medium text-primary hover:underline inline-flex items-center gap-1">
+                                    <Building2 className="h-3.5 w-3.5 shrink-0" />
                                     {ownership.owner.name}
+                                    <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
                                   </Link>
+                                ) : ownership.owner.isForeignEntity ? (
+                                  <button
+                                    onClick={() => setForeignEntityDetail(ownership)}
+                                    className="font-medium text-primary hover:underline inline-flex items-center gap-1 text-left"
+                                  >
+                                    <Globe className="h-3.5 w-3.5 shrink-0" />
+                                    {ownership.owner.name}
+                                    <Info className="h-3 w-3 shrink-0 opacity-50" />
+                                  </button>
+                                ) : ownership.owner.isLegalEntity ? (
+                                  <div className="font-medium inline-flex items-center gap-1">
+                                    <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                    {ownership.owner.name}
+                                  </div>
                                 ) : (
                                   <div className="font-medium">{ownership.owner.name}</div>
                                 )}
@@ -779,15 +1041,57 @@ export default function CompanyPage() {
                     <TableRow>
                       <TableHead>{t('boardMembers.name')}</TableHead>
                       <TableHead>{t('boardMembers.personalCode')}</TableHead>
-                      <TableHead>{t('boardMembers.institution')}</TableHead>
-                      <TableHead>{t('boardMembers.position')}</TableHead>
-                      <TableHead>{t('boardMembers.appointedDate')}</TableHead>
+                      <TableHead>
+                        <button
+                          onClick={() => setBoardSort(prev =>
+                            prev?.key === 'institution' ? (prev.dir === 'asc' ? { key: 'institution', dir: 'desc' } : null) : { key: 'institution', dir: 'asc' }
+                          )}
+                          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                        >
+                          {t('boardMembers.institution')}
+                          {boardSort?.key === 'institution' ? (boardSort.dir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronsUpDown className="h-3 w-3 opacity-30" />}
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          onClick={() => setBoardSort(prev =>
+                            prev?.key === 'position' ? (prev.dir === 'asc' ? { key: 'position', dir: 'desc' } : null) : { key: 'position', dir: 'asc' }
+                          )}
+                          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                        >
+                          {t('boardMembers.position')}
+                          {boardSort?.key === 'position' ? (boardSort.dir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronsUpDown className="h-3 w-3 opacity-30" />}
+                        </button>
+                      </TableHead>
+                      <TableHead>
+                        <button
+                          onClick={() => setBoardSort(prev =>
+                            prev?.key === 'appointedDate' ? (prev.dir === 'asc' ? { key: 'appointedDate', dir: 'desc' } : null) : { key: 'appointedDate', dir: 'asc' }
+                          )}
+                          className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
+                        >
+                          {t('boardMembers.appointedDate')}
+                          {boardSort?.key === 'appointedDate' ? (boardSort.dir === 'asc' ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />) : <ChevronsUpDown className="h-3 w-3 opacity-30" />}
+                        </button>
+                      </TableHead>
                       <TableHead>{t('boardMembers.representationRights')}</TableHead>
                       <TableHead className="w-10"></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {company.boardMembers.map((member) => (
+                    {[...company.boardMembers].sort((a, b) => {
+                      if (!boardSort) return 0;
+                      const { key, dir } = boardSort;
+                      const mul = dir === 'asc' ? 1 : -1;
+                      if (key === 'institution') return mul * (a.institution || '').localeCompare(b.institution || '');
+                      if (key === 'position') return mul * (a.position || '').localeCompare(b.position || '');
+                      if (key === 'appointedDate') {
+                        const da = a.appointedDate ? new Date(a.appointedDate).getTime() : 0;
+                        const db = b.appointedDate ? new Date(b.appointedDate).getTime() : 0;
+                        return mul * (da - db);
+                      }
+                      return 0;
+                    }).map((member) => (
                       <TableRow key={member.id}>
                         <TableCell className="font-medium">{member.name}</TableCell>
                         <TableCell className="text-muted-foreground">
@@ -1080,6 +1384,61 @@ export default function CompanyPage() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Foreign entity info dialog */}
+      <Dialog open={!!foreignEntityDetail} onOpenChange={(open) => !open && setForeignEntityDetail(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-5 w-5" />
+              {foreignEntityDetail?.owner.name}
+            </DialogTitle>
+          </DialogHeader>
+          {foreignEntityDetail && (
+            <div className="space-y-3">
+              {foreignEntityDetail.owner.personalCode && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">{t('foreignEntity.registrationNumber')}</span>
+                  <span className="text-sm font-mono">{foreignEntityDetail.owner.personalCode}</span>
+                </div>
+              )}
+              {foreignEntityDetail.owner.country && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">{t('foreignEntity.country')}</span>
+                  <span className="text-sm">{tCommon(`country.${foreignEntityDetail.owner.country}`)}</span>
+                </div>
+              )}
+              {foreignEntityDetail.memberSince && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">{t('foreignEntity.memberSince')}</span>
+                  <span className="text-sm">{formatDate(foreignEntityDetail.memberSince)}</span>
+                </div>
+              )}
+              {foreignEntityDetail.sharePercentage > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">{t('ownership.sharePercent')}</span>
+                  <Badge variant="secondary">{foreignEntityDetail.sharePercentage}%</Badge>
+                </div>
+              )}
+              {foreignEntityDetail.sharesCount != null && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">{t('ownership.sharesCount')}</span>
+                  <span className="text-sm">{foreignEntityDetail.sharesCount}</span>
+                </div>
+              )}
+              {foreignEntityDetail.totalValue != null && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-muted-foreground">{t('ownership.totalValue')}</span>
+                  <span className="text-sm font-medium">{formatCurrency(foreignEntityDetail.totalValue)}</span>
+                </div>
+              )}
+              {!foreignEntityDetail.owner.personalCode && !foreignEntityDetail.owner.country && (
+                <p className="text-sm text-muted-foreground italic">{t('foreignEntity.noAdditionalInfo')}</p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

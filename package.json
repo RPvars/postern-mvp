@@ -15,7 +15,11 @@
     "import:insolvency": "tsx scripts/import-insolvency-data.ts",
     "import:rating": "tsx scripts/import-taxpayer-rating.ts",
     "import:vat": "tsx scripts/import-vat-payers.ts",
-    "import:all": "npm run import:tax && npm run import:insolvency && npm run import:rating && npm run import:vat",
+    "import:nace": "tsx scripts/import-nace-codes.ts",
+    "import:stateaid": "tsx scripts/import-state-aid.ts",
+    "import:names": "tsx scripts/import-name-history.ts",
+    "import:reorganizations": "tsx scripts/import-reorganizations.ts",
+    "import:all": "npm run import:nace && npm run import:tax && npm run import:insolvency && npm run import:rating && npm run import:vat && npm run import:stateaid && npm run import:names && npm run import:reorganizations",
     "postinstall": "prisma generate"
   },
   "prisma": {

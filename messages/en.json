@@ -93,7 +93,15 @@
     },
     "representationRights": {
       "INDIVIDUALLY": "Right to represent individually",
-      "WITH_AT_LEAST": "Together with at least {count}"
+      "WITH_AT_LEAST": "Together with at least {count}",
+      "WITH_ALL": "Together with all others"
+    },
+    "specialStatus": {
+      "SIGNIFICANT_TO_NATIONAL_SECURITY": "Significant to national security"
+    },
+    "reorganizationType": {
+      "ACQUISITION": "Acquisition",
+      "SEPARATION": "Separation"
     },
     "controlType": {
       "AS_MEMBER": "As member",
@@ -289,10 +297,13 @@
     "error": "Error",
     "notFound": "Company not found",
     "loadError": "Failed to load company",
+    "errorDescription": "A company with this registration number was not found or data is currently unavailable.",
+    "backToSearch": "Back to search",
+    "tryAgain": "Try again",
     "dataWarning": "Some data (VAT registry, insolvency, VID rating) is imported from open data and may not be fully up-to-date. Automatic data refresh needs to be configured.",
     "tabs": {
       "basic": "Basic Information",
-      "people": "People",
+      "people": "Members",
       "financial": "Financial Information",
       "documents": "Documents"
     },
@@ -324,6 +335,8 @@
       "registrationSection": "Registration",
       "capital": "Capital",
       "operations": "Operations",
+      "naceCode": "Primary activity",
+      "naceSource": "Data source: SRS",
       "postalCode": "Postal Code",
       "city": "City",
       "atvkCode": "ATVK Code",
@@ -332,7 +345,32 @@
       "specialStatusType": "Type",
       "specialStatusDateFrom": "Date from",
       "specialStatusRegisteredOn": "Registered",
-      "securingMeasuresCount": "Securing measures count"
+      "securingMeasuresCount": "Securing measures count",
+      "sepaCreditorId": "SEPA Creditor ID"
+    },
+    "stateAid": {
+      "title": "State Aid (de minimis)",
+      "date": "Date",
+      "project": "Project",
+      "assigner": "Assigner",
+      "amount": "Amount (EUR)",
+      "program": "Program",
+      "instrument": "Instrument",
+      "totalAmount": "Total awarded"
+    },
+    "previousNames": {
+      "title": "Previous Names",
+      "validUntil": "until"
+    },
+    "reorganizations": {
+      "title": "Reorganizations"
+    },
+    "foreignEntity": {
+      "title": "Foreign / Government Entity",
+      "registrationNumber": "Registration Number",
+      "country": "Country",
+      "memberSince": "Member since",
+      "noAdditionalInfo": "No additional information available"
     },
     "risk": {
       "title": "Encumbrances",
