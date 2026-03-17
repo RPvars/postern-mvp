@@ -92,17 +92,17 @@ const FinancialChart = ({
     <div className="h-[200px] w-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" opacity={0.3} />
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" opacity={0.3} />
           <XAxis
             dataKey="year"
-            tick={{ fill: '#6b7280', fontSize: 12 }}
-            tickLine={{ stroke: '#e5e7eb' }}
-            axisLine={{ stroke: '#e5e7eb' }}
+            tick={{ fill: 'var(--chart-text)', fontSize: 12 }}
+            tickLine={{ stroke: 'var(--chart-grid)' }}
+            axisLine={{ stroke: 'var(--chart-grid)' }}
           />
           <YAxis
-            tick={{ fill: '#6b7280', fontSize: 12 }}
-            tickLine={{ stroke: '#e5e7eb' }}
-            axisLine={{ stroke: '#e5e7eb' }}
+            tick={{ fill: 'var(--chart-text)', fontSize: 12 }}
+            tickLine={{ stroke: 'var(--chart-grid)' }}
+            axisLine={{ stroke: 'var(--chart-grid)' }}
             tickFormatter={(value) => formatRatio(value, isPercentage, 0)}
           />
           <Tooltip content={<CustomTooltip />} />

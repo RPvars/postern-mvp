@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { TableProperties, TrendingUp } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { TableProperties, TrendingUp, Loader2 } from 'lucide-react';
 import { FinancialRatiosDisplay } from '@/components/financial-ratios-display';
 import { formatCurrency } from '@/lib/format';
 import type { Company } from '@/lib/types/company';
@@ -85,7 +86,7 @@ function ScrollableYearTable<T>({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="sticky left-0 bg-white z-10 whitespace-nowrap"></TableHead>
+                <TableHead className="sticky left-0 bg-card z-10 whitespace-nowrap"></TableHead>
                 {years.map((y) => (
                   <TableHead key={getYear(y)} className="text-right whitespace-nowrap min-w-[260px] px-4">{getYear(y)}</TableHead>
                 ))}
@@ -94,7 +95,7 @@ function ScrollableYearTable<T>({
             <TableBody>
               {rows.map((row) => (
                 <TableRow key={row.key}>
-                  <TableCell className="font-medium sticky left-0 bg-white z-10 whitespace-nowrap">{row.label}</TableCell>
+                  <TableCell className="font-medium sticky left-0 bg-card z-10 whitespace-nowrap">{row.label}</TableCell>
                   {years.map((y, idx) => {
                     const value = getValue(y, row.key);
                     const prevValue = years[idx + 1] ? getValue(years[idx + 1], row.key) : null;
@@ -116,7 +117,7 @@ function ScrollableYearTable<T>({
           </Table>
         </div>
         {scroll.showShadow && (
-          <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-white to-transparent" />
+          <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-card to-transparent" />
         )}
       </div>
       {allYearsCount > DEFAULT_YEARS && (
@@ -127,14 +128,14 @@ function ScrollableYearTable<T>({
           {limit < allYearsCount ? (
             <button
               onClick={() => onLimitChange(allYearsCount)}
-              className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
             >
               {showMoreLabel}
             </button>
           ) : (
             <button
               onClick={() => onLimitChange(DEFAULT_YEARS)}
-              className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
             >
               {showLessLabel}
             </button>
@@ -147,9 +148,10 @@ function ScrollableYearTable<T>({
 
 interface FinancialTabProps {
   company: Company;
+  isLoadingExternal?: boolean;
 }
 
-export function FinancialTab({ company }: FinancialTabProps) {
+export function FinancialTab({ company, isLoadingExternal }: FinancialTabProps) {
   const t = useTranslations('company');
   const [financialYearsLimit, setFinancialYearsLimit] = useState(DEFAULT_YEARS);
   const [taxYearsLimit, setTaxYearsLimit] = useState(DEFAULT_YEARS);
@@ -181,6 +183,23 @@ export function FinancialTab({ company }: FinancialTabProps) {
   return (
     <TabsContent value="financial">
       <div className="grid gap-6 lg:grid-cols-2">
+        {isLoadingExternal && (!company.financialRatios || company.financialRatios.length === 0) && (
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Loader2 className="h-5 w-5 animate-spin" />
+                {t('financialSummary.title')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-5/6" />
+              <Skeleton className="h-4 w-2/3" />
+            </CardContent>
+          </Card>
+        )}
+
         {company.financialRatios && company.financialRatios.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>

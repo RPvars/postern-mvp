@@ -7,7 +7,7 @@ Posterns is a Latvian business intelligence platform that provides company data,
 - **Framework**: Next.js 16 with App Router
 - **Database**: SQLite (dev) / PostgreSQL (prod) with Prisma ORM
 - **Authentication**: NextAuth.js v5 (Auth.js) with email/password + Google OAuth
-- **Styling**: Tailwind CSS + shadcn/ui components
+- **Styling**: Tailwind CSS + shadcn/ui components + dark mode via `next-themes`
 - **Language**: TypeScript
 - **Email**: Resend
 
@@ -17,7 +17,10 @@ app/                    # Next.js App Router pages
   (auth)/              # Auth pages (login, register, etc.)
   api/                 # API routes
     auth/              # Auth endpoints
-    company/[id]/      # Company detail API
+    company/[id]/      # Company detail API (monolithic, used by compare)
+      basic/           # Progressive: core company data + DB queries
+      people/          # Progressive: name-resolved members/officers
+      external/        # Progressive: financial ratios + annual reports
     compare/           # Comparison API
     companies/batch/   # Batch fetch companies by IDs
 components/
@@ -82,7 +85,7 @@ prisma/
 - Supported locales: lv, en
 - Translation files: `messages/lv.json`, `messages/en.json`
 - Key namespaces: `common`, `navigation`, `home`, `auth`, `company`, `compare`, `companySelector`
-- **i18n pattern**: API returns raw enum values (e.g., `REGISTERED`, `BOARD_MEMBER`), frontend translates via `tCommon('namespace.ENUM_VALUE')`
+- **i18n pattern**: API returns raw enum values (e.g., `REGISTERED`, `BOARD_MEMBER`), frontend translates via `tCommon.has('namespace.ENUM_VALUE') ? tCommon(...) : fallback`. Use `te()` helper in components for safe enum translation with fallback to raw value
 - Translation namespaces for enums: `companyStatus`, `legalForm`, `register`, `position`, `governingBody`, `representationRights`, `controlType`, `country`
 - Use `useTranslations('namespace')` hook in client components
 
@@ -115,7 +118,7 @@ Required in `.env`:
 - **Auth flow**: PFAS certificate → JWT client assertion → OAuth2 token → Bearer auth on API calls
 - **Client**: `lib/business-register/client/http.ts` — authenticated HTTPS with 5min response cache
 - **Mappers**: `lib/business-register/mappers/company.ts` — transform API responses, abbreviate legal forms (SIA/AS), return raw enums for i18n
-- **Name resolution**: Company detail route resolves legal entity names for members/officers missing `legalName` (max 10 parallel lookups, cached)
+- **Name resolution**: `/api/company/[id]/people` resolves legal entity names for members/officers missing `legalName` (max 10 parallel lookups, cached). Uses immutable mapping (no mutation of cached objects)
 - **Mock mode**: Set `BR_USE_MOCK_DATA=true` to bypass certificate requirement in development
 - **Key API endpoints used**: `/searchlegalentities/search/legal-entities`, `/legalentity/legal-entity/{regcode}`, `/legalentity/legal-entity/{regcode}/annual-reports`, `/annualreport/annual-report/{fileId}/content`
 - **Annual reports**: Listed via legalentity endpoint (flat array), downloaded via annualreport endpoint. Proxy route at `app/api/annual-report/[fileId]/content/`. Deduplication by year+type prefers PDF > HTML > DUF format
@@ -137,6 +140,23 @@ Data imported via scripts from VID/UR open data (CC0). Run `npm run import:all` 
 - **Name history**: `scripts/import-name-history.ts` — previous company names from dati.ur.gov.lv (~93K)
 - **Reorganizations**: `scripts/import-reorganizations.ts` — company reorganizations from dati.ur.gov.lv (~10K)
 - **Note**: Imported data is static snapshots — needs periodic re-import to stay current
+
+## Company Detail Progressive Loading
+The company detail page uses 3 parallel API calls for progressive rendering:
+- `/api/company/[id]/basic` — BR API `getLegalEntity` + 7 DB queries + NACE. Returns everything for Basic tab + raw people data
+- `/api/company/[id]/people` — Name resolution for legal entity members/officers (hits getLegalEntity cache). Returns resolved owners/boardMembers/beneficialOwners
+- `/api/company/[id]/external` — `getFinancialData` + `getAnnualReports` in parallel. Returns financialRatios + annualReports
+- Page renders as soon as `/basic` returns; other data merges via `useMemo` when available
+- Original monolithic `/api/company/[id]` route kept for Compare page backward compatibility
+- All 3 routes share the same rate limit bucket (`company:${identifier}`)
+
+## Dark Mode
+- **Provider**: `next-themes` with `attribute="class"`, `defaultTheme="light"`, `enableSystem={false}`
+- **Toggle**: Sun/Moon icon button in navigation header
+- **CSS Variables**: All colors defined in `globals.css` `:root` and `.dark` selectors (shadcn/ui pattern)
+- **Chart colors**: `--chart-grid` and `--chart-text` CSS vars for Recharts components
+- **Brand yellow** (#FEC200): Used consistently in both themes for logo, CTA buttons, chart lines
+- **Color mapping**: All components use Tailwind CSS variable classes (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`, `bg-accent`, `border-border`) — no hardcoded `bg-white`, `text-slate-*`, etc.
 
 ## Compare Page
 - URL state persistence: Selected companies stored in `?companies=id1,id2,id3` parameter

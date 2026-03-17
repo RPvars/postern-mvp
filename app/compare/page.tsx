@@ -312,13 +312,13 @@ export default function ComparePage() {
   }, [companies]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       <Navigation />
 
-      <div className="border-b bg-white/80 backdrop-blur-sm">
+      <div className="border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6">
-          <h1 className="text-3xl font-bold text-slate-900">{t('title')}</h1>
-          <p className="text-slate-600">{t('subtitle')}</p>
+          <h1 className="text-3xl font-bold text-foreground">{t('title')}</h1>
+          <p className="text-muted-foreground">{t('subtitle')}</p>
         </div>
       </div>
 

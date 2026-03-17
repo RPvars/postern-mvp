@@ -113,7 +113,8 @@
       "THROUGH_OTHER_MEANS": "Through other means",
       "JOINT_CONTROL": "Joint control",
       "SENIOR_MANAGEMENT": "Senior management",
-      "OTHER_TYPE_OF_CONTROL": "Other type of control"
+      "OTHER_TYPE_OF_CONTROL": "Other type of control",
+      "ON_GROUNDS_OF_PROPERTY_RIGHT": "On grounds of property right"
     },
     "country": {
       "LV": "Latvia",
@@ -464,6 +465,7 @@
       "registeredOn": "Registered at CR",
       "noReports": "No annual reports available",
       "format": "Format",
+      "dufWarning": "DUF is a proprietary Business Register format. It cannot be opened with standard software.",
       "download": "Download",
       "reportTypes": {
         "ANNUAL_REPORT": "Annual report",

@@ -27,7 +27,7 @@ export function HeaderSearch() {
 
   return (
     <div className="relative w-full">
-      <Command className="border rounded-lg shadow-sm bg-white" shouldFilter={false}>
+      <Command className="border rounded-lg shadow-sm bg-card" shouldFilter={false}>
         <CommandInput
           placeholder={t('searchPlaceholder')}
           value={query}
@@ -38,7 +38,7 @@ export function HeaderSearch() {
         />
       </Command>
       {isOpen && (
-        <div className="absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-lg bg-white z-50 max-h-80 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-lg bg-card z-50 max-h-80 overflow-y-auto">
           {isLoading && (
             <div className="py-4 text-center text-sm text-muted-foreground">
               {home('search.searching')}
@@ -56,11 +56,11 @@ export function HeaderSearch() {
                   key={company.id}
                   onClick={() => handleSelect(company.id)}
                   onMouseDown={(e) => e.preventDefault()}
-                  className="w-full text-left px-3 py-2 rounded-md hover:bg-slate-100 cursor-pointer transition-colors"
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
                 >
                   <div className="flex flex-col gap-0.5">
-                    <div className="font-medium text-sm text-slate-900">{company.name}</div>
-                    <div className="text-xs text-slate-600">
+                    <div className="font-medium text-sm text-foreground">{company.name}</div>
+                    <div className="text-xs text-muted-foreground">
                       {company.registrationNumber}
                     </div>
                   </div>

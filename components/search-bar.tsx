@@ -49,7 +49,7 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
   return (
     <div className="w-full max-w-4xl">
       <div className="relative">
-        <div className="flex items-center rounded-xl border shadow-lg bg-white ring-1 ring-slate-200">
+        <div className="flex items-center rounded-xl border shadow-lg bg-card ring-1 ring-border">
           <div className="flex-1 relative">
             <Command className="border-0 shadow-none bg-transparent" shouldFilter={false}>
               <CommandInput
@@ -61,7 +61,7 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
                 className="h-28 text-lg border-0 focus-visible:ring-0 px-4"
               />
               <div className={cn(
-                "absolute top-full left-0 right-0 mt-2 rounded-xl border shadow-lg bg-white ring-1 ring-slate-200 overflow-hidden z-50",
+                "absolute top-full left-0 right-0 mt-2 rounded-xl border shadow-lg bg-card ring-1 ring-border overflow-hidden z-50",
                 !isOpen && "hidden pointer-events-none"
               )}>
                 <CommandList>
@@ -100,7 +100,7 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
             </Command>
           </div>
 
-          <div className="h-16 w-px bg-slate-200" />
+          <div className="h-16 w-px bg-border" />
 
           <Select value={country} onValueChange={onCountryChange}>
             <SelectTrigger className="w-auto h-28 border-0 shadow-none bg-transparent ring-0 focus:ring-0 focus-visible:ring-0 px-3 gap-1">

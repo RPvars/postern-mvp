@@ -7,7 +7,8 @@ import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User } from 'lucide-react';
+import { User, Moon, Sun } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { HeaderSearch } from '@/components/header-search';
 import { UserButton } from '@/components/auth/user-button';
 import { useLocale } from '@/components/providers/locale-provider';
@@ -17,6 +18,7 @@ export function Navigation() {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const { locale, setLocale } = useLocale();
+  const { theme, setTheme } = useTheme();
   const t = useTranslations('navigation');
   const isActive = (path: string) => pathname === path;
 
@@ -24,7 +26,7 @@ export function Navigation() {
     setLocale(newLocale as Locale);
   };
   return (
-    <header className="border-b bg-white/80 backdrop-blur-sm z-10 relative">
+    <header className="border-b bg-background/80 backdrop-blur-sm z-10 relative">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo & Navigation Links */}
@@ -38,8 +40,8 @@ export function Navigation() {
             <Link
               href="/"
               className={isActive('/')
-                ? "text-base font-bold text-slate-900"
-                : "text-base font-medium text-slate-700 hover:text-slate-900"
+                ? "text-base font-bold text-foreground"
+                : "text-base font-medium text-muted-foreground hover:text-foreground"
               }
             >
               {t('search')}
@@ -47,16 +49,16 @@ export function Navigation() {
             <Link
               href="/compare"
               className={isActive('/compare')
-                ? "text-base font-bold text-slate-900"
-                : "text-base font-medium text-slate-700 hover:text-slate-900"
+                ? "text-base font-bold text-foreground"
+                : "text-base font-medium text-muted-foreground hover:text-foreground"
               }
             >
               {t('compare')}
             </Link>
-            <span className="text-base font-medium text-slate-700 cursor-not-allowed" title={t('comingSoon')}>
+            <span className="text-base font-medium text-muted-foreground cursor-not-allowed" title={t('comingSoon')}>
               {t('analytics')}
             </span>
-            <span className="text-base font-medium text-slate-700 cursor-not-allowed" title={t('comingSoon')}>
+            <span className="text-base font-medium text-muted-foreground cursor-not-allowed" title={t('comingSoon')}>
               {t('reports')}
             </span>
             </nav>
@@ -67,6 +69,17 @@ export function Navigation() {
             <div className="hidden md:block w-80">
               <HeaderSearch />
             </div>
+            {/* Theme Toggle */}
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            >
+              <Sun className="h-4 w-4 rotate-0 scale-100 transition-transform dark:rotate-90 dark:scale-0" />
+              <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-transform dark:rotate-0 dark:scale-100" />
+            </Button>
+
             {/* Language Selector */}
             <Select value={locale} onValueChange={handleLocaleChange}>
               <SelectTrigger className="w-[70px] h-9">

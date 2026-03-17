@@ -5,19 +5,23 @@ import { useTranslations } from 'next-intl';
 import { TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, FolderOpen, Download } from 'lucide-react';
+import { FileText, FolderOpen, Download, Info, Loader2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { sanitizeFilename } from '@/lib/format';
 import type { Company } from '@/lib/types/company';
 
 const DEFAULT_LIMIT = 5;
 
 interface DocumentsTabProps {
   company: Company;
+  isLoadingExternal?: boolean;
 }
 
-export function DocumentsTab({ company }: DocumentsTabProps) {
+export function DocumentsTab({ company, isLoadingExternal }: DocumentsTabProps) {
   const t = useTranslations('company');
   const [limit, setLimit] = useState(DEFAULT_LIMIT);
 
+  const sanitizedName = sanitizeFilename(company.name);
   const allReports = company.annualReports ?? [];
   const reports = allReports.slice(0, limit);
 
@@ -30,6 +34,26 @@ export function DocumentsTab({ company }: DocumentsTabProps) {
     if (!from || !to) return '-';
     return `${formatDate(from)} – ${formatDate(to)}`;
   };
+
+  if (isLoadingExternal && allReports.length === 0) {
+    return (
+      <TabsContent value="documents">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              {t('documents.annualReports')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-4 w-5/6" />
+          </CardContent>
+        </Card>
+      </TabsContent>
+    );
+  }
 
   return (
     <TabsContent value="documents">
@@ -58,18 +82,25 @@ export function DocumentsTab({ company }: DocumentsTabProps) {
                   <TableRow key={report.fileId}>
                     <TableCell className="font-medium">{report.year}</TableCell>
                     <TableCell>{formatPeriod(report.periodFrom, report.periodTo)}</TableCell>
-                    <TableCell>{report.type ? t(`documents.reportTypes.${report.type}`) : '-'}</TableCell>
+                    <TableCell>{report.type ? (t.has(`documents.reportTypes.${report.type}`) ? t(`documents.reportTypes.${report.type}`) : report.type) : '-'}</TableCell>
                     <TableCell>{formatDate(report.registeredOn)}</TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600">
-                        {report.fileExtension || '—'}
+                      <span className="inline-flex items-center gap-1">
+                        <span className="inline-flex items-center rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                          {report.fileExtension || '—'}
+                        </span>
+                        {report.fileExtension === 'DUF' && (
+                          <span title={t('documents.dufWarning')}>
+                            <Info className="h-3.5 w-3.5 text-amber-500" />
+                          </span>
+                        )}
                       </span>
                     </TableCell>
                     <TableCell>
                       <a
                         href={`/api/annual-report/${report.fileId}/content`}
-                        download={`gada_parskats_${report.year}${report.fileExtension ? '.' + report.fileExtension.toLowerCase() : ''}`}
-                        className="inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors"
+                        download={`${sanitizedName}_${report.year}${report.fileExtension ? '.' + report.fileExtension.toLowerCase() : ''}`}
+                        className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                         title={t('documents.download')}
                       >
                         <Download className="h-4 w-4" />
@@ -87,14 +118,14 @@ export function DocumentsTab({ company }: DocumentsTabProps) {
                 {limit < allReports.length ? (
                   <button
                     onClick={() => setLimit(allReports.length)}
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
+                    className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
                   >
                     {t('ownership.showMore')}
                   </button>
                 ) : (
                   <button
                     onClick={() => setLimit(DEFAULT_LIMIT)}
-                    className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
+                    className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
                   >
                     {t('ownership.showLess')}
                   </button>

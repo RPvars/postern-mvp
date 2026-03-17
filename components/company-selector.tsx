@@ -109,24 +109,24 @@ export function CompanySelector({
           {selectedCompanies.map((company, index) => (
             <Card
               key={company.id}
-              className="relative p-4 hover:bg-slate-50 transition-colors"
+              className="relative p-4 hover:bg-accent transition-colors"
             >
               <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="text-sm font-medium">
                   {index + 1}
                 </Badge>
                 <div className="flex-1">
-                  <div className="font-medium text-slate-900">{company.name}</div>
+                  <div className="font-medium text-foreground">{company.name}</div>
                   <div className="text-sm text-muted-foreground">
                     {company.registrationNumber}
                   </div>
                 </div>
                 <button
                   onClick={() => handleRemove(company.id)}
-                  className="rounded-full p-1 hover:bg-slate-200 transition-colors"
+                  className="rounded-full p-1 hover:bg-accent transition-colors"
                   aria-label={t('removeCompany')}
                 >
-                  <X className="h-4 w-4 text-slate-600" />
+                  <X className="h-4 w-4 text-muted-foreground" />
                 </button>
               </div>
             </Card>
@@ -151,7 +151,7 @@ export function CompanySelector({
             />
             <div
               className={cn(
-                'absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-lg bg-white z-50 max-h-80 overflow-y-auto',
+                'absolute top-full left-0 right-0 mt-1 rounded-lg border shadow-lg bg-card z-50 max-h-80 overflow-y-auto',
                 !isOpen && 'hidden pointer-events-none'
               )}
             >

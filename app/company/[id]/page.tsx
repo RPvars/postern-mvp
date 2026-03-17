@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Navigation } from '@/components/navigation';
@@ -22,11 +22,17 @@ export default function CompanyPage() {
   const pathname = usePathname();
   const t = useTranslations('company');
   const tCommon = useTranslations('common');
-  const [company, setCompany] = useState<Company | null>(null);
+  const [basicData, setBasicData] = useState<Company | null>(null);
+  const [peopleData, setPeopleData] = useState<Record<string, unknown> | null>(null);
+  const [externalData, setExternalData] = useState<Record<string, unknown> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showDataWarning, setShowDataWarning] = useState(true);
-
+  const [loadingPhases, setLoadingPhases] = useState({
+    basic: true,
+    people: true,
+    external: true,
+  });
   const activeTab = searchParams.get('tab') || 'basic';
 
   const handleTabChange = (value: string) => {
@@ -35,23 +41,63 @@ export default function CompanyPage() {
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  useEffect(() => {
-    const fetchCompany = async () => {
-      try {
-        const response = await fetch(`/api/company/${params.id}`);
-        if (!response.ok) {
-          throw new Error(t('notFound'));
-        }
-        const data = await response.json();
-        setCompany(data.company);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : t('loadError'));
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // Combine all phases into a single company object
+  const company = useMemo(() => {
+    if (!basicData) return null;
+    return {
+      ...basicData,
+      ...(peopleData || {}),
+      ...(externalData || {}),
+    } as Company;
+  }, [basicData, peopleData, externalData]);
 
-    fetchCompany();
+  useEffect(() => {
+    const id = params.id as string;
+
+    setIsLoading(true);
+    setError(null);
+    setBasicData(null);
+    setPeopleData(null);
+    setExternalData(null);
+    setLoadingPhases({ basic: true, people: true, external: true });
+
+    // Phase 1: Basic data (critical path — renders page header + Basic tab)
+    fetch(`/api/company/${id}/basic`)
+      .then(r => {
+        if (!r.ok) throw new Error(t('notFound'));
+        return r.json();
+      })
+      .then(data => {
+        setBasicData(data.company);
+        setLoadingPhases(prev => ({ ...prev, basic: false }));
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError(err instanceof Error ? err.message : t('loadError'));
+        setIsLoading(false);
+      });
+
+    // Phase 2: People data (name resolution — updates owners/boardMembers)
+    fetch(`/api/company/${id}/people`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setPeopleData(data);
+        setLoadingPhases(prev => ({ ...prev, people: false }));
+      })
+      .catch(() => {
+        setLoadingPhases(prev => ({ ...prev, people: false }));
+      });
+
+    // Phase 3: External data (financial ratios + annual reports)
+    fetch(`/api/company/${id}/external`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data) setExternalData(data);
+        setLoadingPhases(prev => ({ ...prev, external: false }));
+      })
+      .catch(() => {
+        setLoadingPhases(prev => ({ ...prev, external: false }));
+      });
   }, [params.id, t]);
 
   useEffect(() => {
@@ -71,18 +117,18 @@ export default function CompanyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       <Navigation />
 
-      <div className="border-b bg-white/80 backdrop-blur-sm">
+      <div className="border-b bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{company.name}</h1>
-              <p className="text-slate-600">{company.registrationNumber}</p>
+              <h1 className="text-3xl font-bold text-foreground">{company.name}</h1>
+              <p className="text-muted-foreground">{company.registrationNumber}</p>
             </div>
             <Badge variant={company.status === 'REGISTERED' ? 'default' : 'destructive'} className="text-sm">
-              {tCommon(`companyStatus.${company.status}`) || company.status}
+              {tCommon.has(`companyStatus.${company.status}`) ? tCommon(`companyStatus.${company.status}`) : company.status}
             </Badge>
           </div>
         </div>
@@ -116,17 +162,17 @@ export default function CompanyPage() {
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white border shadow-sm rounded-lg">
-            <TabsTrigger value="basic" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">{t('tabs.basic')}</TabsTrigger>
-            <TabsTrigger value="people" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">{t('tabs.people')}</TabsTrigger>
-            <TabsTrigger value="financial" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">{t('tabs.financial')}</TabsTrigger>
-            <TabsTrigger value="documents" className="data-[state=active]:bg-black data-[state=active]:text-white font-semibold">{t('tabs.documents')}</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-card border shadow-sm rounded-lg">
+            <TabsTrigger value="basic" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold">{t('tabs.basic')}</TabsTrigger>
+            <TabsTrigger value="people" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold">{t('tabs.people')}</TabsTrigger>
+            <TabsTrigger value="financial" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold">{t('tabs.financial')}</TabsTrigger>
+            <TabsTrigger value="documents" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground font-semibold">{t('tabs.documents')}</TabsTrigger>
           </TabsList>
 
           <BasicTab company={company} />
-          <PeopleTab company={company} />
-          <FinancialTab company={company} />
-          <DocumentsTab company={company} />
+          <PeopleTab company={company} isResolvingNames={loadingPhases.people} />
+          <FinancialTab company={company} isLoadingExternal={loadingPhases.external} />
+          <DocumentsTab company={company} isLoadingExternal={loadingPhases.external} />
         </Tabs>
       </main>
     </div>

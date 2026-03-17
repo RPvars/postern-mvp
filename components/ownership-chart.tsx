@@ -1,6 +1,7 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useTheme } from 'next-themes';
 
 interface Owner {
   name: string;
@@ -13,7 +14,8 @@ interface OwnershipChartProps {
 }
 
 const MAX_SLICES = 5;
-const OTHER_COLOR = '#d1d5db';
+const OTHER_COLOR_LIGHT = '#d1d5db';
+const OTHER_COLOR_DARK = '#4b5563';
 
 // Posterns Yellow with varying opacity for visual distinction
 const POSTERNS_YELLOW_RGB = { r: 254, g: 194, b: 0 };
@@ -25,6 +27,8 @@ const getColorWithOpacity = (index: number, total: number): string => {
 };
 
 export function OwnershipChart({ owners, otherLabel = 'Other' }: OwnershipChartProps) {
+  const { theme } = useTheme();
+  const otherColor = theme === 'dark' ? OTHER_COLOR_DARK : OTHER_COLOR_LIGHT;
   let chartData: { name: string; value: number; isOther?: boolean }[];
 
   if (owners.length <= MAX_SLICES + 1) {
@@ -57,7 +61,7 @@ export function OwnershipChart({ owners, otherLabel = 'Other' }: OwnershipChartP
             {chartData.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.isOther ? OTHER_COLOR : getColorWithOpacity(index, namedSlices)}
+                fill={entry.isOther ? otherColor : getColorWithOpacity(index, namedSlices)}
               />
             ))}
           </Pie>

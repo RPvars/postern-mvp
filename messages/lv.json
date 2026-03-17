@@ -113,7 +113,8 @@
       "THROUGH_OTHER_MEANS": "Ar citiem līdzekļiem",
       "JOINT_CONTROL": "Kopīga kontrole",
       "SENIOR_MANAGEMENT": "Augstākā vadība",
-      "OTHER_TYPE_OF_CONTROL": "Cits kontroles veids"
+      "OTHER_TYPE_OF_CONTROL": "Cits kontroles veids",
+      "ON_GROUNDS_OF_PROPERTY_RIGHT": "Uz īpašumtiesību pamata"
     },
     "country": {
       "LV": "Latvija",
@@ -464,6 +465,7 @@
       "registeredOn": "Reģistrēts UR",
       "noReports": "Gada pārskati nav pieejami",
       "format": "Formāts",
+      "dufWarning": "DUF ir Uzņēmumu reģistra slēgtais formāts. To nevar atvērt ar standarta programmatūru.",
       "download": "Lejupielādēt",
       "reportTypes": {
         "ANNUAL_REPORT": "Gada pārskats",

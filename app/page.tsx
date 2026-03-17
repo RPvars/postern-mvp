@@ -54,10 +54,10 @@ export default function Home() {
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center w-full space-y-12">
           <div className="text-center max-w-3xl">
-            <h1 className="mb-4 text-5xl md:text-6xl font-bold tracking-tight text-slate-900">
+            <h1 className="mb-4 text-5xl md:text-6xl font-bold tracking-tight text-foreground">
               {getHeaderText()}
             </h1>
-            <p className="text-xl text-slate-700">
+            <p className="text-xl text-muted-foreground">
               {getSubText()}
             </p>
           </div>
@@ -66,8 +66,8 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-slate-600">
+      <footer className="border-t bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
           {common('copyright')}
         </div>
       </footer>

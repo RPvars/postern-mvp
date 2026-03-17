@@ -6,9 +6,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function CompanySkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+    <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="border-b bg-white">
+      <div className="border-b bg-background">
         <div className="container mx-auto px-4 py-6">
           <Skeleton className="h-9 w-80 mb-2" />
           <Skeleton className="h-5 w-32" />

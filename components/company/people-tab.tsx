@@ -15,15 +15,19 @@ import type { Company, CompanyOwner } from '@/lib/types/company';
 
 interface PeopleTabProps {
   company: Company;
+  isResolvingNames?: boolean;
 }
 
-export function PeopleTab({ company }: PeopleTabProps) {
+export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
   const t = useTranslations('company');
   const tCommon = useTranslations('common');
   const [ownersLimit, setOwnersLimit] = useState(10);
   const [boardSort, setBoardSort] = useState<{ key: string; dir: 'asc' | 'desc' } | null>(null);
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [foreignEntityDetail, setForeignEntityDetail] = useState<CompanyOwner | null>(null);
+
+  const te = (key: string, fallback: string) =>
+    tCommon.has(key) ? tCommon(key) : fallback;
 
   return (
     <TabsContent value="people">
@@ -180,14 +184,14 @@ export function PeopleTab({ company }: PeopleTabProps) {
                     {ownersLimit < company.owners.length ? (
                       <button
                         onClick={() => setOwnersLimit(prev => prev + 25)}
-                        className="w-full rounded-md bg-black text-white py-2.5 text-sm font-medium hover:bg-black/90 transition-colors"
+                        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
                       >
                         {t('ownership.showMore')} (+25)
                       </button>
                     ) : (
                       <button
                         onClick={() => setOwnersLimit(10)}
-                        className="w-full rounded-md bg-black text-white py-2.5 text-sm font-medium hover:bg-black/90 transition-colors"
+                        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
                       >
                         {t('ownership.showLess')}
                       </button>
@@ -273,10 +277,10 @@ export function PeopleTab({ company }: PeopleTabProps) {
                         {member.personalCode || tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {member.institution ? (tCommon(`governingBody.${member.institution}`) || member.institution) : tCommon('notAvailable')}
+                        {member.institution ? te(`governingBody.${member.institution}`, member.institution) : tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {member.position ? (tCommon(`position.${member.position}`) || member.position) : tCommon('notAvailable')}
+                        {member.position ? te(`position.${member.position}`, member.position) : tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {member.appointedDate ? formatDate(member.appointedDate) : tCommon('notAvailable')}
@@ -285,7 +289,7 @@ export function PeopleTab({ company }: PeopleTabProps) {
                         {member.representationRights ? (
                           member.representationRights.startsWith('WITH_AT_LEAST:')
                             ? tCommon('representationRights.WITH_AT_LEAST', { count: member.representationRights.split(':')[1] })
-                            : (tCommon(`representationRights.${member.representationRights}`) || member.representationRights)
+                            : te(`representationRights.${member.representationRights}`, member.representationRights)
                         ) : tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="relative">
@@ -353,13 +357,13 @@ export function PeopleTab({ company }: PeopleTabProps) {
                         {owner.dateFrom ? formatDate(owner.dateFrom) : tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {owner.residenceCountry ? (tCommon(`country.${owner.residenceCountry}`) || owner.residenceCountry) : tCommon('notAvailable')}
+                        {owner.residenceCountry ? te(`country.${owner.residenceCountry}`, owner.residenceCountry) : tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {owner.citizenship ? (tCommon(`country.${owner.citizenship}`) || owner.citizenship) : tCommon('notAvailable')}
+                        {owner.citizenship ? te(`country.${owner.citizenship}`, owner.citizenship) : tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {owner.controlType ? (tCommon(`controlType.${owner.controlType}`) || owner.controlType) : tCommon('notAvailable')}
+                        {owner.controlType ? te(`controlType.${owner.controlType}`, owner.controlType) : tCommon('notAvailable')}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
                         {owner.birthDate ? formatDate(owner.birthDate) : tCommon('notAvailable')}
@@ -403,7 +407,7 @@ export function PeopleTab({ company }: PeopleTabProps) {
               {foreignEntityDetail.owner.country && (
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">{t('foreignEntity.country')}</span>
-                  <span className="text-sm">{tCommon(`country.${foreignEntityDetail.owner.country}`)}</span>
+                  <span className="text-sm">{te(`country.${foreignEntityDetail.owner.country}`, foreignEntityDetail.owner.country)}</span>
                 </div>
               )}
               {foreignEntityDetail.memberSince && (

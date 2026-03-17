@@ -20,6 +20,9 @@ export function BasicTab({ company }: BasicTabProps) {
   const tCommon = useTranslations('common');
   const [stateAidLimit, setStateAidLimit] = useState(3);
 
+  const te = (key: string, fallback: string) =>
+    tCommon.has(key) ? tCommon(key) : fallback;
+
   return (
     <TabsContent value="basic">
       <div className="grid gap-6 lg:grid-cols-2">
@@ -41,13 +44,13 @@ export function BasicTab({ company }: BasicTabProps) {
             {company.legalForm && (
               <div>
                 <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.legalForm')}</div>
-                <div className="text-sm">{tCommon(`legalForm.${company.legalForm}`) || company.legalForm}</div>
+                <div className="text-sm">{te(`legalForm.${company.legalForm}`, company.legalForm)}</div>
               </div>
             )}
             {company.register && (
               <div>
                 <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.register')}</div>
-                <div className="text-sm">{tCommon(`register.${company.register}`) || company.register}</div>
+                <div className="text-sm">{te(`register.${company.register}`, company.register)}</div>
               </div>
             )}
             <div>
@@ -259,14 +262,14 @@ export function BasicTab({ company }: BasicTabProps) {
                   {stateAidLimit < company.stateAid.length ? (
                     <button
                       onClick={() => setStateAidLimit(company.stateAid.length)}
-                      className="w-full rounded-md bg-black text-white py-2.5 text-sm font-medium hover:bg-black/90 transition-colors"
+                      className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
                     >
                       {t('ownership.showMore')}
                     </button>
                   ) : (
                     <button
                       onClick={() => setStateAidLimit(3)}
-                      className="w-full rounded-md bg-black text-white py-2.5 text-sm font-medium hover:bg-black/90 transition-colors"
+                      className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
                     >
                       {t('ownership.showLess')}
                     </button>
@@ -371,7 +374,7 @@ export function BasicTab({ company }: BasicTabProps) {
                 <TableBody>
                   {company.specialStatuses.map((ss) => (
                     <TableRow key={ss.id}>
-                      <TableCell className="font-medium">{tCommon(`specialStatus.${ss.type}`) || ss.type}</TableCell>
+                      <TableCell className="font-medium">{te(`specialStatus.${ss.type}`, ss.type)}</TableCell>
                       <TableCell className="text-muted-foreground">{formatDate(ss.dateFrom)}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {ss.registeredOn ? formatDate(ss.registeredOn) : '-'}
@@ -418,7 +421,7 @@ export function BasicTab({ company }: BasicTabProps) {
                 {company.reorganizations.map((reorg, i) => (
                   <div key={i} className="py-2 border-b last:border-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge variant="outline">{tCommon(`reorganizationType.${reorg.type}`) || reorg.typeText}</Badge>
+                      <Badge variant="outline">{te(`reorganizationType.${reorg.type}`, reorg.typeText)}</Badge>
                       <span className="text-sm text-muted-foreground">{formatDate(reorg.registered)}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm">
