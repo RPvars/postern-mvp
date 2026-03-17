@@ -132,6 +132,17 @@ export interface CompanyVatPayer {
   deregisteredDate: string | null;
 }
 
+export interface CompanyAnnualReport {
+  fileId: number;
+  year: number;
+  periodFrom: string | null;
+  periodTo: string | null;
+  type: string | null;
+  registeredOn: string | null;
+  isAnnulled: boolean;
+  fileExtension: string | null;
+}
+
 export interface Company {
   id: string;
   name: string;
@@ -189,4 +200,5 @@ export interface Company {
   beneficialOwners: CompanyBeneficialOwner[];
   taxPayments: CompanyTaxPayment[];
   financialRatios: CompanyFinancialRatio[];
+  annualReports: CompanyAnnualReport[];
 }

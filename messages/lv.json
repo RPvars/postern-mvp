@@ -112,7 +112,8 @@
       "THROUGH_CONTROL": "Caur kontroli",
       "THROUGH_OTHER_MEANS": "Ar citiem līdzekļiem",
       "JOINT_CONTROL": "Kopīga kontrole",
-      "SENIOR_MANAGEMENT": "Augstākā vadība"
+      "SENIOR_MANAGEMENT": "Augstākā vadība",
+      "OTHER_TYPE_OF_CONTROL": "Cits kontroles veids"
     },
     "country": {
       "LV": "Latvija",
@@ -456,9 +457,19 @@
     },
     "documents": {
       "title": "Dokumenti",
-      "description": "Uzņēmuma dokumenti un reģistrācijas materiāli",
-      "comingSoon": "Dokumentu sadaļa ir izstrādes procesā",
-      "comingSoonDescription": "Drīzumā šeit būs pieejami uzņēmuma dokumenti, finanšu pārskati, reģistrācijas apliecības un citi svarīgi materiāli."
+      "annualReports": "Gada Pārskati",
+      "year": "Gads",
+      "period": "Pārskata periods",
+      "reportType": "Veids",
+      "registeredOn": "Reģistrēts UR",
+      "noReports": "Gada pārskati nav pieejami",
+      "format": "Formāts",
+      "download": "Lejupielādēt",
+      "reportTypes": {
+        "ANNUAL_REPORT": "Gada pārskats",
+        "CONSOLIDATED_ANNUAL_REPORT": "Konsolidētais gada pārskats",
+        "CONSOLIDATED_STATEMENT": "Konsolidētais pārskats"
+      }
     },
     "financialSummary": {
       "title": "Finanšu Rādītāji (pēdējie iesniegtie gadi)",

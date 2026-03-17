@@ -153,6 +153,25 @@ export interface BeneficialOwnerApiResponse {
   isAnnulled: boolean;
 }
 
+// GET /legalentity/legal-entity/{regcode}/annual-reports (flat array response)
+export interface AnnualReportItem {
+  fileId: number;
+  sourceId?: number;
+  legalEntityRegistrationNumber?: string;
+  type?: string;
+  year: string;
+  startDate?: string;
+  endDate?: string;
+  contents?: string;
+  filename?: string;
+  filenameExtension?: string;
+  contentLength?: number;
+  date?: string;
+  registeredOn?: string;
+  lastModifiedAt?: string;
+  isAnnulled: boolean;
+}
+
 // Internal Schema Types (Prisma-compatible)
 
 export interface Company {

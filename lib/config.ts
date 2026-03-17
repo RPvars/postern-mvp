@@ -61,6 +61,7 @@ export const APP_CONFIG = {
       companyDetail: { maxRequests: 30, windowMs: 60000 }, // 30 per minute
       compare: { maxRequests: 15, windowMs: 60000 }, // 15 per minute
       batch: { maxRequests: 20, windowMs: 60000 }, // 20 per minute
+      annualReportDownload: { maxRequests: 10, windowMs: 60000 }, // 10 per minute
       auth: {
         login: { maxRequests: 5, windowMs: 60000 }, // 5 per minute
         register: { maxRequests: 3, windowMs: 60000 }, // 3 per minute

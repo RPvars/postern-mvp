@@ -112,7 +112,8 @@
       "THROUGH_CONTROL": "Through control",
       "THROUGH_OTHER_MEANS": "Through other means",
       "JOINT_CONTROL": "Joint control",
-      "SENIOR_MANAGEMENT": "Senior management"
+      "SENIOR_MANAGEMENT": "Senior management",
+      "OTHER_TYPE_OF_CONTROL": "Other type of control"
     },
     "country": {
       "LV": "Latvia",
@@ -456,9 +457,19 @@
     },
     "documents": {
       "title": "Documents",
-      "description": "Company documents and registration materials",
-      "comingSoon": "Documents section is under development",
-      "comingSoonDescription": "Soon you will be able to access company documents, financial reports, registration certificates, and other important materials here."
+      "annualReports": "Annual Reports",
+      "year": "Year",
+      "period": "Reporting Period",
+      "reportType": "Type",
+      "registeredOn": "Registered at CR",
+      "noReports": "No annual reports available",
+      "format": "Format",
+      "download": "Download",
+      "reportTypes": {
+        "ANNUAL_REPORT": "Annual report",
+        "CONSOLIDATED_ANNUAL_REPORT": "Consolidated annual report",
+        "CONSOLIDATED_STATEMENT": "Consolidated statement"
+      }
     },
     "financialSummary": {
       "title": "Financial Indicators (recent years)",

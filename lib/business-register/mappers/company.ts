@@ -5,9 +5,11 @@ import type {
   OfficerApiResponse,
   MemberApiResponse,
   BeneficialOwnerApiResponse,
+  AnnualReportItem,
   Company,
   BoardMember,
 } from '../types/api-responses';
+import type { CompanyAnnualReport } from '@/lib/types/company';
 
 const LEGAL_FORM_ABBREVIATIONS: [RegExp, string][] = [
   [/Sabiedrība ar ierobežotu atbildību/gi, 'SIA'],
@@ -190,6 +192,22 @@ export class BeneficialOwnerMapper {
   }
 }
 
+export class AnnualReportMapper {
+  fromApiResponse(item: AnnualReportItem): CompanyAnnualReport {
+    return {
+      fileId: item.fileId,
+      year: parseInt(item.year, 10),
+      periodFrom: item.startDate || null,
+      periodTo: item.endDate || null,
+      type: item.type || null,
+      registeredOn: item.registeredOn || null,
+      isAnnulled: item.isAnnulled,
+      fileExtension: item.filenameExtension?.toUpperCase() || null,
+    };
+  }
+}
+
+export const annualReportMapper = new AnnualReportMapper();
 export const companyMapper = new CompanyMapper();
 export const boardMemberMapper = new BoardMemberMapper();
 export const memberMapper = new MemberMapper();

@@ -12,10 +12,6 @@ import type { Company } from '@/lib/types/company';
 
 const DEFAULT_YEARS = 3;
 
-interface FinancialTabProps {
-  company: Company;
-}
-
 function useScrollShadow() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showShadow, setShowShadow] = useState(false);
@@ -35,31 +31,130 @@ function useScrollShadow() {
   return { scrollRef, showShadow, onScroll: checkScroll };
 }
 
+const formatValue = (value: number | null, format: string) => {
+  if (value == null) return '-';
+  switch (format) {
+    case 'currency': return formatCurrency(value);
+    case 'ratio': return value.toFixed(2);
+    case 'percent': return `${(value * 100).toFixed(2)}`;
+    case 'integer': return value.toLocaleString('lv-LV');
+    default: return String(value);
+  }
+};
+
+const getTrend = (current: number | null, previous: number | null) => {
+  if (current == null || previous == null || previous === 0) return null;
+  return current > previous ? 'up' : current < previous ? 'down' : null;
+};
+
+interface RowDef {
+  label: string;
+  key: string;
+  format: 'currency' | 'ratio' | 'percent' | 'integer';
+}
+
+interface ScrollableYearTableProps<T> {
+  years: T[];
+  allYearsCount: number;
+  rows: RowDef[];
+  getValue: (year: T, key: string) => number | null;
+  getYear: (year: T) => number;
+  limit: number;
+  onLimitChange: (limit: number) => void;
+  showingText: (count: number, total: number) => string;
+  showMoreLabel: string;
+  showLessLabel: string;
+  showCurrencySuffix?: boolean;
+}
+
+function ScrollableYearTable<T>({
+  years, allYearsCount, rows, getValue, getYear,
+  limit, onLimitChange, showingText, showMoreLabel, showLessLabel,
+  showCurrencySuffix = false,
+}: ScrollableYearTableProps<T>) {
+  const scroll = useScrollShadow();
+
+  useEffect(() => {
+    scroll.onScroll();
+  }, [limit, scroll]);
+
+  return (
+    <>
+      <div className="relative">
+        <div className="overflow-x-auto" ref={scroll.scrollRef} onScroll={scroll.onScroll}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="sticky left-0 bg-white z-10 whitespace-nowrap"></TableHead>
+                {years.map((y) => (
+                  <TableHead key={getYear(y)} className="text-right whitespace-nowrap min-w-[260px] px-4">{getYear(y)}</TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {rows.map((row) => (
+                <TableRow key={row.key}>
+                  <TableCell className="font-medium sticky left-0 bg-white z-10 whitespace-nowrap">{row.label}</TableCell>
+                  {years.map((y, idx) => {
+                    const value = getValue(y, row.key);
+                    const prevValue = years[idx + 1] ? getValue(years[idx + 1], row.key) : null;
+                    const trend = getTrend(value, prevValue);
+                    return (
+                      <TableCell key={getYear(y)} className="text-right whitespace-nowrap min-w-[260px] px-4">
+                        <span className="inline-flex items-center gap-1">
+                          {formatValue(value, row.format)}
+                          {showCurrencySuffix && row.format === 'currency' && value != null && ' EUR'}
+                          {trend === 'up' && <span className="text-green-600 text-xs">↑</span>}
+                          {trend === 'down' && <span className="text-red-600 text-xs">↓</span>}
+                        </span>
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        {scroll.showShadow && (
+          <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-white to-transparent" />
+        )}
+      </div>
+      {allYearsCount > DEFAULT_YEARS && (
+        <div className="border-t pt-4 mt-2 space-y-2">
+          <div className="text-center text-xs text-muted-foreground">
+            {showingText(Math.min(limit, allYearsCount), allYearsCount)}
+          </div>
+          {limit < allYearsCount ? (
+            <button
+              onClick={() => onLimitChange(allYearsCount)}
+              className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
+            >
+              {showMoreLabel}
+            </button>
+          ) : (
+            <button
+              onClick={() => onLimitChange(DEFAULT_YEARS)}
+              className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
+            >
+              {showLessLabel}
+            </button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+interface FinancialTabProps {
+  company: Company;
+}
+
 export function FinancialTab({ company }: FinancialTabProps) {
   const t = useTranslations('company');
   const [financialYearsLimit, setFinancialYearsLimit] = useState(DEFAULT_YEARS);
   const [taxYearsLimit, setTaxYearsLimit] = useState(DEFAULT_YEARS);
 
-  const financialScroll = useScrollShadow();
-  const taxScroll = useScrollShadow();
-
-  const formatValue = (value: number | null, format: string) => {
-    if (value == null) return '-';
-    switch (format) {
-      case 'currency': return formatCurrency(value);
-      case 'ratio': return value.toFixed(2);
-      case 'percent': return `${(value * 100).toFixed(2)}`;
-      case 'integer': return value.toLocaleString('lv-LV');
-      default: return String(value);
-    }
-  };
-
-  const getTrend = (current: number | null, previous: number | null) => {
-    if (current == null || previous == null || previous === 0) return null;
-    return current > previous ? 'up' : current < previous ? 'down' : null;
-  };
-
-  const financialSummaryRows: { label: string; key: string; format: 'currency' | 'ratio' | 'percent' | 'integer' }[] = [
+  const financialRows: RowDef[] = [
     { label: t('financialSummary.netIncome'), key: 'netIncome', format: 'currency' },
     { label: t('financialSummary.revenue'), key: 'revenue', format: 'currency' },
     { label: t('financialSummary.totalAssets'), key: 'totalAssets', format: 'currency' },
@@ -70,7 +165,7 @@ export function FinancialTab({ company }: FinancialTabProps) {
     { label: t('financialSummary.employees'), key: 'employees', format: 'integer' },
   ];
 
-  const taxRows: { label: string; key: 'amount' | 'iinAmount' | 'vsaoiAmount' | 'employeeCount'; format: 'currency' | 'integer' }[] = [
+  const taxRows: RowDef[] = [
     { label: t('taxPayments.amount'), key: 'amount', format: 'currency' },
     { label: t('taxPayments.iinAmount'), key: 'iinAmount', format: 'currency' },
     { label: t('taxPayments.vsaoiAmount'), key: 'vsaoiAmount', format: 'currency' },
@@ -80,19 +175,12 @@ export function FinancialTab({ company }: FinancialTabProps) {
   const visibleFinancialYears = company.financialRatios?.slice(0, financialYearsLimit) ?? [];
   const visibleTaxYears = company.taxPayments?.slice(0, taxYearsLimit) ?? [];
 
-  // Re-check scroll shadow when year limits change
-  useEffect(() => {
-    financialScroll.onScroll();
-  }, [financialYearsLimit, financialScroll]);
-
-  useEffect(() => {
-    taxScroll.onScroll();
-  }, [taxYearsLimit, taxScroll]);
+  const showingText = (count: number, total: number) =>
+    t('ownership.showing', { count, total });
 
   return (
     <TabsContent value="financial">
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Financial Summary Table */}
         {company.financialRatios && company.financialRatios.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -102,73 +190,23 @@ export function FinancialTab({ company }: FinancialTabProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="relative">
-                <div className="overflow-x-auto" ref={financialScroll.scrollRef} onScroll={financialScroll.onScroll}>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="sticky left-0 bg-white z-10 whitespace-nowrap"></TableHead>
-                        {visibleFinancialYears.map((ry) => (
-                          <TableHead key={ry.year} className="text-right whitespace-nowrap min-w-[260px] px-4">{ry.year}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {financialSummaryRows.map((row) => (
-                        <TableRow key={row.key}>
-                          <TableCell className="font-medium sticky left-0 bg-white z-10 whitespace-nowrap">{row.label}</TableCell>
-                          {visibleFinancialYears.map((ry, idx) => {
-                            const value = (ry as unknown as Record<string, number | null>)[row.key] ?? null;
-                            const prevYear = visibleFinancialYears[idx + 1];
-                            const prevValue = prevYear ? (prevYear as unknown as Record<string, number | null>)[row.key] ?? null : null;
-                            const trend = getTrend(value, prevValue);
-                            return (
-                              <TableCell key={ry.year} className="text-right whitespace-nowrap min-w-[260px] px-4">
-                                <span className="inline-flex items-center gap-1">
-                                  {formatValue(value, row.format)}
-                                  {row.format === 'currency' && value != null && ' EUR'}
-                                  {trend === 'up' && <span className="text-green-600 text-xs">↑</span>}
-                                  {trend === 'down' && <span className="text-red-600 text-xs">↓</span>}
-                                </span>
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                {financialScroll.showShadow && (
-                  <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-white to-transparent" />
-                )}
-              </div>
-              {company.financialRatios.length > DEFAULT_YEARS && (
-                <div className="border-t pt-4 mt-2 space-y-2">
-                  <div className="text-center text-xs text-muted-foreground">
-                    {t('ownership.showing', { count: Math.min(financialYearsLimit, company.financialRatios.length), total: company.financialRatios.length })}
-                  </div>
-                  {financialYearsLimit < company.financialRatios.length ? (
-                    <button
-                      onClick={() => setFinancialYearsLimit(company.financialRatios.length)}
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
-                    >
-                      {t('ownership.showMore')}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setFinancialYearsLimit(DEFAULT_YEARS)}
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
-                    >
-                      {t('ownership.showLess')}
-                    </button>
-                  )}
-                </div>
-              )}
+              <ScrollableYearTable
+                years={visibleFinancialYears}
+                allYearsCount={company.financialRatios.length}
+                rows={financialRows}
+                getValue={(y, key) => (y as unknown as Record<string, number | null>)[key] ?? null}
+                getYear={(y) => y.year}
+                limit={financialYearsLimit}
+                onLimitChange={setFinancialYearsLimit}
+                showingText={showingText}
+                showMoreLabel={t('ownership.showMore')}
+                showLessLabel={t('ownership.showLess')}
+                showCurrencySuffix
+              />
             </CardContent>
           </Card>
         )}
 
-        {/* Tax Payments */}
         {company.taxPayments && company.taxPayments.length > 0 && (
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -178,76 +216,22 @@ export function FinancialTab({ company }: FinancialTabProps) {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="relative">
-                <div className="overflow-x-auto" ref={taxScroll.scrollRef} onScroll={taxScroll.onScroll}>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="sticky left-0 bg-white z-10 whitespace-nowrap"></TableHead>
-                        {visibleTaxYears.map((tp) => (
-                          <TableHead key={tp.year} className="text-right whitespace-nowrap min-w-[260px] px-4">{tp.year}</TableHead>
-                        ))}
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {taxRows.map((row) => (
-                        <TableRow key={row.key}>
-                          <TableCell className="font-medium sticky left-0 bg-white z-10 whitespace-nowrap">{row.label}</TableCell>
-                          {visibleTaxYears.map((tp, idx) => {
-                            const value = tp[row.key];
-                            const prevTp = visibleTaxYears[idx + 1];
-                            const prevValue = prevTp ? prevTp[row.key] : null;
-                            const trend = getTrend(value, prevValue);
-                            return (
-                              <TableCell key={tp.year} className="text-right whitespace-nowrap min-w-[260px] px-4">
-                                <span className="inline-flex items-center gap-1">
-                                  {value != null
-                                    ? row.format === 'currency'
-                                      ? `${formatCurrency(value)}`
-                                      : value.toLocaleString('lv-LV')
-                                    : '-'}
-                                  {trend === 'up' && <span className="text-green-600 text-xs">↑</span>}
-                                  {trend === 'down' && <span className="text-red-600 text-xs">↓</span>}
-                                </span>
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                {taxScroll.showShadow && (
-                  <div className="absolute right-0 top-0 bottom-0 w-8 pointer-events-none bg-gradient-to-l from-white to-transparent" />
-                )}
-              </div>
-              {company.taxPayments.length > DEFAULT_YEARS && (
-                <div className="border-t pt-4 mt-2 space-y-2">
-                  <div className="text-center text-xs text-muted-foreground">
-                    {t('ownership.showing', { count: Math.min(taxYearsLimit, company.taxPayments.length), total: company.taxPayments.length })}
-                  </div>
-                  {taxYearsLimit < company.taxPayments.length ? (
-                    <button
-                      onClick={() => setTaxYearsLimit(company.taxPayments.length)}
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
-                    >
-                      {t('ownership.showMore')}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setTaxYearsLimit(DEFAULT_YEARS)}
-                      className="w-full rounded-md border border-gray-200 bg-gray-50 text-gray-600 py-2.5 text-sm font-medium hover:bg-gray-100 transition-colors"
-                    >
-                      {t('ownership.showLess')}
-                    </button>
-                  )}
-                </div>
-              )}
+              <ScrollableYearTable
+                years={visibleTaxYears}
+                allYearsCount={company.taxPayments.length}
+                rows={taxRows}
+                getValue={(y, key) => y[key as keyof typeof y] as number | null}
+                getYear={(y) => y.year}
+                limit={taxYearsLimit}
+                onLimitChange={setTaxYearsLimit}
+                showingText={showingText}
+                showMoreLabel={t('ownership.showMore')}
+                showLessLabel={t('ownership.showLess')}
+              />
             </CardContent>
           </Card>
         )}
 
-        {/* Financial Ratios */}
         {company.financialRatios && company.financialRatios.length > 0 && (
           <div className="lg:col-span-2">
             <FinancialRatiosDisplay ratios={company.financialRatios} />

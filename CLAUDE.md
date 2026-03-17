@@ -27,7 +27,7 @@ components/
     basic-tab.tsx      # Company info, registration, capital, state aid, risk
     people-tab.tsx     # Ownership, board members, beneficial owners
     financial-tab.tsx  # Financial summary, tax payments (scrollable tables)
-    documents-tab.tsx  # Documents placeholder
+    documents-tab.tsx  # Annual reports table with download
     company-skeleton.tsx  # Loading skeleton
     company-error.tsx     # Error state
   financial-ratios-display.tsx  # Financial ratios with charts
@@ -117,7 +117,8 @@ Required in `.env`:
 - **Mappers**: `lib/business-register/mappers/company.ts` — transform API responses, abbreviate legal forms (SIA/AS), return raw enums for i18n
 - **Name resolution**: Company detail route resolves legal entity names for members/officers missing `legalName` (max 10 parallel lookups, cached)
 - **Mock mode**: Set `BR_USE_MOCK_DATA=true` to bypass certificate requirement in development
-- **Key API endpoints used**: `/searchlegalentities/search/legal-entities`, `/legalentity/legal-entity/{regcode}`
+- **Key API endpoints used**: `/searchlegalentities/search/legal-entities`, `/legalentity/legal-entity/{regcode}`, `/legalentity/legal-entity/{regcode}/annual-reports`, `/annualreport/annual-report/{fileId}/content`
+- **Annual reports**: Listed via legalentity endpoint (flat array), downloaded via annualreport endpoint. Proxy route at `app/api/annual-report/[fileId]/content/`. Deduplication by year+type prefers PDF > HTML > DUF format
 
 ## Financial Data (On-Demand API)
 Financial ratios are fetched on-demand from data.gov.lv CKAN Datastore API (no auth, CC0 license).

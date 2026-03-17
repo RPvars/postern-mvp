@@ -5,7 +5,7 @@ import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
 import { captureException } from '@/lib/sentry';
 import { httpClient } from '@/lib/business-register/client/http';
-import { companyMapper, boardMemberMapper, memberMapper, beneficialOwnerMapper } from '@/lib/business-register/mappers/company';
+import { companyMapper, boardMemberMapper, memberMapper, beneficialOwnerMapper, annualReportMapper } from '@/lib/business-register/mappers/company';
 import { prisma } from '@/lib/prisma';
 import { getFinancialData } from '@/lib/data-gov/client';
 
@@ -46,7 +46,7 @@ export async function GET(
       );
     }
 
-    const [legalEntity, taxPaymentRecords, financialData, insolvencyRecords, taxpayerRatingRecord, vatPayerRecord, stateAidRecords, nameHistoryRecords, reorganizationRecords] = await Promise.all([
+    const [legalEntity, taxPaymentRecords, financialData, insolvencyRecords, taxpayerRatingRecord, vatPayerRecord, stateAidRecords, nameHistoryRecords, reorganizationRecords, annualReportItems] = await Promise.all([
       httpClient.getLegalEntity(id),
       prisma.taxPayment.findMany({
         where: { registrationNumber: id },
@@ -80,6 +80,7 @@ export async function GET(
         },
         orderBy: { registered: 'desc' },
       }),
+      httpClient.getAnnualReports(id).catch(() => []),
     ]);
 
     // Resolve legal entity names for members/officers missing legalName (capped to avoid excessive API calls)
@@ -225,6 +226,28 @@ export async function GET(
         finalRegcode: r.finalEntityRegcode,
         registered: r.registered,
       })),
+      annualReports: (() => {
+        const FORMAT_PRIORITY: Record<string, number> = { PDF: 0, HTML: 1, DUF: 2 };
+        const mapped = (annualReportItems as import('@/lib/business-register/types/api-responses').AnnualReportItem[])
+          .filter((item) => !item.isAnnulled)
+          .map((item) => annualReportMapper.fromApiResponse(item));
+        // Deduplicate by year+type, keeping the best format (PDF > HTML > DUF)
+        const best = new Map<string, typeof mapped[number]>();
+        for (const r of mapped) {
+          const key = `${r.year}-${r.type}`;
+          const existing = best.get(key);
+          if (!existing) {
+            best.set(key, r);
+          } else {
+            const existingPrio = FORMAT_PRIORITY[existing.fileExtension || ''] ?? 99;
+            const newPrio = FORMAT_PRIORITY[r.fileExtension || ''] ?? 99;
+            if (newPrio < existingPrio) {
+              best.set(key, r);
+            }
+          }
+        }
+        return [...best.values()].sort((a, b) => b.year - a.year);
+      })(),
     };
 
     return NextResponse.json({ company });

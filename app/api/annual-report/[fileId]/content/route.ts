@@ -1,0 +1,74 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { authClient } from '@/lib/business-register/client/auth';
+import { httpsRequestWithCertBinary } from '@/lib/business-register/client/https-util';
+import { businessRegisterConfig } from '@/lib/business-register/config';
+import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
+import { APP_CONFIG } from '@/lib/config';
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ fileId: string }> }
+) {
+  const identifier = getClientIdentifier(_request);
+  const rateLimitResult = rateLimit(
+    `annual-report-download:${identifier}`,
+    APP_CONFIG.rateLimit.endpoints.annualReportDownload.maxRequests,
+    APP_CONFIG.rateLimit.endpoints.annualReportDownload.windowMs
+  );
+
+  if (!rateLimitResult.success) {
+    return NextResponse.json(
+      { error: 'Too many requests. Please try again later.' },
+      { status: 429 }
+    );
+  }
+
+  const { fileId } = await params;
+
+  if (!/^\d+$/.test(fileId)) {
+    return NextResponse.json({ error: 'Invalid fileId' }, { status: 400 });
+  }
+
+  try {
+    const token = await authClient.getAccessToken();
+    const url = `${businessRegisterConfig.apiGatewayUrl}/annualreport/annual-report/${fileId}/content`;
+
+    const response = await httpsRequestWithCertBinary({
+      url,
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Accept': '*/*',
+      },
+    });
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      const status = response.statusCode === 404 ? 404 : 502;
+      return NextResponse.json(
+        { error: 'Failed to download document' },
+        { status }
+      );
+    }
+
+    const contentType = (response.headers['content-type'] as string) || 'application/octet-stream';
+    const contentDisposition = response.headers['content-disposition'] as string | undefined;
+
+    const headers: Record<string, string> = {
+      'Content-Type': contentType,
+      'Content-Length': String(response.body.length),
+    };
+
+    if (contentDisposition) {
+      headers['Content-Disposition'] = contentDisposition;
+    } else {
+      headers['Content-Disposition'] = `attachment; filename="annual-report-${fileId}"`;
+    }
+
+    return new NextResponse(new Uint8Array(response.body), { status: 200, headers });
+  } catch {
+    return NextResponse.json(
+      { error: 'Failed to download document' },
+      { status: 500 }
+    );
+  }
+}

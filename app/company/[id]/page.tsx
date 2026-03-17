@@ -126,7 +126,7 @@ export default function CompanyPage() {
           <BasicTab company={company} />
           <PeopleTab company={company} />
           <FinancialTab company={company} />
-          <DocumentsTab />
+          <DocumentsTab company={company} />
         </Tabs>
       </main>
     </div>

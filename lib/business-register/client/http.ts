@@ -1,7 +1,7 @@
 import { authClient } from './auth';
 import { businessRegisterConfig } from '../config';
 import { httpsRequestWithCert } from './https-util';
-import type { SearchApiResponse, LegalEntityApiResponse, SearchResultItem } from '../types/api-responses';
+import type { SearchApiResponse, LegalEntityApiResponse, SearchResultItem, AnnualReportItem } from '../types/api-responses';
 
 const API_GATEWAY = () => businessRegisterConfig.apiGatewayUrl;
 
@@ -30,8 +30,8 @@ const API_PATHS = {
     `${API_GATEWAY()}/searchlegalentities/search/legal-entities?q=${encodeURIComponent(query)}`,
   legalEntity: (regcode: string) =>
     `${API_GATEWAY()}/legalentity/legal-entity/${regcode}`,
-  annualReport: (regcode: string) =>
-    `${API_GATEWAY()}/annualreport/annual-report/${regcode}`,
+  annualReports: (regcode: string) =>
+    `${API_GATEWAY()}/legalentity/legal-entity/${regcode}/annual-reports`,
 } as const;
 
 export class HttpClient {
@@ -93,6 +93,23 @@ export class HttpClient {
     return data;
   }
 
+  async getAnnualReports(regcode: string): Promise<AnnualReportItem[]> {
+    if (businessRegisterConfig.useMockData) {
+      return this.getMockAnnualReports();
+    }
+
+    const cacheKey = `annual-reports:${regcode}`;
+    const cached = getCached<AnnualReportItem[]>(cacheKey);
+    if (cached) return cached;
+
+    const results = await this.authenticatedRequest<AnnualReportItem[]>(
+      API_PATHS.annualReports(regcode)
+    );
+
+    setCache(cacheKey, results);
+    return results;
+  }
+
   // Mock data for development
   private getMockSearchResults(): SearchResultItem[] {
     return [
@@ -114,6 +131,14 @@ export class HttpClient {
         type: 'LIMITED_LIABILITY_COMPANY_SIA',
         links: { self: '/legal-entity/40003575743' },
       },
+    ];
+  }
+
+  private getMockAnnualReports(): AnnualReportItem[] {
+    return [
+      { fileId: 1, type: 'ANNUAL_REPORT', year: '2023', startDate: '2023-01-01', endDate: '2023-12-31', registeredOn: '2024-06-15', isAnnulled: false },
+      { fileId: 2, type: 'ANNUAL_REPORT', year: '2022', startDate: '2022-01-01', endDate: '2022-12-31', registeredOn: '2023-06-20', isAnnulled: false },
+      { fileId: 3, type: 'ANNUAL_REPORT', year: '2021', startDate: '2021-01-01', endDate: '2021-12-31', registeredOn: '2022-07-01', isAnnulled: false },
     ];
   }
 
