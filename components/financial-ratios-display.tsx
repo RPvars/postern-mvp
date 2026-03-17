@@ -73,7 +73,7 @@ const FinancialChart = ({
   }));
 
   // Custom tooltip formatter
-  const CustomTooltip = ({ active, payload }: any) => {
+  const CustomTooltip = ({ active, payload }: { active?: boolean; payload?: Array<{ value: number; payload: { year: number } }> }) => {
     if (active && payload && payload.length) {
       const value = payload[0].value;
       return (

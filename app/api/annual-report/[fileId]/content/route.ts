@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authClient } from '@/lib/business-register/client/auth';
-import { httpsRequestWithCertBinary } from '@/lib/business-register/client/https-util';
+import { httpsRequestWithCertStream } from '@/lib/business-register/client/https-util';
 import { businessRegisterConfig } from '@/lib/business-register/config';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { APP_CONFIG } from '@/lib/config';
@@ -33,7 +33,7 @@ export async function GET(
     const token = await authClient.getAccessToken();
     const url = `${businessRegisterConfig.apiGatewayUrl}/annualreport/annual-report/${fileId}/content`;
 
-    const response = await httpsRequestWithCertBinary({
+    const response = await httpsRequestWithCertStream({
       url,
       method: 'GET',
       headers: {
@@ -43,6 +43,7 @@ export async function GET(
     });
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
+      await response.body.cancel();
       const status = response.statusCode === 404 ? 404 : 502;
       return NextResponse.json(
         { error: 'Failed to download document' },
@@ -52,11 +53,15 @@ export async function GET(
 
     const contentType = (response.headers['content-type'] as string) || 'application/octet-stream';
     const contentDisposition = response.headers['content-disposition'] as string | undefined;
+    const contentLength = response.headers['content-length'] as string | undefined;
 
     const headers: Record<string, string> = {
       'Content-Type': contentType,
-      'Content-Length': String(response.body.length),
     };
+
+    if (contentLength) {
+      headers['Content-Length'] = contentLength;
+    }
 
     if (contentDisposition) {
       headers['Content-Disposition'] = contentDisposition;
@@ -64,7 +69,7 @@ export async function GET(
       headers['Content-Disposition'] = `attachment; filename="annual-report-${fileId}"`;
     }
 
-    return new NextResponse(new Uint8Array(response.body), { status: 200, headers });
+    return new NextResponse(response.body, { status: 200, headers });
   } catch {
     return NextResponse.json(
       { error: 'Failed to download document' },

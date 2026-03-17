@@ -47,8 +47,8 @@ export default function Home() {
       <main className="relative flex flex-1 flex-col items-center justify-center px-4 py-12">
         {/* Geometric Background */}
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: 'url(/BG_2.avif)', opacity: 0.3 }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-15"
+          style={{ backgroundImage: 'url(/BG_2.avif)' }}
         />
 
         {/* Content */}

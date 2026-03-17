@@ -85,7 +85,7 @@ prisma/
 - Supported locales: lv, en
 - Translation files: `messages/lv.json`, `messages/en.json`
 - Key namespaces: `common`, `navigation`, `home`, `auth`, `company`, `compare`, `companySelector`
-- **i18n pattern**: API returns raw enum values (e.g., `REGISTERED`, `BOARD_MEMBER`), frontend translates via `tCommon.has('namespace.ENUM_VALUE') ? tCommon(...) : fallback`. Use `te()` helper in components for safe enum translation with fallback to raw value
+- **i18n pattern**: API returns raw enum values (e.g., `REGISTERED`, `BOARD_MEMBER`), frontend translates via `translateEnum(t, 'namespace.ENUM_VALUE', rawValue)` from `lib/i18n/translate-enum.ts`. Components use local `te()` wrapper for brevity
 - Translation namespaces for enums: `companyStatus`, `legalForm`, `register`, `position`, `governingBody`, `representationRights`, `controlType`, `country`
 - Use `useTranslations('namespace')` hook in client components
 

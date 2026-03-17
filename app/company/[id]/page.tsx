@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Info, X } from 'lucide-react';
 import type { Company } from '@/lib/types/company';
+import { translateEnum } from '@/lib/i18n/translate-enum';
 import { CompanySkeleton } from '@/components/company/company-skeleton';
 import { CompanyError } from '@/components/company/company-error';
 import { BasicTab } from '@/components/company/basic-tab';
@@ -128,7 +129,7 @@ export default function CompanyPage() {
               <p className="text-muted-foreground">{company.registrationNumber}</p>
             </div>
             <Badge variant={company.status === 'REGISTERED' ? 'default' : 'destructive'} className="text-sm">
-              {tCommon.has(`companyStatus.${company.status}`) ? tCommon(`companyStatus.${company.status}`) : company.status}
+              {translateEnum(tCommon, `companyStatus.${company.status}`, company.status)}
             </Badge>
           </div>
         </div>

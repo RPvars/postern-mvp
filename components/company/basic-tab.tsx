@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Building2, Calendar, TrendingUp, FileText, AlertCircle, CheckCircle2, XCircle, ExternalLink, Landmark, History, ArrowRightLeft } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
+import { translateEnum } from '@/lib/i18n/translate-enum';
 import type { Company } from '@/lib/types/company';
 
 interface BasicTabProps {
@@ -20,8 +21,7 @@ export function BasicTab({ company }: BasicTabProps) {
   const tCommon = useTranslations('common');
   const [stateAidLimit, setStateAidLimit] = useState(3);
 
-  const te = (key: string, fallback: string) =>
-    tCommon.has(key) ? tCommon(key) : fallback;
+  const te = (key: string, fallback: string) => translateEnum(tCommon, key, fallback);
 
   return (
     <TabsContent value="basic">

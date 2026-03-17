@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { FileText, FolderOpen, Download, Info, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { sanitizeFilename } from '@/lib/format';
+import { translateEnum } from '@/lib/i18n/translate-enum';
 import type { Company } from '@/lib/types/company';
 
 const DEFAULT_LIMIT = 5;
@@ -82,7 +83,7 @@ export function DocumentsTab({ company, isLoadingExternal }: DocumentsTabProps) 
                   <TableRow key={report.fileId}>
                     <TableCell className="font-medium">{report.year}</TableCell>
                     <TableCell>{formatPeriod(report.periodFrom, report.periodTo)}</TableCell>
-                    <TableCell>{report.type ? (t.has(`documents.reportTypes.${report.type}`) ? t(`documents.reportTypes.${report.type}`) : report.type) : '-'}</TableCell>
+                    <TableCell>{report.type ? translateEnum(t, `documents.reportTypes.${report.type}`, report.type) : '-'}</TableCell>
                     <TableCell>{formatDate(report.registeredOn)}</TableCell>
                     <TableCell>
                       <span className="inline-flex items-center gap-1">

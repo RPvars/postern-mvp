@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Users, UserCog, ShieldCheck, Building2, ExternalLink, MessageSquare, Globe, Landmark, Info, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { OwnershipChart } from '@/components/ownership-chart';
 import { formatCurrency, formatPercent, formatDate } from '@/lib/format';
+import { translateEnum } from '@/lib/i18n/translate-enum';
 import type { Company, CompanyOwner } from '@/lib/types/company';
 
 interface PeopleTabProps {
@@ -26,8 +27,7 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
   const [expandedNotes, setExpandedNotes] = useState<Set<string>>(new Set());
   const [foreignEntityDetail, setForeignEntityDetail] = useState<CompanyOwner | null>(null);
 
-  const te = (key: string, fallback: string) =>
-    tCommon.has(key) ? tCommon(key) : fallback;
+  const te = (key: string, fallback: string) => translateEnum(tCommon, key, fallback);
 
   return (
     <TabsContent value="people">
