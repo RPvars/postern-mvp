@@ -295,6 +295,35 @@
       "emailSent": "E-pasts nosūtīts!"
     }
   },
+  "person": {
+    "notFound": "Persona nav atrasta",
+    "notFoundDescription": "Šī persona vēl nav atrasta mūsu datos. Mēģiniet vispirms apskatīt uzņēmumu, kurā šī persona ir dalībnieks vai valdes loceklis.",
+    "loadError": "Neizdevās ielādēt personas datus",
+    "backToSearch": "Atpakaļ uz meklēšanu",
+    "companiesCount": "{count, plural, one {# uzņēmums} other {# uzņēmumi}}",
+    "dataNotice": "Dati tiek papildināti, apskatot uzņēmumus. Iespējams, ne visi saistītie uzņēmumi ir uzrādīti.",
+    "ownerships": "Līdzdalība uzņēmumos",
+    "boardPositions": "Amati valdē",
+    "beneficialOwnerships": "Patiesā labuma gūšana",
+    "company": "Uzņēmums",
+    "sharePercent": "Daļa %",
+    "totalValue": "Kopējā vērtība",
+    "memberSince": "Dalībnieks kopš",
+    "position": "Amats",
+    "institution": "Institūcija",
+    "appointedDate": "Iecelts",
+    "controlType": "Kontroles veids",
+    "since": "Kopš",
+    "relationshipGraph": "Saistību karte",
+    "citizenship": "Pilsonība",
+    "residenceCountry": "Dzīvesvietas valsts",
+    "birthDate": "Dzimšanas datums",
+    "legend": {
+      "owner": "Īpašnieks",
+      "board": "Valde",
+      "beneficial": "PLG"
+    }
+  },
   "company": {
     "error": "Kļūda",
     "notFound": "Uzņēmums nav atrasts",
@@ -302,7 +331,25 @@
     "errorDescription": "Uzņēmums ar šādu reģistrācijas numuru netika atrasts vai dati šobrīd nav pieejami.",
     "backToSearch": "Atpakaļ uz meklēšanu",
     "tryAgain": "Mēģināt vēlreiz",
-    "dataWarning": "Daļa datu (PVN reģistrs, maksātnespējas, VID reitings) tiek importēta no atvērtajiem datiem un var nebūt pilnībā aktuāla. Nepieciešams iestatīt automātisko datu atjaunošanu.",
+    "dataWarning": "Daļa datu tiek importēta no atvērtajiem datiem un var nebūt pilnībā aktuāla. Nepieciešams iestatīt automātisko datu atjaunošanu.",
+    "dataWarningTable": {
+      "source": "Datu avots",
+      "records": "Ieraksti",
+      "frequency": "Atjaunošanas biežums",
+      "status": "Statuss",
+      "taxPayments": "Nodokļu maksājumi (VID)",
+      "vatRegistry": "PVN reģistrs (VID)",
+      "taxpayerRating": "Nodokļu maksātāju reitings (VID)",
+      "nameHistory": "Nosaukumu vēsture (UR)",
+      "insolvency": "Maksātnespējas procesi",
+      "reorganizations": "Reorganizācijas (UR)",
+      "stateAid": "Valsts atbalsts (FM)",
+      "naceCodes": "NACE kodi",
+      "yearly": "Reizi gadā",
+      "monthly": "Reizi mēnesī",
+      "ongoing": "Pastāvīgi",
+      "manual": "Manuāli"
+    },
     "tabs": {
       "basic": "Pamatinformācija",
       "people": "Dalībnieki",

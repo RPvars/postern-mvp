@@ -262,14 +262,14 @@ export function BasicTab({ company }: BasicTabProps) {
                   {stateAidLimit < company.stateAid.length ? (
                     <button
                       onClick={() => setStateAidLimit(company.stateAid.length)}
-                      className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+                      className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
                     >
                       {t('ownership.showMore')}
                     </button>
                   ) : (
                     <button
                       onClick={() => setStateAidLimit(3)}
-                      className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+                      className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
                     >
                       {t('ownership.showLess')}
                     </button>

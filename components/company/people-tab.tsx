@@ -133,6 +133,10 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
                                     <Building2 className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                                     {ownership.owner.name}
                                   </div>
+                                ) : ownership.owner.personalCode ? (
+                                  <Link href={`/person/${ownership.owner.personalCode}`} className="font-medium text-primary hover:underline">
+                                    {ownership.owner.name}
+                                  </Link>
                                 ) : (
                                   <div className="font-medium">{ownership.owner.name}</div>
                                 )}
@@ -184,14 +188,14 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
                     {ownersLimit < company.owners.length ? (
                       <button
                         onClick={() => setOwnersLimit(prev => prev + 25)}
-                        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+                        className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
                       >
                         {t('ownership.showMore')} (+25)
                       </button>
                     ) : (
                       <button
                         onClick={() => setOwnersLimit(10)}
-                        className="w-full rounded-md bg-primary text-primary-foreground py-2.5 text-sm font-medium hover:bg-primary/90 transition-colors"
+                        className="w-full rounded-md border bg-muted text-muted-foreground py-2.5 text-sm font-medium hover:bg-accent transition-colors"
                       >
                         {t('ownership.showLess')}
                       </button>
@@ -272,7 +276,13 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
                     return 0;
                   }).map((member) => (
                     <TableRow key={member.id}>
-                      <TableCell className="font-medium">{member.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {member.personalCode ? (
+                          <Link href={`/person/${member.personalCode}`} className="text-primary hover:underline">
+                            {member.name}
+                          </Link>
+                        ) : member.name}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {member.personalCode || tCommon('notAvailable')}
                       </TableCell>
@@ -349,7 +359,13 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
                 <TableBody>
                   {company.beneficialOwners.map((owner) => (
                     <TableRow key={owner.id}>
-                      <TableCell className="font-medium">{owner.name}</TableCell>
+                      <TableCell className="font-medium">
+                        {owner.personalCode ? (
+                          <Link href={`/person/${owner.personalCode}`} className="text-primary hover:underline">
+                            {owner.name}
+                          </Link>
+                        ) : owner.name}
+                      </TableCell>
                       <TableCell className="text-muted-foreground">
                         {owner.personalCode || tCommon('notAvailable')}
                       </TableCell>

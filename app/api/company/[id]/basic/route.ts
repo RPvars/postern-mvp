@@ -183,6 +183,11 @@ export async function GET(
       annualReports: [],
     };
 
+    // Cache person data in DB for cross-company person lookup (fire-and-forget)
+    cachePersonData(id, legalEntity).catch((err) => {
+      captureException(err, { endpoint: 'company-basic-cache' });
+    });
+
     return NextResponse.json({ company });
   } catch (error) {
     captureException(error, { endpoint: 'company-basic' });
@@ -195,4 +200,109 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+async function cachePersonData(
+  regNumber: string,
+  legalEntity: import('@/lib/business-register/types/api-responses').LegalEntityApiResponse
+) {
+  // Ensure Company record exists
+  await prisma.company.upsert({
+    where: { registrationNumber: regNumber },
+    update: { name: legalEntity.legalName, status: legalEntity.status || 'unknown' },
+    create: {
+      registrationNumber: regNumber,
+      name: legalEntity.legalName,
+      taxNumber: regNumber,
+      legalAddress: legalEntity.address.addressComplete,
+      registrationDate: legalEntity.registeredOn ? new Date(legalEntity.registeredOn) : new Date('1900-01-01'),
+      status: legalEntity.status || 'unknown',
+      legalForm: legalEntity.type || null,
+    },
+  });
+
+  const company = await prisma.company.findUnique({ where: { registrationNumber: regNumber } });
+  if (!company) return;
+
+  // Cache owners (members) — find or create Owner, then upsert Ownership
+  const activeMembers = (legalEntity.members || []).filter(m => !m.isAnnulled);
+  for (const m of activeMembers) {
+    const name = m.naturalPerson?.name?.trim() || m.legalEntity?.legalName?.trim() || m.legalEntity?.name?.trim() || null;
+    const personalCode = m.naturalPerson?.latvianIdentityNumber || m.legalEntity?.registrationNumber || null;
+    if (!name) continue;
+
+    let owner = personalCode
+      ? await prisma.owner.findFirst({ where: { personalCode } })
+      : await prisma.owner.findFirst({ where: { name, personalCode: null } });
+
+    if (owner) {
+      await prisma.owner.update({ where: { id: owner.id }, data: { name } });
+    } else {
+      owner = await prisma.owner.create({ data: { name, personalCode } });
+    }
+
+    const details = m.shareHolderDetails;
+    await prisma.ownership.upsert({
+      where: { companyId_ownerId: { companyId: company.id, ownerId: owner.id } },
+      update: {
+        sharePercentage: details?.inPercent ?? 0,
+        sharesCount: details?.numberOfShares ?? null,
+        nominalValue: details?.shareNominalValue ?? null,
+        totalValue: details ? details.numberOfShares * details.shareNominalValue : null,
+        votingRights: details?.votes ?? null,
+        memberSince: m.dateFrom ? new Date(m.dateFrom) : null,
+        isHistorical: false,
+      },
+      create: {
+        companyId: company.id,
+        ownerId: owner.id,
+        sharePercentage: details?.inPercent ?? 0,
+        sharesCount: details?.numberOfShares ?? null,
+        nominalValue: details?.shareNominalValue ?? null,
+        totalValue: details ? details.numberOfShares * details.shareNominalValue : null,
+        votingRights: details?.votes ?? null,
+        memberSince: m.dateFrom ? new Date(m.dateFrom) : null,
+        isHistorical: false,
+      },
+    });
+  }
+
+  // Cache board members and beneficial owners in transactions to prevent race conditions
+  const activeOfficers = (legalEntity.officers || []).filter(o => !o.isAnnulled);
+  const officerData = activeOfficers.map(o => ({
+    companyId: company.id,
+    name: o.naturalPerson?.name?.trim() || o.legalEntity?.legalName?.trim() || 'Unknown',
+    personalCode: o.naturalPerson?.latvianIdentityNumber || o.legalEntity?.registrationNumber || null,
+    institution: o.governingBody || null,
+    position: o.position || null,
+    appointedDate: o.appointedOn ? new Date(o.appointedOn) : null,
+    representationRights: o.rightsOfRepresentation?.[0]?.type || null,
+    notes: o.note || null,
+    isHistorical: false,
+  }));
+
+  await prisma.$transaction([
+    prisma.boardMember.deleteMany({ where: { companyId: company.id } }),
+    ...(officerData.length > 0 ? [prisma.boardMember.createMany({ data: officerData })] : []),
+  ]);
+
+  const activeBOs = (legalEntity.beneficialOwners || []).filter(bo => !bo.isAnnulled);
+  const boData = activeBOs.map(bo => {
+    const np = bo.naturalPerson;
+    return {
+      companyId: company.id,
+      name: np ? `${np.forename || ''} ${np.surname || ''}`.trim() : 'Unknown',
+      personalCode: np?.latvianIdentityNumber || null,
+      dateFrom: bo.dateFrom ? new Date(bo.dateFrom) : null,
+      residenceCountry: np?.countryOfResidence || np?.country || null,
+      citizenship: np?.country || null,
+      birthDate: np?.birthDate ? new Date(np.birthDate) : null,
+      controlType: bo.meansOfControl?.[0]?.natureOfControl || null,
+    };
+  });
+
+  await prisma.$transaction([
+    prisma.beneficialOwner.deleteMany({ where: { companyId: company.id } }),
+    ...(boData.length > 0 ? [prisma.beneficialOwner.createMany({ data: boData })] : []),
+  ]);
 }

@@ -151,12 +151,21 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - All 3 routes share the same rate limit bucket (`company:${identifier}`)
 
 ## Dark Mode
-- **Provider**: `next-themes` with `attribute="class"`, `defaultTheme="light"`, `enableSystem={false}`
+- **Provider**: `next-themes` with `attribute="class"`, `defaultTheme="system"`, `enableSystem`
 - **Toggle**: Sun/Moon icon button in navigation header
 - **CSS Variables**: All colors defined in `globals.css` `:root` and `.dark` selectors (shadcn/ui pattern)
 - **Chart colors**: `--chart-grid` and `--chart-text` CSS vars for Recharts components
 - **Brand yellow** (#FEC200): Used consistently in both themes for logo, CTA buttons, chart lines
 - **Color mapping**: All components use Tailwind CSS variable classes (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`, `bg-accent`, `border-border`) — no hardcoded `bg-white`, `text-slate-*`, etc.
+
+## Person Profile Page
+- **Route**: `/person/[code]` — displays all companies a person is connected to
+- **Data source**: DB cache populated by `/api/company/[id]/basic` (fire-and-forget cachePersonData)
+- **API**: `/api/person/[code]` — queries Owner/Ownership, BoardMember, BeneficialOwner by personalCode
+- **Relationship graph**: Custom SVG with pan/zoom, company nodes linked to center person node
+- **Data enrichment**: Person data accumulates as companies are viewed — not all connections visible initially
+- **Person links**: Natural persons clickable in people-tab → `/person/[personalCode]`
+- **Legal entities**: Still link to `/company/[regcode]` as before
 
 ## Compare Page
 - URL state persistence: Selected companies stored in `?companies=id1,id2,id3` parameter

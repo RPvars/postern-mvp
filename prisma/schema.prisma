@@ -67,6 +67,7 @@ model Owner {
   companies    Ownership[]
 
   @@index([name])
+  @@index([personalCode])
 }
 
 model Ownership {
@@ -138,6 +139,7 @@ model BoardMember {
   updatedAt           DateTime  @updatedAt
 
   @@index([companyId])
+  @@index([personalCode])
   @@index([isHistorical])
   @@index([companyId, isHistorical])
 }
@@ -151,11 +153,13 @@ model BeneficialOwner {
   dateFrom          DateTime?
   residenceCountry  String?
   citizenship       String?
+  birthDate         DateTime?
   controlType       String?   // e.g., "kā dalībnieks"
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   @@index([companyId])
+  @@index([personalCode])
 }
 
 model InsolvencyProceeding {

@@ -295,6 +295,35 @@
       "emailSent": "Email sent!"
     }
   },
+  "person": {
+    "notFound": "Person not found",
+    "notFoundDescription": "This person has not been found in our data yet. Try viewing a company where this person is an owner or board member first.",
+    "loadError": "Failed to load person data",
+    "backToSearch": "Back to search",
+    "companiesCount": "{count, plural, one {# company} other {# companies}}",
+    "dataNotice": "Data is being enriched as companies are viewed. Not all related companies may be shown yet.",
+    "ownerships": "Company Ownerships",
+    "boardPositions": "Board Positions",
+    "beneficialOwnerships": "Beneficial Ownership",
+    "company": "Company",
+    "sharePercent": "Share %",
+    "totalValue": "Total Value",
+    "memberSince": "Member Since",
+    "position": "Position",
+    "institution": "Institution",
+    "appointedDate": "Appointed",
+    "controlType": "Control Type",
+    "since": "Since",
+    "relationshipGraph": "Relationship Map",
+    "citizenship": "Citizenship",
+    "residenceCountry": "Country of Residence",
+    "birthDate": "Date of Birth",
+    "legend": {
+      "owner": "Owner",
+      "board": "Board",
+      "beneficial": "BO"
+    }
+  },
   "company": {
     "error": "Error",
     "notFound": "Company not found",
@@ -302,7 +331,25 @@
     "errorDescription": "A company with this registration number was not found or data is currently unavailable.",
     "backToSearch": "Back to search",
     "tryAgain": "Try again",
-    "dataWarning": "Some data (VAT registry, insolvency, VID rating) is imported from open data and may not be fully up-to-date. Automatic data refresh needs to be configured.",
+    "dataWarning": "Some data is imported from open data sources and may not be fully up-to-date. Automatic data refresh needs to be configured.",
+    "dataWarningTable": {
+      "source": "Data source",
+      "records": "Records",
+      "frequency": "Update frequency",
+      "status": "Status",
+      "taxPayments": "Tax payments (VID)",
+      "vatRegistry": "VAT registry (VID)",
+      "taxpayerRating": "Taxpayer rating (VID)",
+      "nameHistory": "Name history (UR)",
+      "insolvency": "Insolvency proceedings",
+      "reorganizations": "Reorganizations (UR)",
+      "stateAid": "State aid (FM)",
+      "naceCodes": "NACE codes",
+      "yearly": "Yearly",
+      "monthly": "Monthly",
+      "ongoing": "Ongoing",
+      "manual": "Manual"
+    },
     "tabs": {
       "basic": "Basic Information",
       "people": "Members",
