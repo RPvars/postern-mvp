@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import { downloadCSV, parseCSVLine } from '@/lib/import-utils';
+import { downloadCSV, parseCSVLine, normalizeName } from '@/lib/import-utils';
 
 const CSV_URL = 'https://dati.ur.gov.lv/stockholders/stockholders.csv';
 const BATCH_SIZE = 500;
@@ -93,46 +93,59 @@ async function importStockholders(csvPath: string): Promise<number> {
 }
 
 async function processBatch(records: StockholderRecord[]): Promise<number> {
+  // Batch lookup: companies
+  const regcodes = [...new Set(records.map(r => r.companyRegcode))];
+  const companies = await prisma.company.findMany({
+    where: { registrationNumber: { in: regcodes } },
+    select: { id: true, registrationNumber: true },
+  });
+  const companyMap = new Map(companies.map(c => [c.registrationNumber, c.id]));
+
+  // Batch lookup: owners by personalCode
+  const allCodes = records.map(r => r.maskedCode || r.legalEntityRegcode).filter((c): c is string => !!c);
+  const uniqueCodes = [...new Set(allCodes)];
+  const existingOwners = uniqueCodes.length > 0
+    ? await prisma.owner.findMany({ where: { personalCode: { in: uniqueCodes } } })
+    : [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ownerByCode = new Map<string, any>();
+  for (const o of existingOwners) {
+    if (o.personalCode) {
+      ownerByCode.set(o.personalCode, o);
+      ownerByCode.set(`${o.personalCode}::${o.name}`, o);
+    }
+  }
+
   let processed = 0;
 
   for (const r of records) {
     try {
-      const company = await prisma.company.findUnique({
-        where: { registrationNumber: r.companyRegcode },
-        select: { id: true },
-      });
-      if (!company) continue;
+      const companyId = companyMap.get(r.companyRegcode);
+      if (!companyId) continue;
 
       const personalCode = r.maskedCode || r.legalEntityRegcode || null;
       const isMaskedCode = personalCode?.includes('*') ?? false;
 
-      // Masked codes are NOT unique — match by code AND name to avoid cross-person collisions
-      let owner: { id: string; name: string; personalCode: string | null; birthDate: string | null } | null = null;
+      let owner: { id: string; personalCode: string | null; birthDate: string | null } | null = null;
 
       if (personalCode && !isMaskedCode) {
-        owner = await prisma.owner.findFirst({ where: { personalCode } });
+        owner = ownerByCode.get(personalCode) ?? null;
       } else if (personalCode && isMaskedCode) {
-        owner = await prisma.owner.findFirst({ where: { personalCode, name: r.name } });
-      } else {
-        owner = await prisma.owner.findFirst({ where: { name: r.name, personalCode: null } });
+        owner = ownerByCode.get(`${personalCode}::${r.name}`) ?? null;
       }
 
       if (owner) {
         await prisma.owner.update({
           where: { id: owner.id },
-          data: {
-            name: r.name,
-            birthDate: r.birthDate || owner.birthDate,
-          },
+          data: { name: r.name, nameNormalized: normalizeName(r.name), birthDate: r.birthDate || owner.birthDate },
         });
       } else {
         owner = await prisma.owner.create({
-          data: {
-            name: r.name,
-            personalCode,
-            birthDate: r.birthDate || null,
-          },
+          data: { name: r.name, nameNormalized: normalizeName(r.name), personalCode, birthDate: r.birthDate || null },
         });
+        if (personalCode) {
+          ownerByCode.set(isMaskedCode ? `${personalCode}::${r.name}` : personalCode, owner);
+        }
       }
 
       const shares = r.numberOfShares;
@@ -140,7 +153,7 @@ async function processBatch(records: StockholderRecord[]): Promise<number> {
       const totalValue = shares && nominal ? shares * nominal : null;
 
       await prisma.ownership.upsert({
-        where: { companyId_ownerId: { companyId: company.id, ownerId: owner.id } },
+        where: { companyId_ownerId: { companyId, ownerId: owner.id } },
         update: {
           sharePercentage: 0,
           sharesCount: shares ? BigInt(Math.round(shares)) : null,
@@ -151,7 +164,7 @@ async function processBatch(records: StockholderRecord[]): Promise<number> {
           isHistorical: false,
         },
         create: {
-          companyId: company.id,
+          companyId,
           ownerId: owner.id,
           sharePercentage: 0,
           sharesCount: shares ? BigInt(Math.round(shares)) : null,

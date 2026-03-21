@@ -7,6 +7,7 @@ import { captureException } from '@/lib/sentry';
 import { httpClient } from '@/lib/business-register/client/http';
 import { companyMapper, boardMemberMapper, memberMapper, beneficialOwnerMapper } from '@/lib/business-register/mappers/company';
 import { prisma } from '@/lib/prisma';
+import { normalizeName } from '@/lib/import-utils';
 
 export async function GET(
   request: NextRequest,
@@ -246,9 +247,9 @@ async function cachePersonData(
 
     if (owner) {
       // Upgrade masked code to full code from BR API
-      await prisma.owner.update({ where: { id: owner.id }, data: { name, personalCode: personalCode || owner.personalCode } });
+      await prisma.owner.update({ where: { id: owner.id }, data: { name, nameNormalized: normalizeName(name), personalCode: personalCode || owner.personalCode } });
     } else {
-      owner = await prisma.owner.create({ data: { name, personalCode } });
+      owner = await prisma.owner.create({ data: { name, nameNormalized: normalizeName(name), personalCode } });
     }
 
     const details = m.shareHolderDetails;
@@ -318,6 +319,7 @@ async function cachePersonData(
         data: {
           companyId: company.id,
           name,
+          nameNormalized: normalizeName(name),
           personalCode,
           institution: o.governingBody || null,
           position: o.position || null,
@@ -369,6 +371,7 @@ async function cachePersonData(
         data: {
           companyId: company.id,
           name,
+          nameNormalized: normalizeName(name),
           personalCode,
           dateFrom: bo.dateFrom ? new Date(bo.dateFrom) : null,
           residenceCountry: np?.countryOfResidence || np?.country || null,

@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import { downloadCSV, parseCSVLine } from '@/lib/import-utils';
+import { downloadCSV, parseCSVLine, normalizeName } from '@/lib/import-utils';
 
 const CSV_URL = 'https://dati.ur.gov.lv/beneficial_owners/beneficial_owners.csv';
 const BATCH_SIZE = 500;
@@ -113,6 +113,7 @@ async function processBatch(records: BeneficialOwnerRecord[]): Promise<number> {
         update: {
           companyId,
           name: r.name,
+          nameNormalized: normalizeName(r.name),
           personalCode: r.maskedCode,
           birthDate: validBirthDate,
           citizenship: r.nationality,
@@ -122,6 +123,7 @@ async function processBatch(records: BeneficialOwnerRecord[]): Promise<number> {
           externalId: r.externalId,
           companyId,
           name: r.name,
+          nameNormalized: normalizeName(r.name),
           personalCode: r.maskedCode,
           birthDate: validBirthDate,
           citizenship: r.nationality,

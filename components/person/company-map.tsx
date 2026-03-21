@@ -10,9 +10,9 @@ import 'leaflet/dist/leaflet.css';
 
 // Fix Leaflet default marker icon issue with bundlers
 const defaultIcon = L.icon({
-  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconUrl: '/images/marker-icon.png',
+  iconRetinaUrl: '/images/marker-icon-2x.png',
+  shadowUrl: '/images/marker-shadow.png',
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
@@ -78,9 +78,9 @@ function CompanyMapInner({ companies }: CompanyMapProps) {
     return coords;
   }, [companies]);
 
-  // Geocode missing coordinates
+  // Geocode missing coordinates in batches of 10
   useEffect(() => {
-    const missing = companies.filter(c => !c.latitude && !c.longitude && c.legalAddress).slice(0, 10);
+    const missing = companies.filter(c => !c.latitude && !c.longitude && c.legalAddress);
     if (missing.length === 0) {
       setCoordinates(initialCoords);
       return;
@@ -88,18 +88,31 @@ function CompanyMapInner({ companies }: CompanyMapProps) {
 
     setCoordinates(initialCoords);
     setIsLoading(true);
+    let cancelled = false;
 
-    fetch('/api/geocode', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ registrationNumbers: missing.map(c => c.registrationNumber) }),
-    })
-      .then(r => r.json())
-      .then(data => {
-        setCoordinates(prev => ({ ...prev, ...data.coordinates }));
-      })
-      .catch((err) => { console.error('Geocode request failed:', err); })
-      .finally(() => setIsLoading(false));
+    (async () => {
+      const BATCH_SIZE = 10;
+      for (let i = 0; i < missing.length; i += BATCH_SIZE) {
+        if (cancelled) break;
+        const batch = missing.slice(i, i + BATCH_SIZE);
+        try {
+          const res = await fetch('/api/geocode', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ registrationNumbers: batch.map(c => c.registrationNumber) }),
+          });
+          const data = await res.json();
+          if (!cancelled) {
+            setCoordinates(prev => ({ ...prev, ...data.coordinates }));
+          }
+        } catch (err) {
+          console.error('Geocode batch failed:', err);
+        }
+      }
+      if (!cancelled) setIsLoading(false);
+    })();
+
+    return () => { cancelled = true; };
   }, [companies, initialCoords]);
 
   const resolved = companies

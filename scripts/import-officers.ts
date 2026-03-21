@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
-import { downloadCSV, parseCSVLine } from '@/lib/import-utils';
+import { downloadCSV, parseCSVLine, normalizeName } from '@/lib/import-utils';
 
 const CSV_URL = 'https://dati.ur.gov.lv/officers/officers.csv';
 const BATCH_SIZE = 500;
@@ -121,6 +121,7 @@ async function processBatch(records: OfficerRecord[]): Promise<number> {
         update: {
           companyId,
           name: r.name,
+          nameNormalized: normalizeName(r.name),
           personalCode: r.maskedCode,
           birthDate: r.birthDate,
           institution: r.governingBody,
@@ -132,6 +133,7 @@ async function processBatch(records: OfficerRecord[]): Promise<number> {
           externalId: r.externalId,
           companyId,
           name: r.name,
+          nameNormalized: normalizeName(r.name),
           personalCode: r.maskedCode,
           birthDate: r.birthDate,
           institution: r.governingBody,

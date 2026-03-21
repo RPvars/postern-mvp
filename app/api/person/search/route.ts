@@ -4,6 +4,7 @@ import { validateSearchQuery } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { captureException } from '@/lib/sentry';
 import { prisma } from '@/lib/prisma';
+import { normalizeName } from '@/lib/import-utils';
 
 const MAX_RESULTS = 20;
 
@@ -39,27 +40,27 @@ export async function GET(request: NextRequest) {
     }
 
     const searchTerm = validationResult.data;
+    const normalizedTerm = normalizeName(searchTerm);
 
-    // If query has multiple words, also search with reversed order
-    // DB stores "Uzvārds Vārds" but user may type "Vārds Uzvārds"
-    const words = searchTerm.trim().split(/\s+/);
-    const reversedTerm = words.length >= 2 ? [...words].reverse().join(' ') : null;
+    // Also search with reversed word order (DB: "Uzvārds Vārds", user: "Vārds Uzvārds")
+    const words = normalizedTerm.split(/\s+/);
+    const reversedNorm = words.length >= 2 ? [...words].reverse().join(' ') : null;
 
-    // Build name filter: match original OR reversed word order
-    const nameFilter = reversedTerm
-      ? { OR: [{ name: { contains: searchTerm } }, { name: { contains: reversedTerm } }] }
-      : { name: { contains: searchTerm } };
+    // Use nameNormalized with startsWith for index-backed search (much faster than LIKE %term%)
+    const nameConditions = reversedNorm
+      ? [{ nameNormalized: { startsWith: normalizedTerm } }, { nameNormalized: { startsWith: reversedNorm } }]
+      : [{ nameNormalized: { startsWith: normalizedTerm } }];
 
     // Search across all 3 person tables in parallel
     const [boardMembers, beneficialOwners, owners] = await Promise.all([
       prisma.boardMember.findMany({
-        where: { ...nameFilter, isHistorical: false },
+        where: { OR: nameConditions, isHistorical: false },
         include: { company: { select: { registrationNumber: true, name: true } } },
         take: MAX_RESULTS,
         orderBy: { name: 'asc' },
       }),
       prisma.beneficialOwner.findMany({
-        where: nameFilter,
+        where: { OR: nameConditions },
         include: { company: { select: { registrationNumber: true, name: true } } },
         take: MAX_RESULTS,
         orderBy: { name: 'asc' },
@@ -67,7 +68,7 @@ export async function GET(request: NextRequest) {
       // Only search natural persons in Owner table (personalCode contains dash = person format)
       prisma.owner.findMany({
         where: {
-          ...nameFilter,
+          OR: nameConditions,
           personalCode: { contains: '-' },
         },
         include: {

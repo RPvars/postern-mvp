@@ -62,16 +62,18 @@ model Company {
 }
 
 model Owner {
-  id           String   @id @default(cuid())
-  name         String
-  personalCode String?
-  birthDate    String?   // For person matching when personalCode is masked
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  nameNormalized String   @default("")
+  personalCode   String?
+  birthDate      String?   // For person matching when personalCode is masked
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   companies    Ownership[]
 
   @@index([name])
+  @@index([nameNormalized])
   @@index([personalCode])
   @@index([name, birthDate])
 }
@@ -135,6 +137,7 @@ model BoardMember {
   company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId           String
   name                String
+  nameNormalized      String    @default("")
   personalCode        String?
   birthDate           String?   // For person matching when personalCode is masked
   institution         String?   // e.g., "Valde"
@@ -151,6 +154,7 @@ model BoardMember {
   @@index([isHistorical])
   @@index([companyId, isHistorical])
   @@index([name, birthDate])
+  @@index([nameNormalized])
 }
 
 model BeneficialOwner {
@@ -159,6 +163,7 @@ model BeneficialOwner {
   company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId         String
   name              String
+  nameNormalized    String    @default("")
   personalCode      String?
   dateFrom          DateTime?
   residenceCountry  String?
@@ -171,6 +176,7 @@ model BeneficialOwner {
   @@index([companyId])
   @@index([personalCode])
   @@index([name])
+  @@index([nameNormalized])
 }
 
 model InsolvencyProceeding {
