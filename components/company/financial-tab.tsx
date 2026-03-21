@@ -256,6 +256,17 @@ export function FinancialTab({ company, isLoadingExternal }: FinancialTabProps) 
             <FinancialRatiosDisplay ratios={company.financialRatios} />
           </div>
         )}
+
+        {/* Empty state when no financial data at all */}
+        {!isLoadingExternal &&
+          (!company.financialRatios || company.financialRatios.length === 0) &&
+          (!company.taxPayments || company.taxPayments.length === 0) && (
+          <Card className="lg:col-span-2">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <p>{t('financial.noData')}</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </TabsContent>
   );

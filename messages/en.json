@@ -62,14 +62,16 @@
       "STATE_ENTERPRISE": "State Enterprise",
       "MUNICIPAL_ENTERPRISE": "Municipal Enterprise",
       "FARM_ENTERPRISE": "Farm Enterprise",
-      "FISHING_ENTERPRISE": "Fishing Enterprise"
+      "FISHING_ENTERPRISE": "Fishing Enterprise",
+      "ASSOCIATION_BDR": "Association"
     },
     "register": {
       "COMMERCIAL": "Commercial Register",
       "ASSOCIATION_AND_FOUNDATION": "Association and Foundation Register",
       "TRADE_UNION": "Trade Union Register",
       "RELIGIOUS": "Religious Organization Register",
-      "POLITICAL_PARTY": "Political Party Register"
+      "POLITICAL_PARTY": "Political Party Register",
+      "ASSOCIATIONS_AND_FOUNDATIONS": "Associations and Foundations Register"
     },
     "position": {
       "CHAIR_OF_BOARD": "Chair of the Board",
@@ -88,6 +90,7 @@
     },
     "governingBody": {
       "EXECUTIVE_BOARD": "Board",
+      "EXECUTIVE_BODY": "Executive Body",
       "SUPERVISORY_BOARD": "Supervisory Board",
       "AUDIT_COMMITTEE": "Audit Committee"
     },
@@ -152,6 +155,9 @@
     "reports": "Reports",
     "login": "Sign In",
     "searchPlaceholder": "Search company...",
+    "personSearchPlaceholder": "Search person...",
+    "searchTabCompanies": "Companies",
+    "searchTabPeople": "People",
     "comingSoon": "Coming Soon",
     "languages": {
       "lv": "Latvian",
@@ -176,10 +182,20 @@
     "search": {
       "searching": "Searching...",
       "noResults": "No companies found.",
+      "personNoResults": "No persons found.",
       "companies": "Companies",
+      "people": "People",
       "owners": "Owners",
       "placeholder": "Enter company name or registration number...",
-      "button": "Search"
+      "personPlaceholder": "Enter person's first or last name...",
+      "button": "Search",
+      "personCompanies": "{count} companies",
+      "roles": {
+        "owner": "Owner",
+        "board": "Board",
+        "beneficial": "UBO"
+      },
+      "viewAll": "View all results"
     },
     "countries": {
       "latvia": "Latvia",
@@ -295,6 +311,13 @@
       "emailSent": "Email sent!"
     }
   },
+  "searchResults": {
+    "searchPlaceholder": "Search companies and people...",
+    "companies": "Companies",
+    "people": "People",
+    "noResults": "No results found",
+    "noResultsHint": "Try a different search query"
+  },
   "person": {
     "notFound": "Person not found",
     "notFoundDescription": "This person has not been found in our data yet. Try viewing a company where this person is an owner or board member first.",
@@ -302,9 +325,13 @@
     "backToSearch": "Back to search",
     "companiesCount": "{count, plural, one {# company} other {# companies}}",
     "dataNotice": "Data is being enriched as companies are viewed. Not all related companies may be shown yet.",
+    "privacyWarning": "TODO: Personal data (name, birth date, citizenship) is displayed without authentication. Login requirement or sensitive field masking must be added before production (GDPR).",
+    "performanceWarning": "TODO: Owner caching uses sequential DB queries (N+1 pattern). For companies with 50+ members this can be slow — needs batch processing refactor.",
     "ownerships": "Company Ownerships",
     "boardPositions": "Board Positions",
     "beneficialOwnerships": "Beneficial Ownership",
+    "connectedCompanies": "Connected Companies",
+    "rolesColumn": "Roles",
     "company": "Company",
     "sharePercent": "Share %",
     "totalValue": "Total Value",
@@ -315,13 +342,18 @@
     "controlType": "Control Type",
     "since": "Since",
     "relationshipGraph": "Relationship Map",
+    "companyMap": "Company Locations",
+    "mapLoading": "Loading map...",
     "citizenship": "Citizenship",
     "residenceCountry": "Country of Residence",
     "birthDate": "Date of Birth",
     "legend": {
       "owner": "Owner",
+      "ownerFull": "Owner / Shareholder",
       "board": "Board",
-      "beneficial": "BO"
+      "boardFull": "Board Member / Officer",
+      "beneficial": "BO",
+      "beneficialFull": "Beneficial Owner"
     }
   },
   "company": {

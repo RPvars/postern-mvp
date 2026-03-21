@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 
 interface CompanyRole {
   type: 'owner' | 'board' | 'beneficial';
@@ -55,6 +55,24 @@ function wrapText(text: string, maxWidth: number): string[] {
   );
 }
 
+function distributeToRings(count: number, nodeSpacing: number): number[] {
+  const minRadius = 120;
+  if (count <= 6) return [count];
+  if (count <= 14) return [Math.min(7, count), count - Math.min(7, count)];
+  const rings: number[] = [];
+  let remaining = count;
+  let ring = 0;
+  while (remaining > 0) {
+    const radius = minRadius + ring * 120;
+    const capacity = Math.max(6, Math.floor((2 * Math.PI * radius) / nodeSpacing));
+    const inRing = Math.min(remaining, capacity);
+    rings.push(inRing);
+    remaining -= inRing;
+    ring++;
+  }
+  return rings;
+}
+
 export function RelationshipGraph({ personName, personalCode, companies }: RelationshipGraphProps) {
   const router = useRouter();
   const t = useTranslations('person');
@@ -67,17 +85,37 @@ export function RelationshipGraph({ personName, personalCode, companies }: Relat
   const centerR = 28;
   const nodeW = 130;
   const nodeH = 50;
-  const orbitRadius = n <= 2 ? 100 : n <= 4 ? 120 : 140;
+  const nodeSpacing = 160; // Min distance between node centers (130px width + 30px gap)
 
+  // Distribute nodes across rings so they don't overlap
+  const ringDistribution = distributeToRings(n, nodeSpacing);
   const startAngle = -Math.PI / 2;
-  const nodes = companies.map((company, i) => {
-    const angle = startAngle + (2 * Math.PI * i) / n;
-    return {
-      ...company,
-      x: orbitRadius * Math.cos(angle),
-      y: orbitRadius * Math.sin(angle),
-    };
-  });
+
+  let nodeIndex = 0;
+  const nodes: (CompanyNode & { x: number; y: number })[] = [];
+  let outerRadius = 0;
+
+  for (let ring = 0; ring < ringDistribution.length; ring++) {
+    const count = ringDistribution[ring];
+    // Calculate minimum radius so nodes don't overlap on this ring
+    const minRadiusForCount = (count * nodeSpacing) / (2 * Math.PI);
+    const baseRadius = 120 + ring * 120;
+    const radius = Math.max(baseRadius, minRadiusForCount);
+    outerRadius = Math.max(outerRadius, radius);
+
+    // Offset alternate rings by half-step to avoid alignment between rings
+    const angleOffset = ring % 2 === 1 ? Math.PI / count : 0;
+
+    for (let i = 0; i < count; i++) {
+      const angle = startAngle + angleOffset + (2 * Math.PI * i) / count;
+      nodes.push({
+        ...companies[nodeIndex],
+        x: radius * Math.cos(angle),
+        y: radius * Math.sin(angle),
+      });
+      nodeIndex++;
+    }
+  }
 
   const allX = [0, ...nodes.map(nd => nd.x)];
   const allY = [0, ...nodes.map(nd => nd.y)];
@@ -88,6 +126,7 @@ export function RelationshipGraph({ personName, personalCode, companies }: Relat
   const contentMaxY = Math.max(...allY) + nodeH / 2 + pad;
   const contentW = contentMaxX - contentMinX;
   const contentH = contentMaxY - contentMinY;
+  const svgHeight = Math.max(500, outerRadius * 2 + 200);
 
   const hoveredCompany = hoveredNode ? companies.find(c => c.registrationNumber === hoveredNode) : null;
 
@@ -106,6 +145,7 @@ export function RelationshipGraph({ personName, personalCode, companies }: Relat
         contentMinY={contentMinY}
         contentW={contentW}
         contentH={contentH}
+        svgHeight={svgHeight}
         onBackgroundClick={() => setHoveredNode(null)}
       >
         {/* Edges — simple lines */}
@@ -156,7 +196,13 @@ export function RelationshipGraph({ personName, personalCode, companies }: Relat
             <g
               key={`node-${node.registrationNumber}`}
               className="cursor-pointer"
-              onClick={() => router.push(`/company/${node.registrationNumber}`)}
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey) {
+                  window.open(`/company/${node.registrationNumber}`, '_blank');
+                } else {
+                  router.push(`/company/${node.registrationNumber}`);
+                }
+              }}
               onMouseEnter={(e) => handleNodeHover(node.registrationNumber, e)}
               onMouseLeave={() => setHoveredNode(null)}
               opacity={hoveredNode && !isHovered ? 0.3 : 1}
@@ -265,41 +311,40 @@ interface PanZoomSvgProps {
   contentMinY: number;
   contentW: number;
   contentH: number;
+  svgHeight: number;
   children: React.ReactNode;
   onBackgroundClick?: () => void;
 }
 
-const PanZoomSvg = ({ contentMinX, contentMinY, contentW, contentH, children, onBackgroundClick }: PanZoomSvgProps & { ref?: React.Ref<SVGSVGElement> }) => {
+const PanZoomSvg = ({ contentMinX, contentMinY, contentW, contentH, svgHeight, children, onBackgroundClick }: PanZoomSvgProps & { ref?: React.Ref<SVGSVGElement> }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [viewBox, setViewBox] = useState({ x: contentMinX, y: contentMinY, w: contentW, h: contentH });
   const [isPanning, setIsPanning] = useState(false);
   const panStart = useRef({ x: 0, y: 0, vbX: 0, vbY: 0 });
 
-  const svgPoint = useCallback((clientX: number, clientY: number) => {
+  // Native wheel listener with { passive: false } for proper pinch-zoom preventDefault
+  useEffect(() => {
     const svg = svgRef.current;
-    if (!svg) return { x: 0, y: 0 };
-    const rect = svg.getBoundingClientRect();
-    return {
-      x: viewBox.x + (clientX - rect.left) / rect.width * viewBox.w,
-      y: viewBox.y + (clientY - rect.top) / rect.height * viewBox.h,
+    if (!svg) return;
+    const handler = (e: WheelEvent) => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const delta = e.deltaY * 0.01;
+      const factor = 1 + Math.min(Math.max(delta, -0.3), 0.3);
+      const rect = svg.getBoundingClientRect();
+      const ptX = viewBox.x + (e.clientX - rect.left) / rect.width * viewBox.w;
+      const ptY = viewBox.y + (e.clientY - rect.top) / rect.height * viewBox.h;
+
+      setViewBox(prev => {
+        const newW = Math.min(Math.max(prev.w * factor, contentW / MAX_ZOOM), contentW / MIN_ZOOM);
+        const newH = Math.min(Math.max(prev.h * factor, contentH / MAX_ZOOM), contentH / MIN_ZOOM);
+        const ratio = newW / prev.w;
+        return { x: ptX - (ptX - prev.x) * ratio, y: ptY - (ptY - prev.y) * ratio, w: newW, h: newH };
+      });
     };
-  }, [viewBox]);
-
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    // Only zoom on pinch gesture (ctrlKey), let normal scroll pass through
-    if (!e.ctrlKey) return;
-    e.preventDefault();
-    const delta = e.deltaY * 0.01;
-    const factor = 1 + Math.min(Math.max(delta, -0.3), 0.3);
-    const pt = svgPoint(e.clientX, e.clientY);
-
-    setViewBox(prev => {
-      const newW = Math.min(Math.max(prev.w * factor, contentW / MAX_ZOOM), contentW / MIN_ZOOM);
-      const newH = Math.min(Math.max(prev.h * factor, contentH / MAX_ZOOM), contentH / MIN_ZOOM);
-      const ratio = newW / prev.w;
-      return { x: pt.x - (pt.x - prev.x) * ratio, y: pt.y - (pt.y - prev.y) * ratio, w: newW, h: newH };
-    });
-  }, [svgPoint, contentW, contentH]);
+    svg.addEventListener('wheel', handler, { passive: false });
+    return () => svg.removeEventListener('wheel', handler);
+  }, [viewBox, contentW, contentH]);
 
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('.cursor-pointer')) return;
@@ -330,9 +375,8 @@ const PanZoomSvg = ({ contentMinX, contentMinY, contentW, contentH, children, on
       ref={svgRef}
       viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
       className="mx-auto select-none"
-      style={{ width: '100%', height: 500, cursor: isPanning ? 'grabbing' : 'grab' }}
+      style={{ width: '100%', height: svgHeight, cursor: isPanning ? 'grabbing' : 'grab' }}
       preserveAspectRatio="xMidYMid meet"
-      onWheel={handleWheel}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}

@@ -206,10 +206,10 @@ async function cachePersonData(
   regNumber: string,
   legalEntity: import('@/lib/business-register/types/api-responses').LegalEntityApiResponse
 ) {
-  // Ensure Company record exists
+  // Ensure Company record exists and set lastCrawledAt
   await prisma.company.upsert({
     where: { registrationNumber: regNumber },
-    update: { name: legalEntity.legalName, status: legalEntity.status || 'unknown' },
+    update: { name: legalEntity.legalName, status: legalEntity.status || 'unknown', lastCrawledAt: new Date() },
     create: {
       registrationNumber: regNumber,
       name: legalEntity.legalName,
@@ -218,6 +218,7 @@ async function cachePersonData(
       registrationDate: legalEntity.registeredOn ? new Date(legalEntity.registeredOn) : new Date('1900-01-01'),
       status: legalEntity.status || 'unknown',
       legalForm: legalEntity.type || null,
+      lastCrawledAt: new Date(),
     },
   });
 
@@ -231,12 +232,24 @@ async function cachePersonData(
     const personalCode = m.naturalPerson?.latvianIdentityNumber || m.legalEntity?.registrationNumber || null;
     if (!name) continue;
 
+    // Find owner by full code, or by masked code (CSV import), or by name
     let owner = personalCode
       ? await prisma.owner.findFirst({ where: { personalCode } })
-      : await prisma.owner.findFirst({ where: { name, personalCode: null } });
+      : null;
+
+    // If not found by full code, try masked version (CSV stores masked codes like 123456-*****)
+    if (!owner && personalCode && /^\d{6}-?\d{5}$/.test(personalCode)) {
+      const maskedCode = personalCode.replace(/-?\d{5}$/, '-*****');
+      owner = await prisma.owner.findFirst({ where: { personalCode: maskedCode, name } });
+    }
+
+    if (!owner && !personalCode) {
+      owner = await prisma.owner.findFirst({ where: { name, personalCode: null } });
+    }
 
     if (owner) {
-      await prisma.owner.update({ where: { id: owner.id }, data: { name } });
+      // Upgrade masked code to full code from BR API
+      await prisma.owner.update({ where: { id: owner.id }, data: { name, personalCode: personalCode || owner.personalCode } });
     } else {
       owner = await prisma.owner.create({ data: { name, personalCode } });
     }
@@ -267,42 +280,106 @@ async function cachePersonData(
     });
   }
 
-  // Cache board members and beneficial owners in transactions to prevent race conditions
+  // Cache board members — update existing CSV records with full codes, delete non-CSV ones and recreate
   const activeOfficers = (legalEntity.officers || []).filter(o => !o.isAnnulled);
-  const officerData = activeOfficers.map(o => ({
-    companyId: company.id,
-    name: o.naturalPerson?.name?.trim() || o.legalEntity?.legalName?.trim() || 'Unknown',
-    personalCode: o.naturalPerson?.latvianIdentityNumber || o.legalEntity?.registrationNumber || null,
-    institution: o.governingBody || null,
-    position: o.position || null,
-    appointedDate: o.appointedOn ? new Date(o.appointedOn) : null,
-    representationRights: o.rightsOfRepresentation?.[0]?.type || null,
-    notes: o.note || null,
-    isHistorical: false,
-  }));
 
-  await prisma.$transaction([
-    prisma.boardMember.deleteMany({ where: { companyId: company.id } }),
-    ...(officerData.length > 0 ? [prisma.boardMember.createMany({ data: officerData })] : []),
-  ]);
-
-  const activeBOs = (legalEntity.beneficialOwners || []).filter(bo => !bo.isAnnulled);
-  const boData = activeBOs.map(bo => {
-    const np = bo.naturalPerson;
-    return {
-      companyId: company.id,
-      name: np ? `${np.forename || ''} ${np.surname || ''}`.trim() : 'Unknown',
-      personalCode: np?.latvianIdentityNumber || null,
-      dateFrom: bo.dateFrom ? new Date(bo.dateFrom) : null,
-      residenceCountry: np?.countryOfResidence || np?.country || null,
-      citizenship: np?.country || null,
-      birthDate: np?.birthDate ? new Date(np.birthDate) : null,
-      controlType: bo.meansOfControl?.[0]?.natureOfControl || null,
-    };
+  // Find existing board members for this company (may have externalId from CSV import)
+  const existingBoardMembers = await prisma.boardMember.findMany({
+    where: { companyId: company.id },
+    select: { id: true, externalId: true, name: true, personalCode: true },
   });
 
-  await prisma.$transaction([
-    prisma.beneficialOwner.deleteMany({ where: { companyId: company.id } }),
-    ...(boData.length > 0 ? [prisma.beneficialOwner.createMany({ data: boData })] : []),
-  ]);
+  // Delete only non-CSV records (those without externalId) — CSV records get updated below
+  const nonCsvIds = existingBoardMembers.filter(bm => !bm.externalId).map(bm => bm.id);
+  if (nonCsvIds.length > 0) {
+    await prisma.boardMember.deleteMany({ where: { id: { in: nonCsvIds } } });
+  }
+
+  for (const o of activeOfficers) {
+    const name = o.naturalPerson?.name?.trim() || o.legalEntity?.legalName?.trim() || 'Unknown';
+    const personalCode = o.naturalPerson?.latvianIdentityNumber || o.legalEntity?.registrationNumber || null;
+
+    // Try to find matching CSV-imported board member to upgrade with full code
+    const csvMatch = existingBoardMembers.find(bm =>
+      bm.externalId && bm.name === name && bm.personalCode?.includes('*')
+    );
+
+    if (csvMatch) {
+      await prisma.boardMember.update({
+        where: { id: csvMatch.id },
+        data: {
+          personalCode: personalCode || csvMatch.personalCode,
+          institution: o.governingBody || null,
+          position: o.position || null,
+          appointedDate: o.appointedOn ? new Date(o.appointedOn) : null,
+          representationRights: o.rightsOfRepresentation?.[0]?.type || null,
+          isHistorical: false,
+        },
+      });
+    } else {
+      await prisma.boardMember.create({
+        data: {
+          companyId: company.id,
+          name,
+          personalCode,
+          institution: o.governingBody || null,
+          position: o.position || null,
+          appointedDate: o.appointedOn ? new Date(o.appointedOn) : null,
+          representationRights: o.rightsOfRepresentation?.[0]?.type || null,
+          notes: o.note || null,
+          isHistorical: false,
+        },
+      });
+    }
+  }
+
+  // Cache beneficial owners — same pattern: update CSV records, recreate non-CSV ones
+  const activeBOs = (legalEntity.beneficialOwners || []).filter(bo => !bo.isAnnulled);
+
+  const existingBOs = await prisma.beneficialOwner.findMany({
+    where: { companyId: company.id },
+    select: { id: true, externalId: true, name: true, personalCode: true },
+  });
+
+  const nonCsvBoIds = existingBOs.filter(bo => !bo.externalId).map(bo => bo.id);
+  if (nonCsvBoIds.length > 0) {
+    await prisma.beneficialOwner.deleteMany({ where: { id: { in: nonCsvBoIds } } });
+  }
+
+  for (const bo of activeBOs) {
+    const np = bo.naturalPerson;
+    const name = np ? `${np.forename || ''} ${np.surname || ''}`.trim() : 'Unknown';
+    const personalCode = np?.latvianIdentityNumber || null;
+
+    const csvMatch = existingBOs.find(existing =>
+      existing.externalId && existing.name === name && existing.personalCode?.includes('*')
+    );
+
+    if (csvMatch) {
+      await prisma.beneficialOwner.update({
+        where: { id: csvMatch.id },
+        data: {
+          personalCode: personalCode || csvMatch.personalCode,
+          dateFrom: bo.dateFrom ? new Date(bo.dateFrom) : null,
+          residenceCountry: np?.countryOfResidence || np?.country || null,
+          citizenship: np?.country || null,
+          birthDate: np?.birthDate ? new Date(np.birthDate) : null,
+          controlType: bo.meansOfControl?.[0]?.natureOfControl || null,
+        },
+      });
+    } else {
+      await prisma.beneficialOwner.create({
+        data: {
+          companyId: company.id,
+          name,
+          personalCode,
+          dateFrom: bo.dateFrom ? new Date(bo.dateFrom) : null,
+          residenceCountry: np?.countryOfResidence || np?.country || null,
+          citizenship: np?.country || null,
+          birthDate: np?.birthDate ? new Date(np.birthDate) : null,
+          controlType: bo.meansOfControl?.[0]?.natureOfControl || null,
+        },
+      });
+    }
+  }
 }

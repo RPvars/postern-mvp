@@ -95,8 +95,8 @@ npm run dev           # Start dev server
 npx prisma generate   # Regenerate Prisma client
 npx prisma db push    # Push schema to database
 npx prisma studio     # Open database GUI
-npm run import:all    # Import all CSV data (NACE, tax, insolvency, ratings, VAT, state aid, names, reorganizations)
-npm run import:vat    # Import VAT payer data only
+npm run import:all    # Import all CSV data (includes people data from UR open data)
+npm run import:people # Import person data only (register, members, officers, beneficial owners, stockholders)
 /ship                 # Run shipping pipeline (review, fix, build, commit, push)
 ```
 
@@ -139,7 +139,13 @@ Data imported via scripts from VID/UR open data (CC0). Run `npm run import:all` 
 - **State aid**: `scripts/import-state-aid.ts` — de minimis aid from deminimis.fm.gov.lv
 - **Name history**: `scripts/import-name-history.ts` — previous company names from dati.ur.gov.lv (~93K)
 - **Reorganizations**: `scripts/import-reorganizations.ts` — company reorganizations from dati.ur.gov.lv (~10K)
+- **Company register**: `scripts/import-register.ts` — all LV companies from dati.ur.gov.lv (~482K)
+- **Members (owners)**: `scripts/import-members.ts` — shareholders from dati.ur.gov.lv (~181K). Masked personal codes — match by code+name to avoid cross-person collisions
+- **Officers (board)**: `scripts/import-officers.ts` — board members from dati.ur.gov.lv (~279K). Uses `externalId` for upsert
+- **Beneficial owners**: `scripts/import-beneficial-owners.ts` — from dati.ur.gov.lv (~195K). Uses `externalId` for upsert
+- **Stockholders**: `scripts/import-stockholders.ts` — AS company shareholders (~22K)
 - **Note**: Imported data is static snapshots — needs periodic re-import to stay current
+- **Person import**: `npm run import:people` runs all 5 person-related imports in sequence
 
 ## Company Detail Progressive Loading
 The company detail page uses 3 parallel API calls for progressive rendering:
@@ -160,12 +166,22 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 
 ## Person Profile Page
 - **Route**: `/person/[code]` — displays all companies a person is connected to
-- **Data source**: DB cache populated by `/api/company/[id]/basic` (fire-and-forget cachePersonData)
-- **API**: `/api/person/[code]` — queries Owner/Ownership, BoardMember, BeneficialOwner by personalCode
-- **Relationship graph**: Custom SVG with pan/zoom, company nodes linked to center person node
-- **Data enrichment**: Person data accumulates as companies are viewed — not all connections visible initially
-- **Person links**: Natural persons clickable in people-tab → `/person/[personalCode]`
+- **Data source**: Bulk CSV imports from dati.ur.gov.lv (members, officers, beneficial owners) + BR API enrichment
+- **API**: `/api/person/[code]` — queries Owner/Ownership, BoardMember, BeneficialOwner by personalCode. Supports `?name=` param for masked code disambiguation
+- **Relationship graph**: Custom SVG with multi-ring layout (auto-scales for 15+ companies), pan/zoom, Cmd+Click opens new tab
+- **Company map**: Leaflet + OpenStreetMap showing company locations. Geocoding via Nominatim with DB coordinate caching
+- **Unified table**: Single table showing all company connections with role indicators (owner/board/beneficial)
+- **Person search**: `/api/person/search?q=name` — searches BoardMember, BeneficialOwner, Owner tables. Handles reversed name order (Vārds Uzvārds = Uzvārds Vārds)
+- **Masked codes**: CSV data uses masked personal codes (`123456-*****`). Person links include `?name=` for disambiguation. BR API fire-and-forget upgrades masked codes to full codes
+- **Person links**: Natural persons clickable in people-tab → `/person/[personalCode]?name=...`
 - **Legal entities**: Still link to `/company/[regcode]` as before
+
+## Search
+- **Unified search**: Both company and person results in one dropdown (header + home page)
+- **Enter key**: Navigates to `/search?q=...` full results page with both sections
+- **Company search**: BR API + local DB (482K companies) in parallel
+- **Person search**: `/api/person/search` — queries 3 tables, reversed name matching, dedup by normalized name
+- **Geocoding**: `/api/geocode` — Nominatim proxy with DB coordinate caching on Company model (latitude/longitude)
 
 ## Compare Page
 - URL state persistence: Selected companies stored in `?companies=id1,id2,id3` parameter

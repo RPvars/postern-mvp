@@ -44,6 +44,10 @@ model Company {
   hasTaxDebts            Boolean   @default(false)
   taxDebtsCheckedDate    DateTime?
 
+  latitude          Float?     // Geocoded coordinates for map view
+  longitude         Float?
+  lastCrawledAt     DateTime?  // Last time BR API was fetched for this company
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -61,6 +65,7 @@ model Owner {
   id           String   @id @default(cuid())
   name         String
   personalCode String?
+  birthDate    String?   // For person matching when personalCode is masked
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -68,6 +73,7 @@ model Owner {
 
   @@index([name])
   @@index([personalCode])
+  @@index([name, birthDate])
 }
 
 model Ownership {
@@ -79,7 +85,7 @@ model Ownership {
 
   // Share Details
   sharePercentage Float
-  sharesCount     Int?      // Number of shares
+  sharesCount     BigInt?   // Number of shares
   nominalValue    Float?    // Nominal value per share in EUR
   totalValue      Float?    // Total value in EUR
   votingRights    Float?    // Voting rights from shares
@@ -125,10 +131,12 @@ model NaceCode {
 
 model BoardMember {
   id                  String    @id @default(cuid())
+  externalId          Int?      @unique  // ID from dati.ur.gov.lv open data
   company             Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId           String
   name                String
   personalCode        String?
+  birthDate           String?   // For person matching when personalCode is masked
   institution         String?   // e.g., "Valde"
   position            String?   // e.g., "Valdes priekšsēdētājs"
   appointedDate       DateTime?
@@ -142,10 +150,12 @@ model BoardMember {
   @@index([personalCode])
   @@index([isHistorical])
   @@index([companyId, isHistorical])
+  @@index([name, birthDate])
 }
 
 model BeneficialOwner {
   id                String    @id @default(cuid())
+  externalId        Int?      @unique  // ID from dati.ur.gov.lv open data
   company           Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   companyId         String
   name              String
@@ -160,6 +170,7 @@ model BeneficialOwner {
 
   @@index([companyId])
   @@index([personalCode])
+  @@index([name])
 }
 
 model InsolvencyProceeding {

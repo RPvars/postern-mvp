@@ -85,21 +85,50 @@ export async function GET(request: NextRequest) {
       // Fall through to BR name search as last resort
     }
 
-    // Trim trailing single-char word that BR API can't match (e.g. "citrus s" → "citrus")
+    // Search BR API and local DB in parallel
     const apiSearchTerm = searchTerm.replace(/\s+\S$/, '').trim() || searchTerm;
-    const searchResults = await httpClient.searchCompanies(apiSearchTerm);
+    const [brResults, dbResults] = await Promise.allSettled([
+      httpClient.searchCompanies(apiSearchTerm),
+      prisma.company.findMany({
+        where: { name: { contains: searchTerm } },
+        take: APP_CONFIG.search.maxResults,
+        select: { registrationNumber: true, name: true },
+      }),
+    ]);
 
-    const results = searchResults
-      .filter(r => r.status === 'REGISTERED')
-      .slice(0, APP_CONFIG.search.maxResults)
-      .map((item) => ({
-        id: item.registrationNumber,
-        name: item.currentName,
-        registrationNumber: item.registrationNumber,
-        taxNumber: '',
-      }));
+    // Merge: BR API results first (fresher data), then DB results for what BR API missed
+    const seen = new Set<string>();
+    const results: { id: string; name: string; registrationNumber: string; taxNumber: string }[] = [];
 
-    return NextResponse.json({ results });
+    if (brResults.status === 'fulfilled') {
+      for (const item of brResults.value.filter(r => r.status === 'REGISTERED')) {
+        if (!seen.has(item.registrationNumber)) {
+          seen.add(item.registrationNumber);
+          results.push({
+            id: item.registrationNumber,
+            name: item.currentName,
+            registrationNumber: item.registrationNumber,
+            taxNumber: '',
+          });
+        }
+      }
+    }
+
+    if (dbResults.status === 'fulfilled') {
+      for (const c of dbResults.value) {
+        if (!seen.has(c.registrationNumber)) {
+          seen.add(c.registrationNumber);
+          results.push({
+            id: c.registrationNumber,
+            name: c.name,
+            registrationNumber: c.registrationNumber,
+            taxNumber: '',
+          });
+        }
+      }
+    }
+
+    return NextResponse.json({ results: results.slice(0, APP_CONFIG.search.maxResults) });
   } catch (error) {
     captureException(error, { endpoint: 'search' });
 

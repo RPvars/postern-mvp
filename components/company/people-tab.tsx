@@ -134,7 +134,7 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
                                     {ownership.owner.name}
                                   </div>
                                 ) : ownership.owner.personalCode ? (
-                                  <Link href={`/person/${ownership.owner.personalCode}`} className="font-medium text-primary hover:underline">
+                                  <Link href={`/person/${ownership.owner.personalCode}?name=${encodeURIComponent(ownership.owner.name)}`} className="font-medium text-primary hover:underline">
                                     {ownership.owner.name}
                                   </Link>
                                 ) : (
@@ -278,7 +278,7 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
                     <TableRow key={member.id}>
                       <TableCell className="font-medium">
                         {member.personalCode ? (
-                          <Link href={`/person/${member.personalCode}`} className="text-primary hover:underline">
+                          <Link href={`/person/${member.personalCode}?name=${encodeURIComponent(member.name)}`} className="text-primary hover:underline">
                             {member.name}
                           </Link>
                         ) : member.name}
@@ -361,7 +361,7 @@ export function PeopleTab({ company, isResolvingNames }: PeopleTabProps) {
                     <TableRow key={owner.id}>
                       <TableCell className="font-medium">
                         {owner.personalCode ? (
-                          <Link href={`/person/${owner.personalCode}`} className="text-primary hover:underline">
+                          <Link href={`/person/${owner.personalCode}?name=${encodeURIComponent(owner.name)}`} className="text-primary hover:underline">
                             {owner.name}
                           </Link>
                         ) : owner.name}

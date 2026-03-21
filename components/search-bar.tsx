@@ -2,10 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { useCompanySearch } from '@/hooks/use-company-search';
+import { usePersonSearch, PersonSearchResult } from '@/hooks/use-person-search';
+import { Building2, User, ArrowRight } from 'lucide-react';
+
+const ROLE_COLORS: Record<string, string> = {
+  owner: 'bg-[#FEC200]',
+  board: 'bg-blue-400',
+  beneficial: 'bg-purple-400',
+};
 
 interface SearchBarProps {
   country: string;
@@ -15,34 +23,62 @@ interface SearchBarProps {
 export function SearchBar({ country, onCountryChange }: SearchBarProps) {
   const router = useRouter();
   const t = useTranslations('home');
-  const {
-    query,
-    results,
-    isLoading,
-    isOpen,
-    handleQueryChange,
-    handleFocus,
-    handleBlur,
-    clearSearch,
-  } = useCompanySearch();
 
-  const handleSelect = (companyId: string) => {
-    router.push(`/company/${companyId}`);
-    clearSearch();
+  const companySearch = useCompanySearch();
+  const personSearch = usePersonSearch();
+
+  const isOpen = companySearch.isOpen || personSearch.isOpen;
+  const isLoading = companySearch.isLoading || personSearch.isLoading;
+  const query = companySearch.query;
+
+  const handleQueryChange = (value: string) => {
+    companySearch.handleQueryChange(value);
+    personSearch.handleQueryChange(value);
   };
+
+  const handleFocus = () => {
+    companySearch.handleFocus();
+    personSearch.handleFocus();
+  };
+
+  const handleBlur = () => {
+    companySearch.handleBlur();
+    personSearch.handleBlur();
+  };
+
+  const clearAll = () => {
+    companySearch.clearSearch();
+    personSearch.clearSearch();
+  };
+
+  const handleCompanySelect = (companyId: string) => {
+    router.push(`/company/${companyId}`);
+    clearAll();
+  };
+
+  const handlePersonSelect = (person: PersonSearchResult) => {
+    const code = person.personalCode || '';
+    router.push(`/person/${encodeURIComponent(code)}?name=${encodeURIComponent(person.name)}`);
+    clearAll();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && query.trim().length >= 2) {
+      e.preventDefault();
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+      clearAll();
+    }
+  };
+
+  const hasResults = companySearch.results.length > 0 || personSearch.results.length > 0;
 
   const getCountryFlag = (countryCode: string) => {
     switch (countryCode) {
-      case 'latvia':
-        return '🇱🇻';
-      case 'estonia':
-        return '🇪🇪';
-      case 'lithuania':
-        return '🇱🇹';
-      case 'all':
-        return '🌍';
-      default:
-        return '🇱🇻';
+      case 'latvia': return '🇱🇻';
+      case 'estonia': return '🇪🇪';
+      case 'lithuania': return '🇱🇹';
+      case 'all': return '🌍';
+      default: return '🇱🇻';
     }
   };
 
@@ -58,6 +94,7 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
                 onValueChange={handleQueryChange}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
+                onKeyDown={handleKeyDown}
                 className="h-28 text-lg border-0 focus-visible:ring-0 px-4"
               />
               <div className={cn(
@@ -68,32 +105,76 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
                   {isLoading && (
                     <div className="py-6 text-center text-sm text-muted-foreground">{t('search.searching')}</div>
                   )}
-                  {!isLoading && query.length >= 2 && results.length === 0 && (
-                    <CommandEmpty>{t('search.noResults')}</CommandEmpty>
+
+                  {!isLoading && query.length >= 2 && !hasResults && (
+                    <div className="py-6 text-center text-sm text-muted-foreground">{t('search.noResults')}</div>
                   )}
-                  {!isLoading && results.length > 0 && (
+
+                  {/* Company results */}
+                  {!isLoading && companySearch.results.length > 0 && (
                     <CommandGroup heading={t('search.companies')}>
-                      {results.map((company) => (
+                      {companySearch.results.slice(0, 5).map((company) => (
                         <CommandItem
                           key={company.id}
                           value={company.name}
-                          onSelect={() => handleSelect(company.id)}
+                          onSelect={() => handleCompanySelect(company.id)}
                           className="cursor-pointer"
                         >
-                          <div className="flex flex-col gap-1 w-full">
+                          <Building2 className="h-4 w-4 text-muted-foreground mr-2 shrink-0" />
+                          <div className="flex flex-col gap-0.5 w-full">
                             <div className="font-medium">{company.name}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {company.registrationNumber} • {company.taxNumber}
-                            </div>
-                            {company.owners && company.owners.length > 0 && (
-                              <div className="text-xs text-muted-foreground">
-                                {t('search.owners')}: {company.owners.map((o) => `${o.name} (${o.share}%)`).join(', ')}
-                              </div>
-                            )}
+                            <div className="text-sm text-muted-foreground">{company.registrationNumber}</div>
                           </div>
                         </CommandItem>
                       ))}
                     </CommandGroup>
+                  )}
+
+                  {/* Person results */}
+                  {!isLoading && personSearch.results.length > 0 && (
+                    <CommandGroup heading={t('search.people')}>
+                      {personSearch.results.slice(0, 5).map((person, i) => (
+                        <CommandItem
+                          key={`${person.name}-${person.personalCode}-${i}`}
+                          value={person.name}
+                          onSelect={() => handlePersonSelect(person)}
+                          className="cursor-pointer"
+                        >
+                          <User className="h-4 w-4 text-muted-foreground mr-2 shrink-0" />
+                          <div className="flex flex-col gap-0.5 w-full">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{person.name}</span>
+                              <div className="flex gap-0.5">
+                                {person.roles.map((role) => (
+                                  <span key={role} className={cn("w-2 h-2 rounded-full", ROLE_COLORS[role])} />
+                                ))}
+                              </div>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {person.companies.map(c => c.name).join(', ')}
+                              {person.companyCount > 3 && ` +${person.companyCount - 3}`}
+                            </div>
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+
+                  {/* View all results */}
+                  {!isLoading && hasResults && (
+                    <div className="border-t">
+                      <button
+                        onClick={() => {
+                          router.push(`/search?q=${encodeURIComponent(query.trim())}`);
+                          clearAll();
+                        }}
+                        onMouseDown={(e) => e.preventDefault()}
+                        className="w-full text-center px-3 py-3 text-sm text-primary hover:bg-accent transition-colors flex items-center justify-center gap-1"
+                      >
+                        {t('search.viewAll')}
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   )}
                 </CommandList>
               </div>

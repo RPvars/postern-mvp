@@ -62,14 +62,16 @@
       "STATE_ENTERPRISE": "Valsts uzņēmums",
       "MUNICIPAL_ENTERPRISE": "Pašvaldības uzņēmums",
       "FARM_ENTERPRISE": "Zemnieku saimniecība",
-      "FISHING_ENTERPRISE": "Zvejnieku saimniecība"
+      "FISHING_ENTERPRISE": "Zvejnieku saimniecība",
+      "ASSOCIATION_BDR": "Biedrība"
     },
     "register": {
       "COMMERCIAL": "Komercreģistrs",
       "ASSOCIATION_AND_FOUNDATION": "Biedrību un nodibinājumu reģistrs",
       "TRADE_UNION": "Arodbiedrību reģistrs",
       "RELIGIOUS": "Reliģisko organizāciju reģistrs",
-      "POLITICAL_PARTY": "Politisko partiju reģistrs"
+      "POLITICAL_PARTY": "Politisko partiju reģistrs",
+      "ASSOCIATIONS_AND_FOUNDATIONS": "Biedrību un nodibinājumu reģistrs"
     },
     "position": {
       "CHAIR_OF_BOARD": "Valdes priekšsēdētājs",
@@ -88,6 +90,7 @@
     },
     "governingBody": {
       "EXECUTIVE_BOARD": "Valde",
+      "EXECUTIVE_BODY": "Izpildinstitūcija",
       "SUPERVISORY_BOARD": "Padome",
       "AUDIT_COMMITTEE": "Revīzijas komisija"
     },
@@ -152,6 +155,9 @@
     "reports": "Ziņojumi",
     "login": "Pieslēgties",
     "searchPlaceholder": "Meklēt uzņēmumu...",
+    "personSearchPlaceholder": "Meklēt personu...",
+    "searchTabCompanies": "Uzņēmumi",
+    "searchTabPeople": "Personas",
     "comingSoon": "Drīzumā",
     "languages": {
       "lv": "Latviešu",
@@ -176,10 +182,20 @@
     "search": {
       "searching": "Meklē...",
       "noResults": "Uzņēmumi nav atrasti.",
+      "personNoResults": "Personas nav atrastas.",
       "companies": "Uzņēmumi",
+      "people": "Personas",
       "owners": "Īpašnieki",
       "placeholder": "Ievadiet uzņēmuma nosaukumu vai reģistrācijas numuru...",
-      "button": "Meklēt"
+      "personPlaceholder": "Ievadiet personas vārdu vai uzvārdu...",
+      "button": "Meklēt",
+      "personCompanies": "{count} uzņēmumi",
+      "roles": {
+        "owner": "Īpašnieks",
+        "board": "Valde",
+        "beneficial": "PLG"
+      },
+      "viewAll": "Skatīt visus rezultātus"
     },
     "countries": {
       "latvia": "Latvija",
@@ -295,6 +311,13 @@
       "emailSent": "E-pasts nosūtīts!"
     }
   },
+  "searchResults": {
+    "searchPlaceholder": "Meklēt uzņēmumus un personas...",
+    "companies": "Uzņēmumi",
+    "people": "Personas",
+    "noResults": "Nav rezultātu",
+    "noResultsHint": "Mēģiniet citu meklēšanas vaicājumu"
+  },
   "person": {
     "notFound": "Persona nav atrasta",
     "notFoundDescription": "Šī persona vēl nav atrasta mūsu datos. Mēģiniet vispirms apskatīt uzņēmumu, kurā šī persona ir dalībnieks vai valdes loceklis.",
@@ -302,9 +325,13 @@
     "backToSearch": "Atpakaļ uz meklēšanu",
     "companiesCount": "{count, plural, one {# uzņēmums} other {# uzņēmumi}}",
     "dataNotice": "Dati tiek papildināti, apskatot uzņēmumus. Iespējams, ne visi saistītie uzņēmumi ir uzrādīti.",
+    "privacyWarning": "TODO: Personas dati (vārds, dzimšanas datums, pilsonība) tiek attēloti bez autentifikācijas. Pirms produkcijas jāpievieno pieteikšanās prasība vai sensitīvo lauku maskēšana (GDPR).",
+    "performanceWarning": "TODO: Īpašnieku kešošana izmanto secīgus DB vaicājumus (N+1). Uzņēmumiem ar 50+ dalībniekiem tas var būt lēns — jāpārveido uz pakešu apstrādi.",
     "ownerships": "Līdzdalība uzņēmumos",
     "boardPositions": "Amati valdē",
     "beneficialOwnerships": "Patiesā labuma gūšana",
+    "connectedCompanies": "Saistītie uzņēmumi",
+    "rolesColumn": "Lomas",
     "company": "Uzņēmums",
     "sharePercent": "Daļa %",
     "totalValue": "Kopējā vērtība",
@@ -315,13 +342,18 @@
     "controlType": "Kontroles veids",
     "since": "Kopš",
     "relationshipGraph": "Saistību karte",
+    "companyMap": "Uzņēmumu atrašanās vietas",
+    "mapLoading": "Ielādē karti...",
     "citizenship": "Pilsonība",
     "residenceCountry": "Dzīvesvietas valsts",
     "birthDate": "Dzimšanas datums",
     "legend": {
       "owner": "Īpašnieks",
+      "ownerFull": "Īpašnieks / Dalībnieks",
       "board": "Valde",
-      "beneficial": "PLG"
+      "boardFull": "Valdes loceklis / Amatpersona",
+      "beneficial": "PLG",
+      "beneficialFull": "Patiesais labuma guvējs"
     }
   },
   "company": {
