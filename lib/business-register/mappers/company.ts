@@ -28,7 +28,7 @@ export class CompanyMapper {
   fromLegalEntity(api: LegalEntityApiResponse): Company {
     return {
       id: randomUUID(),
-      name: api.legalName,
+      name: abbreviateLegalForm(api.legalName),
       registrationNumber: api.registrationNumber,
       taxNumber: '',
       address: api.address.addressComplete,
@@ -51,7 +51,7 @@ export class CompanyMapper {
   fromSearchResult(item: SearchResultItem): Company {
     return {
       id: randomUUID(),
-      name: item.currentName,
+      name: abbreviateLegalForm(item.currentName),
       registrationNumber: item.registrationNumber,
       taxNumber: '',
       address: item.address,

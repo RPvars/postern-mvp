@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { User, Building2, Users, UserCog, ShieldCheck, Info, ExternalLink, GitFork, AlertCircle, MapPin } from 'lucide-react';
+import { User, Building2, Users, UserCog, ShieldCheck, Info, ExternalLink, GitFork, AlertCircle, MapPin, HelpCircle } from 'lucide-react';
 import { translateEnum } from '@/lib/i18n/translate-enum';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { RelationshipGraph } from '@/components/person/relationship-graph';
@@ -58,6 +58,13 @@ interface PersonData {
     residenceCountry: string | null;
     citizenship: string | null;
   }>;
+  possibleConnections: Array<{
+    registrationNumber: string;
+    name: string;
+    status: string;
+    legalForm: string | null;
+    roles: string[];
+  }>;
 }
 
 export default function PersonPage() {
@@ -77,7 +84,11 @@ export default function PersonPage() {
     const queryStr = nameHint ? `?name=${encodeURIComponent(nameHint)}` : '';
     fetch(`/api/person/${encodeURIComponent(code)}${queryStr}`)
       .then(r => {
-        if (!r.ok) throw new Error(r.status === 404 ? t('notFound') : t('loadError'));
+        if (!r.ok) {
+          if (r.status === 400) throw new Error(t('nameRequired'));
+          if (r.status === 404) throw new Error(t('notFound'));
+          throw new Error(t('loadError'));
+        }
         return r.json();
       })
       .then(data => setPerson(data.person))
@@ -381,6 +392,68 @@ export default function PersonPage() {
                 </Card>
               );
             })()}
+
+            {/* Possibly connected companies (uncertain BR API validation) */}
+            {person.possibleConnections && person.possibleConnections.length > 0 && (
+              <Card className="border-dashed">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <HelpCircle className="h-5 w-5 text-muted-foreground" />
+                    {t('possibleConnections')} ({person.possibleConnections.length})
+                  </CardTitle>
+                  <div className="flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 p-3 text-sm text-amber-800 dark:text-amber-200">
+                    <Info className="h-4 w-4 shrink-0" />
+                    {t('possibleConnectionsNotice')}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>{t('company')}</TableHead>
+                        <TableHead>{t('rolesColumn')}</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {person.possibleConnections.map((pc) => (
+                        <TableRow key={pc.registrationNumber} className="opacity-70">
+                          <TableCell>
+                            <Link href={`/company/${pc.registrationNumber}`} className="font-medium text-primary hover:underline inline-flex items-center gap-1">
+                              <Building2 className="h-3.5 w-3.5 shrink-0" />
+                              {pc.name}
+                              <ExternalLink className="h-3 w-3 shrink-0 opacity-50" />
+                            </Link>
+                            <div className="text-xs text-muted-foreground">{pc.registrationNumber}</div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              {pc.roles.includes('owner') && (
+                                <span className="inline-flex items-center gap-1 text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-[#FEC200]" />
+                                  {t('legend.owner')}
+                                </span>
+                              )}
+                              {pc.roles.includes('board') && (
+                                <span className="inline-flex items-center gap-1 text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-blue-400" />
+                                  {t('legend.board')}
+                                </span>
+                              )}
+                              {pc.roles.includes('beneficial') && (
+                                <span className="inline-flex items-center gap-1 text-xs">
+                                  <span className="w-2.5 h-2.5 rounded-full bg-purple-400" />
+                                  {t('legend.beneficial')}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </main>
         </>
       )}

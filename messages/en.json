@@ -322,6 +322,7 @@
     "notFound": "Person not found",
     "notFoundDescription": "This person has not been found in our data yet. Try viewing a company where this person is an owner or board member first.",
     "loadError": "Failed to load person data",
+    "nameRequired": "Person name not specified. Please open the person profile from a company page.",
     "backToSearch": "Back to search",
     "companiesCount": "{count, plural, one {# company} other {# companies}}",
     "dataNotice": "Data is being enriched as companies are viewed. Not all related companies may be shown yet.",
@@ -354,7 +355,9 @@
       "boardFull": "Board Member / Officer",
       "beneficial": "BO",
       "beneficialFull": "Beneficial Owner"
-    }
+    },
+    "possibleConnections": "Possibly connected companies",
+    "possibleConnectionsNotice": "These companies were found by name match, but the connection could not be verified through the Business Register."
   },
   "company": {
     "error": "Error",

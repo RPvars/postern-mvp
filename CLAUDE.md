@@ -172,7 +172,7 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **Company map**: Leaflet + OpenStreetMap showing company locations. Geocoding via Nominatim with DB coordinate caching
 - **Unified table**: Single table showing all company connections with role indicators (owner/board/beneficial)
 - **Person search**: `/api/person/search?q=name` — searches BoardMember, BeneficialOwner, Owner tables. Handles reversed name order (Vārds Uzvārds = Uzvārds Vārds)
-- **Masked codes**: CSV data uses masked personal codes (`123456-*****`). Person links include `?name=` for disambiguation. BR API fire-and-forget upgrades masked codes to full codes
+- **Masked codes**: CSV data uses masked personal codes (`123456-*****`). Person links include `?name=` for disambiguation. Masked codes require `?name=` param (400 without it). For full codes, API queries both full and masked variants with `OR`, validates masked matches via BR API (`getLegalEntity`), and shows unverified matches as "possibly connected". Verified codes are upgraded in DB fire-and-forget
 - **Person links**: Natural persons clickable in people-tab → `/person/[personalCode]?name=...`
 - **Legal entities**: Still link to `/company/[regcode]` as before
 

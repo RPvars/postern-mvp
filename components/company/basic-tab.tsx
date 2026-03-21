@@ -53,10 +53,12 @@ export function BasicTab({ company }: BasicTabProps) {
                 <div className="text-sm">{te(`register.${company.register}`, company.register)}</div>
               </div>
             )}
-            <div>
-              <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.legalAddress')}</div>
-              <div className="text-sm">{company.legalAddress}</div>
-            </div>
+            {company.legalAddress && (
+              <div>
+                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.legalAddress')}</div>
+                <div className="text-sm">{company.legalAddress}</div>
+              </div>
+            )}
             {company.phone && (
               <div>
                 <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.phone')}</div>

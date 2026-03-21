@@ -322,6 +322,7 @@
     "notFound": "Persona nav atrasta",
     "notFoundDescription": "Šī persona vēl nav atrasta mūsu datos. Mēģiniet vispirms apskatīt uzņēmumu, kurā šī persona ir dalībnieks vai valdes loceklis.",
     "loadError": "Neizdevās ielādēt personas datus",
+    "nameRequired": "Personas vārds nav norādīts. Lūdzu, atveriet personas profilu no uzņēmuma lapas.",
     "backToSearch": "Atpakaļ uz meklēšanu",
     "companiesCount": "{count, plural, one {# uzņēmums} other {# uzņēmumi}}",
     "dataNotice": "Dati tiek papildināti, apskatot uzņēmumus. Iespējams, ne visi saistītie uzņēmumi ir uzrādīti.",
@@ -354,7 +355,9 @@
       "boardFull": "Valdes loceklis / Amatpersona",
       "beneficial": "PLG",
       "beneficialFull": "Patiesais labuma guvējs"
-    }
+    },
+    "possibleConnections": "Iespējami saistītie uzņēmumi",
+    "possibleConnectionsNotice": "Šie uzņēmumi tika atrasti pēc vārda sakritības, bet saistību nevarēja apstiprināt caur Uzņēmumu reģistru."
   },
   "company": {
     "error": "Kļūda",

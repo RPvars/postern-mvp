@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
 import { prisma } from '@/lib/prisma';
+import { normalizeName } from '@/lib/text-utils';
+import { httpClient } from '@/lib/business-register/client/http';
 
 export async function GET(
   request: NextRequest,
@@ -28,79 +30,176 @@ export async function GET(
     const nameHint = rawName ? rawName.trim().slice(0, 150) : null;
     const isMasked = cleanCode.includes('*');
 
+    // Masked codes require name to disambiguate — without it, different people get merged
+    if (isMasked && !nameHint) {
+      return NextResponse.json(
+        { error: 'Name parameter required for masked personal codes' },
+        { status: 400 }
+      );
+    }
+
+    // Build name variants for normalized matching (handles "Vārds Uzvārds" vs "Uzvārds Vārds")
+    const nameVariants = nameHint ? (() => {
+      const normalized = normalizeName(nameHint);
+      const words = normalized.split(' ');
+      const reversed = words.length === 2 ? `${words[1]} ${words[0]}` : normalized;
+      return reversed !== normalized ? [normalized, reversed] : [normalized];
+    })() : null;
+
     const companySelect = { select: { registrationNumber: true, name: true, status: true, legalForm: true, legalAddress: true, latitude: true, longitude: true } } as const;
 
-    // Step 1: Try exact personalCode match
+    // Build where clauses based on code type
+    let ownerWhere: Record<string, unknown>;
+    let boardWhere: Record<string, unknown>;
+    let beneficialWhere: Record<string, unknown>;
+
+    if (isMasked && nameVariants) {
+      // Masked code: filter by code + name to prevent cross-person merging
+      ownerWhere = { owner: { personalCode: cleanCode, nameNormalized: { in: nameVariants } }, isHistorical: false };
+      boardWhere = { personalCode: cleanCode, nameNormalized: { in: nameVariants }, isHistorical: false };
+      beneficialWhere = { personalCode: cleanCode, nameNormalized: { in: nameVariants } };
+    } else if (!isMasked) {
+      // Full code: query BOTH full code AND masked version (with name filter) to catch CSV-imported records
+      const maskedVersion = cleanCode.replace(/-?\d{5}$/, '-*****');
+      const nameFilter = nameVariants ? { nameNormalized: { in: nameVariants } } : {};
+
+      ownerWhere = {
+        owner: { OR: [{ personalCode: cleanCode }, { personalCode: maskedVersion, ...nameFilter }] },
+        isHistorical: false,
+      };
+      boardWhere = {
+        OR: [
+          { personalCode: cleanCode, isHistorical: false },
+          { personalCode: maskedVersion, ...nameFilter, isHistorical: false },
+        ],
+      };
+      beneficialWhere = {
+        OR: [{ personalCode: cleanCode }, { personalCode: maskedVersion, ...nameFilter }],
+      };
+    } else {
+      ownerWhere = { owner: { personalCode: cleanCode }, isHistorical: false };
+      boardWhere = { personalCode: cleanCode, isHistorical: false };
+      beneficialWhere = { personalCode: cleanCode };
+    }
+
     let [ownerships, boardPositions, beneficialOwnerships] = await Promise.all([
       prisma.ownership.findMany({
-        where: { owner: { personalCode: cleanCode }, isHistorical: false },
+        where: ownerWhere,
         include: { owner: true, company: companySelect },
         orderBy: { sharePercentage: 'desc' },
       }),
       prisma.boardMember.findMany({
-        where: { personalCode: cleanCode, isHistorical: false },
+        where: boardWhere,
         include: { company: companySelect },
         orderBy: { appointedDate: 'desc' },
       }),
       prisma.beneficialOwner.findMany({
-        where: { personalCode: cleanCode },
+        where: beneficialWhere,
         include: { company: companySelect },
         orderBy: { dateFrom: 'desc' },
       }),
     ]);
 
-    // Step 2: If no exact match and code is full, try masked version with name filter
-    if (!isMasked && ownerships.length === 0 && boardPositions.length === 0 && beneficialOwnerships.length === 0) {
+    // Uncertain matches — masked-code records where BR API couldn't confirm or deny
+    let uncertainOwnerships: typeof ownerships = [];
+    let uncertainBoardPositions: typeof boardPositions = [];
+    let uncertainBeneficialOwnerships: typeof beneficialOwnerships = [];
+
+    // For full codes: validate masked-code matches via BR API to confirm identity
+    if (!isMasked) {
       const maskedVersion = cleanCode.replace(/-?\d{5}$/, '-*****');
-      if (maskedVersion !== cleanCode) {
-        // When searching by masked code, MUST filter by name to avoid wrong-person matches
-        const codeFilter = nameHint ? { personalCode: maskedVersion, name: nameHint } : { personalCode: maskedVersion };
 
-        [ownerships, boardPositions, beneficialOwnerships] = await Promise.all([
-          prisma.ownership.findMany({
-            where: { owner: codeFilter, isHistorical: false },
-            include: { owner: true, company: companySelect },
-            orderBy: { sharePercentage: 'desc' },
-          }),
-          prisma.boardMember.findMany({
-            where: { ...codeFilter, isHistorical: false },
-            include: { company: companySelect },
-            orderBy: { appointedDate: 'desc' },
-          }),
-          prisma.beneficialOwner.findMany({
-            where: codeFilter,
-            include: { company: companySelect },
-            orderBy: { dateFrom: 'desc' },
-          }),
-        ]);
+      // Collect companies found only via masked code (need BR API verification)
+      const maskedOwnerCompanies = new Set(
+        ownerships.filter(o => o.owner.personalCode === maskedVersion).map(o => o.company.registrationNumber)
+      );
+      const maskedBoardCompanies = new Set(
+        boardPositions.filter(b => b.personalCode === maskedVersion).map(b => b.company.registrationNumber)
+      );
+      const maskedBeneficialCompanies = new Set(
+        beneficialOwnerships.filter(bo => bo.personalCode === maskedVersion).map(bo => bo.company.registrationNumber)
+      );
+      const allMaskedCompanies = new Set([...maskedOwnerCompanies, ...maskedBoardCompanies, ...maskedBeneficialCompanies]);
+
+      if (allMaskedCompanies.size > 0) {
+        // Verify via BR API (max 10 parallel calls, cached 5min)
+        const companiesToVerify = [...allMaskedCompanies].slice(0, 10);
+        type ValidationResult = { regNumber: string; status: 'verified' | 'rejected' | 'uncertain' };
+        const validations = await Promise.allSettled(
+          companiesToVerify.map(async (regNumber): Promise<ValidationResult> => {
+            try {
+              const entity = await httpClient.getLegalEntity(regNumber);
+              const allPersonCodes = [
+                ...(entity.officers || []).map(o => o.naturalPerson?.latvianIdentityNumber),
+                ...(entity.members || []).map(m => m.naturalPerson?.latvianIdentityNumber),
+                ...(entity.beneficialOwners || []).map(bo => bo.naturalPerson?.latvianIdentityNumber),
+              ];
+              return { regNumber, status: allPersonCodes.includes(cleanCode) ? 'verified' : 'rejected' };
+            } catch {
+              return { regNumber, status: 'uncertain' };
+            }
+          })
+        );
+
+        const fulfilled = validations
+          .filter((v): v is PromiseFulfilledResult<ValidationResult> => v.status === 'fulfilled')
+          .map(v => v.value);
+
+        const verifiedCompanies = new Set(fulfilled.filter(v => v.status === 'verified').map(v => v.regNumber));
+        const uncertainCompanies = new Set(fulfilled.filter(v => v.status === 'uncertain').map(v => v.regNumber));
+        // Companies beyond the first 10 are also uncertain
+        for (const regNumber of [...allMaskedCompanies].slice(10)) {
+          uncertainCompanies.add(regNumber);
+        }
+
+        // Split masked-code matches into verified (keep) and uncertain (separate section)
+        const keepMasked = (code: string | null, regNum: string) =>
+          code !== maskedVersion || verifiedCompanies.has(regNum);
+        const isUncertain = (code: string | null, regNum: string) =>
+          code === maskedVersion && uncertainCompanies.has(regNum);
+
+        uncertainOwnerships = ownerships.filter(o => isUncertain(o.owner.personalCode, o.company.registrationNumber));
+        uncertainBoardPositions = boardPositions.filter(b => isUncertain(b.personalCode, b.company.registrationNumber));
+        uncertainBeneficialOwnerships = beneficialOwnerships.filter(bo => isUncertain(bo.personalCode, bo.company.registrationNumber));
+
+        // Remove rejected + uncertain from main results (uncertain goes to separate section)
+        ownerships = ownerships.filter(o => keepMasked(o.owner.personalCode, o.company.registrationNumber));
+        boardPositions = boardPositions.filter(b => keepMasked(b.personalCode, b.company.registrationNumber));
+        beneficialOwnerships = beneficialOwnerships.filter(bo => keepMasked(bo.personalCode, bo.company.registrationNumber));
+
+        // Fire-and-forget: upgrade verified masked codes to full codes in DB
+        if (verifiedCompanies.size > 0) {
+          upgradeVerifiedMaskedCodes(maskedVersion, cleanCode, nameVariants || [], verifiedCompanies).catch(() => {});
+        }
       }
-    }
-
-    // Step 3: If masked code provided, also filter by name when available
-    if (isMasked && ownerships.length === 0 && boardPositions.length === 0 && beneficialOwnerships.length === 0 && nameHint) {
-      [ownerships, boardPositions, beneficialOwnerships] = await Promise.all([
-        prisma.ownership.findMany({
-          where: { owner: { personalCode: cleanCode, name: nameHint }, isHistorical: false },
-          include: { owner: true, company: companySelect },
-          orderBy: { sharePercentage: 'desc' },
-        }),
-        prisma.boardMember.findMany({
-          where: { personalCode: cleanCode, name: nameHint, isHistorical: false },
-          include: { company: companySelect },
-          orderBy: { appointedDate: 'desc' },
-        }),
-        prisma.beneficialOwner.findMany({
-          where: { personalCode: cleanCode, name: nameHint },
-          include: { company: companySelect },
-          orderBy: { dateFrom: 'desc' },
-        }),
-      ]);
     }
 
     // Deduplicate by company
     const allOwnerships = deduplicateByCompany(ownerships, o => o.company.registrationNumber);
     const allBoardPositions = deduplicateByCompany(boardPositions, b => b.company.registrationNumber);
     const allBeneficialOwnerships = deduplicateByCompany(beneficialOwnerships, bo => bo.company.registrationNumber);
+
+    // Build possible connections from uncertain matches
+    const possibleCompanyMap = new Map<string, { registrationNumber: string; name: string; status: string; legalForm: string | null; roles: string[] }>();
+    for (const o of uncertainOwnerships) {
+      const key = o.company.registrationNumber;
+      if (!possibleCompanyMap.has(key)) possibleCompanyMap.set(key, { registrationNumber: key, name: o.company.name, status: o.company.status, legalForm: o.company.legalForm, roles: [] });
+      const entry = possibleCompanyMap.get(key)!;
+      if (!entry.roles.includes('owner')) entry.roles.push('owner');
+    }
+    for (const b of uncertainBoardPositions) {
+      const key = b.company.registrationNumber;
+      if (!possibleCompanyMap.has(key)) possibleCompanyMap.set(key, { registrationNumber: key, name: b.company.name, status: b.company.status, legalForm: b.company.legalForm, roles: [] });
+      const entry = possibleCompanyMap.get(key)!;
+      if (!entry.roles.includes('board')) entry.roles.push('board');
+    }
+    for (const bo of uncertainBeneficialOwnerships) {
+      const key = bo.company.registrationNumber;
+      if (!possibleCompanyMap.has(key)) possibleCompanyMap.set(key, { registrationNumber: key, name: bo.company.name, status: bo.company.status, legalForm: bo.company.legalForm, roles: [] });
+      const entry = possibleCompanyMap.get(key)!;
+      if (!entry.roles.includes('beneficial')) entry.roles.push('beneficial');
+    }
+    const possibleConnections = [...possibleCompanyMap.values()];
 
     // Determine person name
     const name = nameHint
@@ -168,6 +267,7 @@ export async function GET(
           residenceCountry: bo.residenceCountry,
           citizenship: bo.citizenship,
         })),
+        possibleConnections,
       },
     });
   } catch (error) {
@@ -184,4 +284,43 @@ function deduplicateByCompany<T>(items: T[], getRegNumber: (item: T) => string):
     seen.add(key);
     return true;
   });
+}
+
+async function upgradeVerifiedMaskedCodes(
+  maskedCode: string,
+  fullCode: string,
+  nameVariants: string[],
+  verifiedCompanies: Set<string>,
+) {
+  const verifiedRegNumbers = [...verifiedCompanies];
+  const nameFilter = nameVariants.length > 0
+    ? { nameNormalized: { in: nameVariants } }
+    : {};
+
+  await Promise.allSettled([
+    prisma.owner.updateMany({
+      where: {
+        personalCode: maskedCode,
+        ...nameFilter,
+        companies: { some: { company: { registrationNumber: { in: verifiedRegNumbers } } } },
+      },
+      data: { personalCode: fullCode },
+    }),
+    prisma.boardMember.updateMany({
+      where: {
+        personalCode: maskedCode,
+        ...nameFilter,
+        company: { registrationNumber: { in: verifiedRegNumbers } },
+      },
+      data: { personalCode: fullCode },
+    }),
+    prisma.beneficialOwner.updateMany({
+      where: {
+        personalCode: maskedCode,
+        ...nameFilter,
+        company: { registrationNumber: { in: verifiedRegNumbers } },
+      },
+      data: { personalCode: fullCode },
+    }),
+  ]);
 }

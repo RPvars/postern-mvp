@@ -44,8 +44,12 @@ export async function GET(
       );
     }
 
-    const [legalEntity, taxPaymentRecords, insolvencyRecords, taxpayerRatingRecord, vatPayerRecord, stateAidRecords, nameHistoryRecords, reorganizationRecords] = await Promise.all([
+    const [legalEntity, localCompany, taxPaymentRecords, insolvencyRecords, taxpayerRatingRecord, vatPayerRecord, stateAidRecords, nameHistoryRecords, reorganizationRecords] = await Promise.all([
       httpClient.getLegalEntity(id),
+      prisma.company.findUnique({
+        where: { registrationNumber: id },
+        select: { legalAddress: true },
+      }),
       prisma.taxPayment.findMany({
         where: { registrationNumber: id },
         orderBy: { year: 'desc' },
@@ -99,7 +103,7 @@ export async function GET(
     const company = {
       ...companyMapper.fromLegalEntity(legalEntity),
       id,
-      legalAddress: legalEntity.address.addressComplete,
+      legalAddress: legalEntity.address.addressComplete || localCompany?.legalAddress || null,
       postalCode: legalEntity.address.postalCode || null,
       city: legalEntity.address.city || null,
       street: legalEntity.address.street || null,
@@ -210,7 +214,12 @@ async function cachePersonData(
   // Ensure Company record exists and set lastCrawledAt
   const company = await prisma.company.upsert({
     where: { registrationNumber: regNumber },
-    update: { name: legalEntity.legalName, status: legalEntity.status || 'unknown', lastCrawledAt: new Date() },
+    update: {
+      name: legalEntity.legalName,
+      status: legalEntity.status || 'unknown',
+      lastCrawledAt: new Date(),
+      ...(legalEntity.address.addressComplete ? { legalAddress: legalEntity.address.addressComplete } : {}),
+    },
     create: {
       registrationNumber: regNumber,
       name: legalEntity.legalName,

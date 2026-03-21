@@ -9,10 +9,15 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { User, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { HeaderSearch } from '@/components/header-search';
+import dynamic from 'next/dynamic';
 import { UserButton } from '@/components/auth/user-button';
 import { useLocale } from '@/components/providers/locale-provider';
 import type { Locale } from '@/lib/i18n';
+
+const HeaderSearch = dynamic(
+  () => import('@/components/header-search').then(mod => mod.HeaderSearch),
+  { ssr: false }
+);
 
 export function Navigation() {
   const pathname = usePathname();
