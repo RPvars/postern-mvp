@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { z } from 'zod';
 
 const geocodeBodySchema = z.object({
-  registrationNumbers: z.array(z.string().regex(/^\d{9,11}$/)).min(1).max(30),
+  registrationNumbers: z.array(z.string().regex(/^\d{9,11}$/)).min(1).max(10),
 });
 
 // Nominatim requires max 1 req/sec and a valid User-Agent
@@ -99,20 +99,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Geocode missing addresses sequentially (Nominatim rate limit: 1/sec)
-    for (const item of toGeocode) {
+    for (let i = 0; i < toGeocode.length; i++) {
+      const item = toGeocode[i];
       const coords = await geocodeAddress(item.address);
       results[item.registrationNumber] = coords;
 
       if (coords) {
-        // Cache in DB for future requests
         await prisma.company.update({
           where: { registrationNumber: item.registrationNumber },
           data: { latitude: coords.lat, longitude: coords.lng },
-        }).catch(() => {}); // Non-critical, don't fail request
+        }).catch(() => {});
       }
 
-      // Respect Nominatim 1 req/sec rate limit
-      if (toGeocode.indexOf(item) < toGeocode.length - 1) {
+      if (i < toGeocode.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 1100));
       }
     }

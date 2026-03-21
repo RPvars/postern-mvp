@@ -84,7 +84,6 @@ export default function SearchPage() {
     e.preventDefault();
     if (query.trim().length >= 2) {
       router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-      search(query.trim());
     }
   };
 

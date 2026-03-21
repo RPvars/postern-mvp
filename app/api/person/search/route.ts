@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     // If query has multiple words, also search with reversed order
     // DB stores "Uzvārds Vārds" but user may type "Vārds Uzvārds"
     const words = searchTerm.trim().split(/\s+/);
-    const reversedTerm = words.length >= 2 ? words.reverse().join(' ') : null;
+    const reversedTerm = words.length >= 2 ? [...words].reverse().join(' ') : null;
 
     // Build name filter: match original OR reversed word order
     const nameFilter = reversedTerm
@@ -92,8 +92,11 @@ export async function GET(request: NextRequest) {
     }>();
 
     // Dedup by normalized name — "Maksims Tišins" and "Tišins Maksims" are the same person
-    // Sort words alphabetically so word order doesn't matter
-    const getKey = (name: string) => name.trim().split(/\s+/).sort().join(' ').toLowerCase();
+    // For 2-word names, sort to handle first/last name reversal. For 3+ words, keep original order
+    const getKey = (name: string) => {
+      const words = name.trim().toLowerCase().split(/\s+/);
+      return words.length === 2 ? [words[0], words[1]].sort().join(' ') : words.join(' ');
+    };
 
     for (const bm of boardMembers) {
       const key = getKey(bm.name);

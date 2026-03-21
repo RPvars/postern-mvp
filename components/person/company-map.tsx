@@ -80,7 +80,7 @@ function CompanyMapInner({ companies }: CompanyMapProps) {
 
   // Geocode missing coordinates
   useEffect(() => {
-    const missing = companies.filter(c => !c.latitude && !c.longitude && c.legalAddress);
+    const missing = companies.filter(c => !c.latitude && !c.longitude && c.legalAddress).slice(0, 10);
     if (missing.length === 0) {
       setCoordinates(initialCoords);
       return;
