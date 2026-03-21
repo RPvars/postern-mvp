@@ -7,7 +7,7 @@ import { captureException } from '@/lib/sentry';
 import { httpClient } from '@/lib/business-register/client/http';
 import { companyMapper, boardMemberMapper, memberMapper, beneficialOwnerMapper } from '@/lib/business-register/mappers/company';
 import { prisma } from '@/lib/prisma';
-import { normalizeName } from '@/lib/import-utils';
+import { normalizeName } from '@/lib/text-utils';
 
 export async function GET(
   request: NextRequest,

@@ -4,7 +4,7 @@ import { validateSearchQuery } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { captureException } from '@/lib/sentry';
 import { prisma } from '@/lib/prisma';
-import { normalizeName } from '@/lib/import-utils';
+import { normalizeName } from '@/lib/text-utils';
 
 const MAX_RESULTS = 20;
 
