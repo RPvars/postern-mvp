@@ -98,7 +98,7 @@ function CompanyMapInner({ companies }: CompanyMapProps) {
       .then(data => {
         setCoordinates(prev => ({ ...prev, ...data.coordinates }));
       })
-      .catch(() => {})
+      .catch((err) => { console.error('Geocode request failed:', err); })
       .finally(() => setIsLoading(false));
   }, [companies, initialCoords]);
 

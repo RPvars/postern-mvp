@@ -207,7 +207,7 @@ async function cachePersonData(
   legalEntity: import('@/lib/business-register/types/api-responses').LegalEntityApiResponse
 ) {
   // Ensure Company record exists and set lastCrawledAt
-  await prisma.company.upsert({
+  const company = await prisma.company.upsert({
     where: { registrationNumber: regNumber },
     update: { name: legalEntity.legalName, status: legalEntity.status || 'unknown', lastCrawledAt: new Date() },
     create: {
@@ -221,9 +221,6 @@ async function cachePersonData(
       lastCrawledAt: new Date(),
     },
   });
-
-  const company = await prisma.company.findUnique({ where: { registrationNumber: regNumber } });
-  if (!company) return;
 
   // Cache owners (members) — find or create Owner, then upsert Ownership
   const activeMembers = (legalEntity.members || []).filter(m => !m.isAnnulled);
@@ -261,7 +258,7 @@ async function cachePersonData(
         sharePercentage: details?.inPercent ?? 0,
         sharesCount: details?.numberOfShares ?? null,
         nominalValue: details?.shareNominalValue ?? null,
-        totalValue: details ? details.numberOfShares * details.shareNominalValue : null,
+        totalValue: (details?.numberOfShares != null && details?.shareNominalValue != null) ? details.numberOfShares * details.shareNominalValue : null,
         votingRights: details?.votes ?? null,
         memberSince: m.dateFrom ? new Date(m.dateFrom) : null,
         isHistorical: false,
@@ -272,7 +269,7 @@ async function cachePersonData(
         sharePercentage: details?.inPercent ?? 0,
         sharesCount: details?.numberOfShares ?? null,
         nominalValue: details?.shareNominalValue ?? null,
-        totalValue: details ? details.numberOfShares * details.shareNominalValue : null,
+        totalValue: (details?.numberOfShares != null && details?.shareNominalValue != null) ? details.numberOfShares * details.shareNominalValue : null,
         votingRights: details?.votes ?? null,
         memberSince: m.dateFrom ? new Date(m.dateFrom) : null,
         isHistorical: false,

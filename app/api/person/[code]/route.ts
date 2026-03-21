@@ -54,22 +54,21 @@ export async function GET(
       const maskedVersion = cleanCode.replace(/-?\d{5}$/, '-*****');
       if (maskedVersion !== cleanCode) {
         // When searching by masked code, MUST filter by name to avoid wrong-person matches
-        const ownerNameFilter = nameHint ? { personalCode: maskedVersion, name: nameHint } : { personalCode: maskedVersion };
-        const nameFilter = nameHint ? { personalCode: maskedVersion, name: nameHint } : { personalCode: maskedVersion };
+        const codeFilter = nameHint ? { personalCode: maskedVersion, name: nameHint } : { personalCode: maskedVersion };
 
         [ownerships, boardPositions, beneficialOwnerships] = await Promise.all([
           prisma.ownership.findMany({
-            where: { owner: ownerNameFilter, isHistorical: false },
+            where: { owner: codeFilter, isHistorical: false },
             include: { owner: true, company: companySelect },
             orderBy: { sharePercentage: 'desc' },
           }),
           prisma.boardMember.findMany({
-            where: { ...nameFilter, isHistorical: false },
+            where: { ...codeFilter, isHistorical: false },
             include: { company: companySelect },
             orderBy: { appointedDate: 'desc' },
           }),
           prisma.beneficialOwner.findMany({
-            where: nameFilter,
+            where: codeFilter,
             include: { company: companySelect },
             orderBy: { dateFrom: 'desc' },
           }),
