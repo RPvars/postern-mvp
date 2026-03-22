@@ -54,7 +54,7 @@ export async function GET(
 
   const prefixes = await getNacePrefixes(code, industry.level);
 
-  const [stats, childrenWithCounts, topCompanies] = await Promise.all([
+  const [stats, childrenWithCounts, topCompaniesRaw] = await Promise.all([
     getStats(prefixes, year),
     Promise.all(
       children.map(async (child) => {
@@ -65,6 +65,9 @@ export async function GET(
     ),
     getTopCompanies(prefixes, year, metric, limit),
   ]);
+
+  // Add rank history (previous 3 years)
+  const topCompanies = await addRankHistory(topCompaniesRaw, prefixes, year, metric);
 
   return NextResponse.json({
     industry: {
@@ -122,7 +125,10 @@ async function getNacePrefixes(code: string, level: number): Promise<string[]> {
 
 /** Build SQL LIKE clause for NACE prefix matching on TaxPayment.naceCode */
 function buildNaceLikeClause(prefixes: string[], alias = 'tp'): string {
-  return prefixes.map((p) => `${alias}.naceCode LIKE '${p}%'`).join(' OR ');
+  return prefixes
+    .filter((p) => /^\d{1,2}$/.test(p)) // Only allow 1-2 digit numeric prefixes
+    .map((p) => `${alias}.naceCode LIKE '${p}%'`)
+    .join(' OR ') || '1=0'; // Fallback to false if no valid prefixes
 }
 
 async function getCompanyCount(prefixes: string[], year: number): Promise<number> {
@@ -256,6 +262,46 @@ function formatRow(r: RawTopCompany) {
     naceCode: naceFormatted,
     naceDescription: null, // Skip NACE description lookup for performance
   };
+}
+
+/**
+ * For each top company, find their rank in previous years (up to 3 years back).
+ * Fetches top 50 per previous year to find rank positions.
+ */
+async function addRankHistory(
+  companies: ReturnType<typeof formatRow>[],
+  prefixes: string[],
+  currentYear: number,
+  metric: Metric
+) {
+  if (companies.length === 0) return companies;
+
+  const regNums = new Set(companies.map(c => c.registrationNumber));
+  const historyYears = [currentYear - 1, currentYear - 2, currentYear - 3];
+
+  // Fetch top 50 for each previous year to find rank positions
+  const yearRanks = await Promise.all(
+    historyYears.map(async (y) => {
+      const prevTop = await getTopCompanies(prefixes, y, metric, 50);
+      const rankMap = new Map<string, number>();
+      prevTop.forEach((c, i) => rankMap.set(c.registrationNumber, i + 1));
+      return { year: y, ranks: rankMap };
+    })
+  );
+
+  return companies.map((company, currentRank) => {
+    const rankHistory: Record<number, number | null> = {};
+    rankHistory[currentYear] = currentRank + 1;
+
+    for (const { year: y, ranks } of yearRanks) {
+      rankHistory[y] = ranks.get(company.registrationNumber) ?? null;
+    }
+
+    const prevRank = rankHistory[currentYear - 1];
+    const rankChange = prevRank != null ? prevRank - (currentRank + 1) : null;
+
+    return { ...company, rankHistory, rankChange };
+  });
 }
 
 function formatNaceCode(code: string): string {

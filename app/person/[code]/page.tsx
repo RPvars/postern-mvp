@@ -150,7 +150,10 @@ export default function PersonPage() {
                         <span>{t('residenceCountry')}: {te(`country.${person.residenceCountry}`, person.residenceCountry)}</span>
                       )}
                       {person.birthDate && (
-                        <span>{t('birthDate')}: {formatDate(person.birthDate)} ({Math.floor((Date.now() - new Date(person.birthDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000))})</span>
+                        <span>{t('birthDate')}: {formatDate(person.birthDate)}{(() => {
+                          const age = Math.floor((Date.now() - new Date(person.birthDate!).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+                          return age > 0 && age < 150 ? ` (${age})` : '';
+                        })()}</span>
                       )}
                     </div>
                   )}

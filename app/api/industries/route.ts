@@ -2,6 +2,10 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 
+// In-memory cache for industry listings (expensive ~63 queries per request)
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+const responseCache = new Map<string, { data: unknown; expiry: number }>();
+
 /**
  * GET /api/industries?parent=F
  * Lists NACE sections (no parent) or children of a given code.
@@ -20,6 +24,13 @@ export async function GET(request: Request) {
   // Validate parent param against NACE code pattern
   if (parent && !/^[A-U]$|^\d{2}(\.\d{1,2})?$/.test(parent)) {
     return NextResponse.json({ error: 'Invalid parent code' }, { status: 400 });
+  }
+
+  // Check cache
+  const cacheKey = `industries:${parent || 'root'}`;
+  const cached = responseCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiry) {
+    return NextResponse.json(cached.data);
   }
 
   // Get NACE codes — either sections (level 1) or children of parent
@@ -50,6 +61,14 @@ export async function GET(request: Request) {
     })
   );
 
+  // Cache result
+  responseCache.set(cacheKey, { data: results, expiry: Date.now() + CACHE_TTL });
+  // Evict old entries
+  if (responseCache.size > 50) {
+    const oldest = responseCache.keys().next().value;
+    if (oldest) responseCache.delete(oldest);
+  }
+
   return NextResponse.json(results);
 }
 
@@ -79,7 +98,10 @@ async function getNacePrefixes(code: string, level: number): Promise<string[]> {
 }
 
 function buildNaceLikeClause(prefixes: string[]): string {
-  return prefixes.map((p) => `tp.naceCode LIKE '${p}%'`).join(' OR ');
+  return prefixes
+    .filter((p) => /^\d{1,2}$/.test(p)) // Only allow 1-2 digit numeric prefixes
+    .map((p) => `tp.naceCode LIKE '${p}%'`)
+    .join(' OR ') || '1=0';
 }
 
 async function getIndustryStats(prefixes: string[], year: number) {

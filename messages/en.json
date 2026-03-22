@@ -207,6 +207,43 @@
     "footer": {
       "poweredBy": "Powered by",
       "dataSource": "Data source: Lursoft, Company Register"
+    },
+    "industries": {
+      "title": "Industries",
+      "viewAll": "View all →",
+      "companies": "companies"
+    },
+    "topCompanies": {
+      "title": "Top Companies in Latvia",
+      "company": "Company",
+      "revenue": "Revenue",
+      "profit": "Profit",
+      "companiesSelected": "{count} companies selected",
+      "maxCompanies": "(max {max})",
+      "clear": "Clear",
+      "compare": "Compare",
+      "hint": "Select companies to compare their metrics"
+    },
+    "quickLinks": {
+      "search": {
+        "title": "Search Companies",
+        "description": "Search by name, registration number, or owner"
+      },
+      "compare": {
+        "title": "Compare",
+        "description": "Compare up to 5 companies side by side"
+      },
+      "industries": {
+        "title": "Industry Overview",
+        "description": "Explore industries and their top companies"
+      }
+    },
+    "compareCta": {
+      "title": "Compare Companies",
+      "description": "Compare financials, taxes, and headcount for up to 5 companies at once",
+      "tryIt": "Try with an example →",
+      "or": "or",
+      "chooseOwn": "choose your own →"
     }
   },
   "auth": {
@@ -682,6 +719,22 @@
       "avgRevenue": "Average revenue"
     },
     "year": "Year",
-    "sortBy": "Sort by"
+    "sortBy": "Sort by",
+    "allSubcategories": "all subcategories",
+    "showAll": "show all",
+    "companiesSelected": "{count} companies selected",
+    "maxCompanies": "(max {max})",
+    "clear": "Clear",
+    "compareButton": "Compare",
+    "errorLoading": "Failed to load industry data",
+    "retry": "Try again",
+    "searchPlaceholder": "Search industry...",
+    "noResults": "No results",
+    "sort": {
+      "code": "By code",
+      "companies": "By companies",
+      "revenue": "By revenue",
+      "employees": "By employees"
+    }
   }
 }

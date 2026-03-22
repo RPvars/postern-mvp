@@ -266,8 +266,8 @@ export default function ComparePage() {
 
   const getCellColor = useCallback((value: number | null, best: number | null, worst: number | null) => {
     if (value === null || best === null || worst === null) return '';
-    if (value === best) return 'bg-green-50 border-green-200';
-    if (value === worst) return 'bg-red-50 border-red-200';
+    if (value === best) return 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800';
+    if (value === worst) return 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800';
     return '';
   }, []);
 
@@ -410,7 +410,7 @@ export default function ComparePage() {
                           <TableCell className="font-medium">{t('basicInfo.legalForm')}</TableCell>
                           {companies.map((company) => (
                             <TableCell key={company.id} className="text-sm">
-                              {company.legalForm ? (tCommon(`legalForm.${company.legalForm}`) || company.legalForm) : tCommon('notAvailable')}
+                              {company.legalForm ?? tCommon('notAvailable')}
                             </TableCell>
                           ))}
                         </TableRow>
@@ -903,7 +903,7 @@ export default function ComparePage() {
                           domain={taxPaymentsYAxisDomain as [number, number]}
                         />
                         <Tooltip formatter={(value) => formatCurrency(value as number)} />
-                        <Legend formatter={(value) => <span style={{ color: '#000000' }}>{value}</span>} />
+                        <Legend formatter={(value) => <span className="text-foreground">{value}</span>} />
                         {companies.map((company, index) => (
                           <Line
                             key={company.id}

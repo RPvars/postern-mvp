@@ -1,80 +1,44 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useTranslations } from 'next-intl';
-import { useRouter, useSearchParams, useParams } from 'next/navigation';
+import { useTranslations, useLocale } from 'next-intl';
+import { useSearchParams, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Navigation } from '@/components/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { Building2, Users, TrendingUp, ChevronRight, Banknote, ArrowUpDown, ArrowDown, ArrowUp } from 'lucide-react';
-import { formatCurrency } from '@/lib/format';
+import { Building2, ChevronRight } from 'lucide-react';
 import { SECTION_ICONS } from '@/lib/industry-icons';
-
-type Metric = 'revenue' | 'employees' | 'taxes' | 'profit';
-
-interface BreadcrumbItem {
-  code: string;
-  nameLv: string;
-  nameEn: string;
-}
-
-interface IndustryChild {
-  code: string;
-  nameLv: string;
-  nameEn: string;
-  level: number;
-  companyCount: number;
-}
-
-interface TopCompany {
-  registrationNumber: string;
-  name: string;
-  legalAddress: string;
-  revenue: number | null;
-  netIncome: number | null;
-  totalAssets: number | null;
-  employees: number | null;
-  taxAmount: number | null;
-  naceCode: string | null;
-  naceDescription: string | null;
-}
-
-interface IndustryData {
-  industry: { code: string; nameLv: string; nameEn: string; level: number; parentCode: string | null };
-  breadcrumb: BreadcrumbItem[];
-  children: IndustryChild[];
-  stats: {
-    totalCompanies: number;
-    totalRevenue: number;
-    totalEmployees: number;
-    totalTaxes: number;
-    avgRevenue: number;
-  };
-  topCompanies: TopCompany[];
-  year: number;
-  availableYears: number[];
-}
+import { StatsCards } from '@/components/industry/stats-cards';
+import { SubcategoryTabs } from '@/components/industry/subcategory-tabs';
+import { TopCompaniesTable } from '@/components/industry/top-companies-table';
+import type { Metric, TopCompany, IndustryData } from '@/components/industry/types';
 
 export default function IndustryDetailPage() {
   const t = useTranslations('industries');
-  const router = useRouter();
+  const locale = useLocale();
   const params = useParams();
   const searchParams = useSearchParams();
   const code = params.code as string;
+  const n = (item: { nameLv: string; nameEn: string }) =>
+    locale === 'en' ? item.nameEn : item.nameLv;
 
   const [data, setData] = useState<IndustryData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [metric, setMetric] = useState<Metric>(
     (searchParams.get('metric') as Metric) || 'profit'
   );
   const [year, setYear] = useState<string>(searchParams.get('year') || '');
+  const [activeSub, setActiveSub] = useState<string>(searchParams.get('sub') || '');
+
+  const [displayStats, setDisplayStats] = useState<IndustryData['stats'] | null>(null);
+  const [displayCompanies, setDisplayCompanies] = useState<TopCompany[]>([]);
+  const [subLoading, setSubLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setError(false);
     try {
       const params = new URLSearchParams();
       params.set('metric', metric);
@@ -88,9 +52,16 @@ export default function IndustryDetailPage() {
         if (!year && result.year) {
           setYear(String(result.year));
         }
+        if (!activeSub) {
+          setDisplayStats(result.stats);
+          setDisplayCompanies(result.topCompanies);
+        }
+      } else {
+        setError(true);
       }
     } catch (err) {
       console.error('Failed to load industry data:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -98,22 +69,58 @@ export default function IndustryDetailPage() {
 
   useEffect(() => {
     fetchData();
+    setActiveSub('');
   }, [fetchData]);
 
-  // Update URL params
+  useEffect(() => {
+    if (!activeSub || !data) {
+      if (data) {
+        setDisplayStats(data.stats);
+        setDisplayCompanies(data.topCompanies);
+      }
+      return;
+    }
+
+    const fetchSub = async () => {
+      setSubLoading(true);
+      try {
+        const params = new URLSearchParams();
+        params.set('metric', metric);
+        if (year) params.set('year', year);
+        params.set('limit', '20');
+
+        const res = await fetch(`/api/industries/${activeSub}?${params}`);
+        if (res.ok) {
+          const result = await res.json();
+          setDisplayStats(result.stats);
+          setDisplayCompanies(result.topCompanies);
+        }
+      } catch (err) {
+        console.error('Failed to load sub-category:', err);
+      } finally {
+        setSubLoading(false);
+      }
+    };
+    fetchSub();
+  }, [activeSub, metric, year, data]);
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (metric !== 'profit') params.set('metric', metric);
     if (year && data?.availableYears && String(data.availableYears[0]) !== year) {
       params.set('year', year);
     }
+    if (activeSub) params.set('sub', activeSub);
     const query = params.toString();
     const newUrl = `/industries/${code}${query ? `?${query}` : ''}`;
     window.history.replaceState(null, '', newUrl);
-  }, [code, metric, year, data?.availableYears]);
+  }, [code, metric, year, activeSub, data?.availableYears]);
 
-  const fmt = (v: number | null) => v != null ? formatCurrency(v) : '—';
-  const fmtNum = (v: number | null) => v != null ? v.toLocaleString('lv-LV') : '—';
+  const sectionHeading = activeSub
+    ? (() => { const c = data?.children.find(c => c.code === activeSub); return c ? n(c) : ''; })()
+    : data && data.children.length > 1
+      ? `${n(data.industry)} — ${t('allSubcategories')}`
+      : data ? n(data.industry) : '';
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,10 +141,10 @@ export default function IndustryDetailPage() {
                     href={`/industries/${crumb.code}`}
                     className="hover:text-foreground transition-colors"
                   >
-                    {crumb.nameLv}
+                    {n(crumb)}
                   </Link>
                 ) : (
-                  <span className="text-foreground font-medium">{crumb.nameLv}</span>
+                  <span className="text-foreground font-medium">{n(crumb)}</span>
                 )}
               </span>
             ))}
@@ -154,207 +161,75 @@ export default function IndustryDetailPage() {
                 </span>
               );
             })()}
-            {data?.industry.nameLv ?? <Skeleton className="h-8 w-64" />}
+            {data ? n(data.industry) : <Skeleton className="h-8 w-64" />}
           </h1>
         </div>
       </div>
 
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        {loading && !data ? (
+      <main className="container mx-auto px-4 py-8 pb-20 max-w-7xl">
+        {error && !data ? (
+          <Card>
+            <CardContent className="py-12 text-center">
+              <p className="text-muted-foreground mb-4">{t('errorLoading')}</p>
+              <button
+                onClick={() => fetchData()}
+                className="text-sm px-4 py-2 rounded-md bg-[#FEC200] text-black font-medium hover:bg-[#FEC200]/90"
+              >
+                {t('retry')}
+              </button>
+            </CardContent>
+          </Card>
+        ) : loading && !data ? (
           <IndustrySkeleton />
         ) : data ? (
           <>
-            {/* Stats cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <StatCard
-                label={t('stats.totalCompanies')}
-                value={data.stats.totalCompanies.toLocaleString('lv-LV')}
-                icon={<Building2 className="h-4 w-4" />}
-              />
-              <StatCard
-                label={t('stats.totalRevenue')}
-                value={data.stats.totalRevenue > 0 ? formatCurrency(data.stats.totalRevenue) : '—'}
-                icon={<TrendingUp className="h-4 w-4" />}
-              />
-              <StatCard
-                label={t('stats.totalEmployees')}
-                value={data.stats.totalEmployees > 0 ? data.stats.totalEmployees.toLocaleString('lv-LV') : '—'}
-                icon={<Users className="h-4 w-4" />}
-              />
-              <StatCard
-                label={t('stats.totalTaxes')}
-                value={data.stats.totalTaxes > 0 ? formatCurrency(data.stats.totalTaxes) : '—'}
-                icon={<Banknote className="h-4 w-4" />}
-              />
-            </div>
+            <SubcategoryTabs
+              children={data.children}
+              activeSub={activeSub}
+              onSelect={setActiveSub}
+              name={n}
+              t={t}
+              locale={locale}
+            />
 
-            {/* Subcategories */}
-            {data.children.length > 1 && (
-              <div className="mb-8">
-                <h2 className="text-lg font-semibold text-foreground mb-3">{t('subcategories')}</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {data.children.map((child) => (
-                    <Card
-                      key={child.code}
-                      className="cursor-pointer transition-colors hover:bg-accent/50"
-                      onClick={(e) => {
-                        const url = `/industries/${child.code}`;
-                        e.metaKey || e.ctrlKey ? window.open(url, '_blank') : router.push(url);
-                      }}
-                    >
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <Badge variant="outline" className="shrink-0 font-mono text-xs">
-                              {child.code}
-                            </Badge>
-                            <span className="text-sm truncate">{child.nameLv}</span>
-                          </div>
-                          <span className="text-xs text-muted-foreground shrink-0 ml-2">
-                            {child.companyCount.toLocaleString('lv-LV')}
-                          </span>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Top companies */}
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <h2 className="text-lg font-semibold text-foreground">
-                  {t('topCompanies')}
-                </h2>
-                <div className="flex items-center gap-3">
-                  {data.availableYears.length > 1 && (
-                    <Select value={year} onValueChange={setYear}>
-                      <SelectTrigger className="w-[100px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {data.availableYears.map((y) => (
-                          <SelectItem key={y} value={String(y)}>
-                            {y}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-              </div>
-
-              {data.topCompanies.length > 0 ? (
-                <Card>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-12">{t('rank')}</TableHead>
-                          <TableHead>{t('companyName')}</TableHead>
-                          <SortableHead metric="profit" current={metric} onSort={setMetric} label={t('metric.profit')} />
-                          <SortableHead metric="revenue" current={metric} onSort={setMetric} label={t('metric.revenue')} className="hidden md:table-cell" />
-                          <SortableHead metric="taxes" current={metric} onSort={setMetric} label={t('metric.taxes')} className="hidden lg:table-cell" />
-                          <SortableHead metric="employees" current={metric} onSort={setMetric} label={t('metric.employees')} className="hidden lg:table-cell" />
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {data.topCompanies.map((company, index) => (
-                          <TableRow
-                            key={company.registrationNumber}
-                            className="cursor-pointer hover:bg-accent/50"
-                            onClick={(e) => {
-                              const url = `/company/${company.registrationNumber}`;
-                              e.metaKey || e.ctrlKey ? window.open(url, '_blank') : router.push(url);
-                            }}
-                          >
-                            <TableCell className="font-medium text-muted-foreground">
-                              {index + 1}
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <div className="font-medium">{company.name}</div>
-                                <div className="text-xs text-muted-foreground truncate max-w-[300px]">
-                                  {company.legalAddress}
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums">
-                              <span className={metric === 'profit' ? 'font-semibold' : ''}>{fmt(company.netIncome)}</span>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums hidden md:table-cell">
-                              <span className={metric === 'revenue' ? 'font-semibold' : ''}>{fmt(company.revenue)}</span>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums hidden lg:table-cell">
-                              <span className={metric === 'taxes' ? 'font-semibold' : ''}>{fmt(company.taxAmount)}</span>
-                            </TableCell>
-                            <TableCell className="text-right tabular-nums hidden lg:table-cell">
-                              <span className={metric === 'employees' ? 'font-semibold' : ''}>{fmtNum(company.employees)}</span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </Card>
-              ) : (
-                <Card>
-                  <CardContent className="py-12 text-center text-muted-foreground">
-                    {t('noData')}
-                  </CardContent>
-                </Card>
+            {/* Section heading for stats + table */}
+            <div className="flex items-center gap-3 mb-4">
+              <h2 className="text-lg font-semibold text-foreground">
+                {sectionHeading}
+                {year && <span className="text-muted-foreground font-normal text-base ml-2">({year})</span>}
+              </h2>
+              {activeSub && (
+                <button
+                  onClick={() => setActiveSub('')}
+                  className="text-xs px-2 py-0.5 rounded bg-accent hover:bg-accent/80 text-muted-foreground"
+                >
+                  ✕ {t('showAll')}
+                </button>
               )}
             </div>
+
+            <div className={`relative transition-opacity duration-200 ${subLoading ? 'opacity-30 pointer-events-none' : ''}`}>
+              <StatsCards stats={displayStats} t={t} locale={locale} />
+              <TopCompaniesTable
+                data={data}
+                displayCompanies={displayCompanies}
+                metric={metric}
+                setMetric={setMetric}
+                year={year}
+                setYear={setYear}
+                t={t}
+                locale={locale}
+              />
+            </div>
+            {subLoading && (
+              <div className="flex justify-center py-8">
+                <div className="h-6 w-6 border-2 border-[#FEC200] border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </>
         ) : null}
       </main>
     </div>
-  );
-}
-
-function StatCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
-  return (
-    <Card>
-      <CardContent className="py-4 px-4">
-        <div className="flex items-center gap-2 text-muted-foreground text-sm mb-1">
-          {icon}
-          {label}
-        </div>
-        <div className="text-xl font-bold text-foreground tabular-nums">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function SortableHead({
-  metric,
-  current,
-  onSort,
-  label,
-  className = '',
-}: {
-  metric: Metric;
-  current: Metric;
-  onSort: (m: Metric) => void;
-  label: string;
-  className?: string;
-}) {
-  const isActive = current === metric;
-  return (
-    <TableHead
-      className={`text-right cursor-pointer select-none hover:text-foreground transition-colors ${className}`}
-      onClick={() => onSort(metric)}
-    >
-      <span className={`inline-flex items-center gap-1 ${isActive ? 'text-foreground font-semibold' : ''}`}>
-        {label}
-        {isActive ? (
-          <ArrowDown className="h-3.5 w-3.5" />
-        ) : (
-          <ArrowUpDown className="h-3.5 w-3.5 opacity-30" />
-        )}
-      </span>
-    </TableHead>
   );
 }
 

@@ -200,14 +200,20 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **NACE hierarchy**: `NaceCode` model with `parentCode` and `level` (1=Section, 2=Division, 3=Group, 4=Class)
 - **NACE import**: NACE 2.0 provides authoritative section→division mapping; NACE 2.1 only updates names (not parentCode)
 - **Company names**: `formatCompanyDisplayName` in `lib/text-utils.ts` moves legal form to end ("SIA Foo" → "Foo, SIA")
-- **Icons**: `lib/industry-icons.ts` maps sections to Lucide icons
-- **SQL**: Uses `$queryRawUnsafe` with validated inputs to avoid SQLite 999-parameter limit
+- **Icons**: `lib/industry-icons.ts` maps sections AND divisions to Lucide icons
+- **SQL**: Uses `$queryRawUnsafe` with sanitized inputs (NACE prefixes validated as 1-2 digit numbers) to avoid SQLite 999-parameter limit
+- **Rank history**: Top companies show ▲/▼ rank change vs previous year with hover tooltip (3-year history)
+- **Compare integration**: Checkbox selection in top table → "Salīdzināt" sticky bar → `/compare?companies=...&compared=true`
+- **CSV export**: Client-side CSV generation with BOM for Excel UTF-8 compatibility
+- **API cache**: Industry listings cached 5min in-memory (per-process, not shared across serverless instances)
 
 ## Compare Page
 - URL state persistence: Selected companies stored in `?companies=id1,id2,id3` parameter
 - Comparison state: `?compared=true` tracks if comparison was executed
 - Auto-restore: On language change/reload, companies and comparison are restored from URL
 - Max 5 companies, min 2 required for comparison
+- **Supports both ID formats**: Compare API auto-detects registration numbers (all digits) vs internal IDs (cuid)
+- **BigInt serialization**: Ownership.sharesCount is BigInt — API uses JSON replacer to convert to Number before response
 
 ## Known Issues & Solutions
 1. **"Unable to open database file"**: Clear `.next` cache and restart (`rm -rf .next && npm run dev`)

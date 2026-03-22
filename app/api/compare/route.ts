@@ -44,17 +44,18 @@ export async function POST(request: NextRequest) {
     const { companyIds } = validationResult.data;
 
     // Parse query parameters for historical data pagination
-    const years = body.years || 5; // Default to last 5 years
+    const years = Math.min(Math.max(1, parseInt(body.years, 10) || 5), 20); // 1-20 years, default 5
     const currentYear = new Date().getFullYear();
     const startYear = currentYear - years;
 
+    // Detect if IDs are registration numbers (all digits) or internal IDs (cuid)
+    const isRegNumbers = companyIds.every((id) => /^\d+$/.test(id));
+
     // Fetch all companies with their financial data
     const companies = await prisma.company.findMany({
-      where: {
-        id: {
-          in: companyIds,
-        },
-      },
+      where: isRegNumbers
+        ? { registrationNumber: { in: companyIds } }
+        : { id: { in: companyIds } },
       include: {
         owners: {
           include: {
@@ -85,7 +86,7 @@ export async function POST(request: NextRequest) {
 
     // Check if all companies were found
     if (companies.length !== companyIds.length) {
-      const foundIds = companies.map((c) => c.id);
+      const foundIds = companies.map((c) => isRegNumbers ? c.registrationNumber : c.id);
       const missingIds = companyIds.filter((id) => !foundIds.includes(id));
       return NextResponse.json(
         {
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
 
     // Return companies in the same order as requested, with tax payments and financial data attached
     const orderedCompanies = companyIds.map((id) => {
-      const company = companies.find((c) => c.id === id);
+      const company = companies.find((c) => isRegNumbers ? c.registrationNumber === id : c.id === id);
       if (!company) return null;
       return {
         ...company,
@@ -150,7 +151,12 @@ export async function POST(request: NextRequest) {
       };
     });
 
-    return NextResponse.json({ companies: orderedCompanies });
+    // Convert BigInt fields to Number for JSON serialization
+    const serializable = JSON.parse(JSON.stringify(orderedCompanies, (_, v) =>
+      typeof v === 'bigint' ? Number(v) : v
+    ));
+
+    return NextResponse.json({ companies: serializable });
   } catch (error) {
     // Capture error with Sentry
     captureException(error, { endpoint: 'compare' });

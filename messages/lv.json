@@ -151,7 +151,7 @@
   "navigation": {
     "search": "Meklēt",
     "compare": "Salīdzināt",
-    "industries": "Nozares",
+    "industries": "Industrijas",
     "analytics": "Analītika",
     "reports": "Ziņojumi",
     "login": "Pieslēgties",
@@ -207,6 +207,43 @@
     "footer": {
       "poweredBy": "Darbina",
       "dataSource": "Datu avots: Lursoft, Uzņēmumu Reģistrs"
+    },
+    "industries": {
+      "title": "Nozares",
+      "viewAll": "Skatīt visas →",
+      "companies": "uzņēmumi"
+    },
+    "topCompanies": {
+      "title": "Lielākie uzņēmumi Latvijā",
+      "company": "Uzņēmums",
+      "revenue": "Apgrozījums",
+      "profit": "Peļņa",
+      "companiesSelected": "{count} uzņēmumi izvēlēti",
+      "maxCompanies": "(max {max})",
+      "clear": "Notīrīt",
+      "compare": "Salīdzināt",
+      "hint": "Atzīmē uzņēmumus lai salīdzinātu to rādītājus"
+    },
+    "quickLinks": {
+      "search": {
+        "title": "Meklēt uzņēmumus",
+        "description": "Meklējiet pēc nosaukuma, reģ. numura vai īpašnieka"
+      },
+      "compare": {
+        "title": "Salīdzināt",
+        "description": "Salīdziniet līdz 5 uzņēmumiem blakus"
+      },
+      "industries": {
+        "title": "Nozaru pārskats",
+        "description": "Izpētiet nozares un to vadošos uzņēmumus"
+      }
+    },
+    "compareCta": {
+      "title": "Salīdzini uzņēmumus",
+      "description": "Salīdzini finanšu rādītājus, nodokļus un darbinieku skaitu līdz 5 uzņēmumiem vienlaicīgi",
+      "tryIt": "Pamēģināt ar piemēru →",
+      "or": "vai",
+      "chooseOwn": "izvēlies pats →"
     }
   },
   "auth": {
@@ -659,15 +696,15 @@
     }
   },
   "industries": {
-    "title": "Nozares",
-    "allSections": "Visas nozares",
+    "title": "Industrijas",
+    "allSections": "Visas industrijas",
     "topCompanies": "Lielākie uzņēmumi",
     "companies": "uzņēmumi",
     "subcategories": "Apakškategorijas",
     "rank": "#",
     "companyName": "Uzņēmums",
     "address": "Adrese",
-    "noData": "Nav datu par šo nozari",
+    "noData": "Nav datu par šo industriju",
     "metric": {
       "revenue": "Apgrozījums",
       "employees": "Darbinieki",
@@ -682,6 +719,22 @@
       "avgRevenue": "Vidējais apgrozījums"
     },
     "year": "Gads",
-    "sortBy": "Kārtot pēc"
+    "sortBy": "Kārtot pēc",
+    "allSubcategories": "visas apakškategorijas",
+    "showAll": "rādīt visas",
+    "companiesSelected": "{count} uzņēmumi izvēlēti",
+    "maxCompanies": "(max {max})",
+    "clear": "Notīrīt",
+    "compareButton": "Salīdzināt",
+    "errorLoading": "Neizdevās ielādēt industrijas datus",
+    "retry": "Mēģināt vēlreiz",
+    "searchPlaceholder": "Meklēt industriju...",
+    "noResults": "Nav rezultātu",
+    "sort": {
+      "code": "Pēc koda",
+      "companies": "Pēc uzņēmumiem",
+      "revenue": "Pēc apgrozījuma",
+      "employees": "Pēc darbiniekiem"
+    }
   }
 }
