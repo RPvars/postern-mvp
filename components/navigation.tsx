@@ -60,9 +60,15 @@ export function Navigation() {
             >
               {t('compare')}
             </Link>
-            <span className="text-base font-medium text-muted-foreground cursor-not-allowed" title={t('comingSoon')}>
-              {t('analytics')}
-            </span>
+            <Link
+              href="/industries"
+              className={pathname.startsWith('/industries')
+                ? "text-base font-bold text-foreground"
+                : "text-base font-medium text-muted-foreground hover:text-foreground"
+              }
+            >
+              {t('industries')}
+            </Link>
             <span className="text-base font-medium text-muted-foreground cursor-not-allowed" title={t('comingSoon')}>
               {t('reports')}
             </span>

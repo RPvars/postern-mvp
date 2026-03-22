@@ -13,16 +13,30 @@ const NACE21_CSV_URL =
 
 const BATCH_SIZE = 200;
 
-type NaceRecord = { code: string; nameLv: string; nameEn: string };
+type NaceRecord = {
+  code: string;
+  nameLv: string;
+  nameEn: string;
+  parentCode: string | null;
+  level: number;
+};
 
-function addAliases(code: string, nameLv: string, batch: NaceRecord[]) {
-  // Division codes like "41" → add "41.00" alias
+function detectLevel(code: string): number {
+  if (/^[A-U]$/.test(code)) return 1;          // Section: A, B, C...
+  if (/^\d{2}$/.test(code)) return 2;           // Division: 41, 42
+  if (/^\d{2}\.\d$/.test(code)) return 3;       // Group: 41.1, 41.2
+  if (/^\d{2}\.\d{2}$/.test(code)) return 4;    // Class: 41.10, 41.20
+  return 0;
+}
+
+function addAliases(code: string, nameLv: string, parentCode: string | null, batch: NaceRecord[]) {
+  // Division codes like "41" → add "41.00" alias pointing to same parent
   if (/^\d{2}$/.test(code)) {
-    batch.push({ code: code + '.00', nameLv, nameEn: nameLv });
+    batch.push({ code: code + '.00', nameLv, nameEn: nameLv, parentCode: code, level: 4 });
   }
   // Group codes like "41.1" → add "41.10" alias
   if (/^\d{2}\.\d$/.test(code)) {
-    batch.push({ code: code + '0', nameLv, nameEn: nameLv });
+    batch.push({ code: code + '0', nameLv, nameEn: nameLv, parentCode: code, level: 4 });
   }
 }
 
@@ -47,16 +61,17 @@ async function importNace2(csvPath: string): Promise<number> {
     const fields = parseCSVLine(line);
     if (fields.length < 4) continue;
 
-    const level = parseInt(fields[3], 10);
-    if (level < 2) continue; // Skip sections (A, B) and top-level
-
     const rawCode = fields[1].trim();
     const nameLv = fields[0].trim();
+    const parentCode = fields[2]?.trim() || null;
     if (!rawCode || !nameLv) continue;
 
+    const level = detectLevel(rawCode);
+    if (level === 0) continue; // Skip unrecognized formats
+
     total++;
-    batch.push({ code: rawCode, nameLv, nameEn: nameLv });
-    addAliases(rawCode, nameLv, batch);
+    batch.push({ code: rawCode, nameLv, nameEn: nameLv, parentCode, level });
+    addAliases(rawCode, nameLv, parentCode, batch);
 
     if (batch.length >= BATCH_SIZE) {
       imported += await upsertBatch(batch);
@@ -88,28 +103,51 @@ async function importNace21(csvPath: string): Promise<number> {
     if (isHeader) { isHeader = false; continue; }
 
     const fields = parseCSVLine(line);
-    if (fields.length < 2) continue;
+    if (fields.length < 3) continue;
 
     const rawCode = fields[0].trim();
     const nameLv = fields[1].trim();
+    const parentCode = fields[2]?.trim() || null;
     if (!rawCode || !nameLv) continue;
 
-    // Skip letter section codes (A, B, C...)
-    if (/^[A-Z]/.test(rawCode)) continue;
+    const level = detectLevel(rawCode);
+    if (level === 0) continue;
+
+    // Skip sections from NACE 2.1 — they conflict with NACE 2.0 section assignments
+    // VID tax data uses NACE 2.0 sections, so we keep those as authoritative
+    if (level === 1) continue;
 
     total++;
-    batch.push({ code: rawCode, nameLv, nameEn: nameLv });
-    addAliases(rawCode, nameLv, batch);
+    batch.push({ code: rawCode, nameLv, nameEn: nameLv, parentCode, level });
+    addAliases(rawCode, nameLv, parentCode, batch);
 
     if (batch.length >= BATCH_SIZE) {
-      imported += await upsertBatch(batch);
+      imported += await upsertBatchSafe(batch);
       batch = [];
     }
   }
 
-  if (batch.length > 0) imported += await upsertBatch(batch);
-  console.log(`  NACE 2.1: ${total} codes processed, ${imported} records upserted`);
+  if (batch.length > 0) imported += await upsertBatchSafe(batch);
+  console.log(`  NACE 2.1: ${total} codes processed (sections skipped), ${imported} records upserted`);
   return imported;
+}
+
+/**
+ * NACE 2.1 safe upsert: only update name, NOT parentCode/level.
+ * NACE 2.1 reassigns divisions to different sections than 2.0.
+ * We keep NACE 2.0 hierarchy as authoritative (matches VID data).
+ */
+async function upsertBatchSafe(records: NaceRecord[]): Promise<number> {
+  await prisma.$transaction(
+    records.map((r) =>
+      prisma.naceCode.upsert({
+        where: { code: r.code },
+        update: { nameLv: r.nameLv, nameEn: r.nameEn },
+        create: r,
+      })
+    )
+  );
+  return records.length;
 }
 
 async function upsertBatch(records: NaceRecord[]): Promise<number> {
@@ -117,7 +155,7 @@ async function upsertBatch(records: NaceRecord[]): Promise<number> {
     records.map((r) =>
       prisma.naceCode.upsert({
         where: { code: r.code },
-        update: { nameLv: r.nameLv, nameEn: r.nameEn },
+        update: { nameLv: r.nameLv, nameEn: r.nameEn, parentCode: r.parentCode, level: r.level },
         create: r,
       })
     )
@@ -139,7 +177,8 @@ async function main() {
   await importNace21(nace21Path);
 
   const count = await prisma.naceCode.count();
-  console.log(`\nDatabase summary: ${count} total NACE codes`);
+  const sections = await prisma.naceCode.count({ where: { level: 1 } });
+  console.log(`\nDatabase summary: ${count} total NACE codes (${sections} sections)`);
 
   await prisma.$disconnect();
 }

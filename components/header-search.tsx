@@ -41,25 +41,29 @@ export function HeaderSearch() {
     personSearch.handleBlur();
   };
 
-  const handleCompanySelect = (companyId: string) => {
-    router.push(`/company/${companyId}`);
+  const navigate = (url: string, newTab: boolean) => {
+    if (newTab) {
+      window.open(url, '_blank');
+    } else {
+      router.push(url);
+    }
     companySearch.clearSearch();
     personSearch.clearSearch();
   };
 
-  const handlePersonSelect = (person: PersonSearchResult) => {
+  const handleCompanySelect = (companyId: string, e?: React.MouseEvent) => {
+    navigate(`/company/${companyId}`, !!(e?.metaKey || e?.ctrlKey));
+  };
+
+  const handlePersonSelect = (person: PersonSearchResult, e?: React.MouseEvent) => {
     const code = person.personalCode || '';
-    router.push(`/person/${encodeURIComponent(code)}?name=${encodeURIComponent(person.name)}`);
-    companySearch.clearSearch();
-    personSearch.clearSearch();
+    navigate(`/person/${encodeURIComponent(code)}?name=${encodeURIComponent(person.name)}`, !!(e?.metaKey || e?.ctrlKey));
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && query.trim().length >= 2) {
       e.preventDefault();
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-      companySearch.clearSearch();
-      personSearch.clearSearch();
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`, !!(e.metaKey || e.ctrlKey));
     }
   };
 
@@ -105,7 +109,7 @@ export function HeaderSearch() {
                 {companySearch.results.slice(0, 5).map((company) => (
                   <button
                     key={company.id}
-                    onClick={() => handleCompanySelect(company.id)}
+                    onClick={(e) => handleCompanySelect(company.id, e)}
                     onMouseDown={(e) => e.preventDefault()}
                     className="w-full text-left px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
                   >
@@ -129,7 +133,7 @@ export function HeaderSearch() {
                 {personSearch.results.slice(0, 5).map((person, i) => (
                   <button
                     key={`${person.name}-${person.personalCode}-${i}`}
-                    onClick={() => handlePersonSelect(person)}
+                    onClick={(e) => handlePersonSelect(person, e)}
                     onMouseDown={(e) => e.preventDefault()}
                     className="w-full text-left px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
                   >
@@ -156,10 +160,8 @@ export function HeaderSearch() {
             <>
               <div className="border-t mx-2" />
               <button
-                onClick={() => {
-                  router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-                  companySearch.clearSearch();
-                  personSearch.clearSearch();
+                onClick={(e) => {
+                  navigate(`/search?q=${encodeURIComponent(query.trim())}`, !!(e.metaKey || e.ctrlKey));
                 }}
                 onMouseDown={(e) => e.preventDefault()}
                 className="w-full text-center px-3 py-2.5 text-sm text-primary hover:bg-accent transition-colors flex items-center justify-center gap-1"

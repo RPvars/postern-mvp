@@ -83,10 +83,8 @@ export async function GET(
       }),
     ]);
 
-    // Extract NACE code from latest tax payment year
-    const latestNaceRaw = taxPaymentRecords.length > 0
-      ? taxPaymentRecords[0]?.naceCode
-      : null;
+    // Extract NACE code — use first non-null from newest year (2024 data may lack NACE)
+    const latestNaceRaw = taxPaymentRecords.find(t => t.naceCode)?.naceCode ?? null;
     const formatNaceCode = (code: string) =>
       code.includes('.') ? code : code.slice(0, 2) + '.' + code.slice(2);
     const naceRecord = latestNaceRaw
@@ -232,30 +230,46 @@ async function cachePersonData(
     },
   });
 
-  // Cache owners (members) — find or create Owner, then upsert Ownership
+  // Cache owners (members) — batch read, then upsert
   const activeMembers = (legalEntity.members || []).filter(m => !m.isAnnulled);
+
+  // Extract all personal codes from members for batch lookup
+  const memberCodes = activeMembers
+    .map(m => m.naturalPerson?.latvianIdentityNumber || m.legalEntity?.registrationNumber || null)
+    .filter((c): c is string => c !== null);
+  const maskedCodes = memberCodes
+    .filter(c => /^\d{6}-?\d{5}$/.test(c))
+    .map(c => c.replace(/-?\d{5}$/, '-*****'));
+  const allCodes = [...new Set([...memberCodes, ...maskedCodes])];
+
+  // Single batch query for all potential owner matches
+  const existingOwners = allCodes.length > 0
+    ? await prisma.owner.findMany({ where: { personalCode: { in: allCodes } } })
+    : [];
+
+  // Build lookup maps for O(1) matching
+  const ownerByCode = new Map(existingOwners.map(o => [o.personalCode!, o]));
+  const ownerByCodeAndName = new Map(existingOwners.map(o => [`${o.personalCode}::${o.name}`, o]));
+
   for (const m of activeMembers) {
     const name = m.naturalPerson?.name?.trim() || m.legalEntity?.legalName?.trim() || m.legalEntity?.name?.trim() || null;
     const personalCode = m.naturalPerson?.latvianIdentityNumber || m.legalEntity?.registrationNumber || null;
     if (!name) continue;
 
-    // Find owner by full code, or by masked code (CSV import), or by name
-    let owner = personalCode
-      ? await prisma.owner.findFirst({ where: { personalCode } })
-      : null;
+    // In-memory lookup: full code → masked code+name → name-only (DB fallback)
+    let owner = personalCode ? ownerByCode.get(personalCode) ?? null : null;
 
-    // If not found by full code, try masked version (CSV stores masked codes like 123456-*****)
     if (!owner && personalCode && /^\d{6}-?\d{5}$/.test(personalCode)) {
       const maskedCode = personalCode.replace(/-?\d{5}$/, '-*****');
-      owner = await prisma.owner.findFirst({ where: { personalCode: maskedCode, name } });
+      owner = ownerByCodeAndName.get(`${maskedCode}::${name}`) ?? null;
     }
 
     if (!owner && !personalCode) {
+      // Rare case: no code at all — single DB query as fallback
       owner = await prisma.owner.findFirst({ where: { name, personalCode: null } });
     }
 
     if (owner) {
-      // Upgrade masked code to full code from BR API
       await prisma.owner.update({ where: { id: owner.id }, data: { name, nameNormalized: normalizeName(name), personalCode: personalCode || owner.personalCode } });
     } else {
       owner = await prisma.owner.create({ data: { name, nameNormalized: normalizeName(name), personalCode } });

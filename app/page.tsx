@@ -68,7 +68,7 @@ export default function Home() {
 
       <footer className="border-t bg-background/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          {common('copyright')}
+          {common('copyright', { year: new Date().getFullYear() })}
         </div>
       </footer>
     </div>

@@ -200,8 +200,13 @@ export function BasicTab({ company }: BasicTabProps) {
               <div>
                 <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.naceCode')}</div>
                 <div className="text-sm">
-                  {company.naceDescription || company.naceCode}
-                  <span className="text-muted-foreground ml-1">({company.naceCode})</span>
+                  <a
+                    href={`/industries/${company.naceCode.replace('.', '').slice(0, 2)}`}
+                    className="hover:text-[#FEC200] transition-colors"
+                  >
+                    {company.naceDescription || company.naceCode}
+                    <span className="text-muted-foreground ml-1">({company.naceCode})</span>
+                  </a>
                 </div>
                 <div className="text-xs text-muted-foreground mt-0.5">{t('companyInfo.naceSource')}</div>
               </div>

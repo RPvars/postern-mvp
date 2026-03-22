@@ -13,7 +13,7 @@
     "notFound": "Not found",
     "yes": "Yes",
     "no": "No",
-    "copyright": "© 2025 Posterns. All rights reserved.",
+    "copyright": "© {year} Posterns. All rights reserved.",
     "notAvailable": "N/A",
     "year": "Year",
     "date": "Date",
@@ -151,6 +151,7 @@
   "navigation": {
     "search": "Search",
     "compare": "Compare",
+    "industries": "Industries",
     "analytics": "Analytics",
     "reports": "Reports",
     "login": "Sign In",
@@ -656,5 +657,31 @@
       "employeeCount": "Avg. Employees",
       "noData": "No data"
     }
+  },
+  "industries": {
+    "title": "Industries",
+    "allSections": "All industries",
+    "topCompanies": "Top companies",
+    "companies": "companies",
+    "subcategories": "Subcategories",
+    "rank": "#",
+    "companyName": "Company",
+    "address": "Address",
+    "noData": "No data for this industry",
+    "metric": {
+      "revenue": "Revenue",
+      "employees": "Employees",
+      "taxes": "Taxes",
+      "profit": "Profit"
+    },
+    "stats": {
+      "totalCompanies": "Total companies",
+      "totalRevenue": "Total revenue",
+      "totalEmployees": "Total employees",
+      "totalTaxes": "Total taxes",
+      "avgRevenue": "Average revenue"
+    },
+    "year": "Year",
+    "sortBy": "Sort by"
   }
 }

@@ -51,22 +51,28 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
     personSearch.clearSearch();
   };
 
-  const handleCompanySelect = (companyId: string) => {
-    router.push(`/company/${companyId}`);
+  const navigate = (url: string, newTab: boolean) => {
+    if (newTab) {
+      window.open(url, '_blank');
+    } else {
+      router.push(url);
+    }
     clearAll();
+  };
+
+  const handleCompanySelect = (companyId: string) => {
+    navigate(`/company/${companyId}`, false);
   };
 
   const handlePersonSelect = (person: PersonSearchResult) => {
     const code = person.personalCode || '';
-    router.push(`/person/${encodeURIComponent(code)}?name=${encodeURIComponent(person.name)}`);
-    clearAll();
+    navigate(`/person/${encodeURIComponent(code)}?name=${encodeURIComponent(person.name)}`, false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && query.trim().length >= 2) {
       e.preventDefault();
-      router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-      clearAll();
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`, !!(e.metaKey || e.ctrlKey));
     }
   };
 
@@ -164,9 +170,8 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
                   {!isLoading && hasResults && (
                     <div className="border-t">
                       <button
-                        onClick={() => {
-                          router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-                          clearAll();
+                        onClick={(e) => {
+                          navigate(`/search?q=${encodeURIComponent(query.trim())}`, !!(e.metaKey || e.ctrlKey));
                         }}
                         onMouseDown={(e) => e.preventDefault()}
                         className="w-full text-center px-3 py-3 text-sm text-primary hover:bg-accent transition-colors flex items-center justify-center gap-1"
@@ -191,9 +196,9 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="latvia">🇱🇻 {t('countries.latvia')}</SelectItem>
-              <SelectItem value="estonia">🇪🇪 {t('countries.estonia')}</SelectItem>
-              <SelectItem value="lithuania">🇱🇹 {t('countries.lithuania')}</SelectItem>
-              <SelectItem value="all">🌍 {t('countries.all')}</SelectItem>
+              <SelectItem value="estonia" disabled>🇪🇪 {t('countries.estonia')}</SelectItem>
+              <SelectItem value="lithuania" disabled>🇱🇹 {t('countries.lithuania')}</SelectItem>
+              <SelectItem value="all" disabled>🌍 {t('countries.all')}</SelectItem>
             </SelectContent>
           </Select>
         </div>

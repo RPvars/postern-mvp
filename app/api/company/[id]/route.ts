@@ -120,10 +120,8 @@ export async function GET(
       }
     }
 
-    // Extract NACE code from latest tax payment year
-    const latestNaceRaw = taxPaymentRecords.length > 0
-      ? taxPaymentRecords[0]?.naceCode // already sorted desc by year
-      : null;
+    // Extract NACE code — use first non-null from newest year (2024 data may lack NACE)
+    const latestNaceRaw = taxPaymentRecords.find(t => t.naceCode)?.naceCode ?? null;
     const formatNaceCode = (code: string) =>
       code.includes('.') ? code : code.slice(0, 2) + '.' + code.slice(2);
     const naceRecord = latestNaceRaw

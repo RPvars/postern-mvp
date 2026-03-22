@@ -23,6 +23,8 @@ app/                    # Next.js App Router pages
       external/        # Progressive: financial ratios + annual reports
     compare/           # Comparison API
     companies/batch/   # Batch fetch companies by IDs
+    industries/        # Industry listing + detail API (NACE hierarchy)
+  industries/          # Industry browsing pages (NACE drill-down)
 components/
   auth/                # Auth UI components
   ui/                  # shadcn/ui components
@@ -35,10 +37,13 @@ components/
     company-error.tsx     # Error state
   financial-ratios-display.tsx  # Financial ratios with charts
   company-selector.tsx          # Multi-company selector for comparison
+  industry/             # Industry page components (icons, etc.)
 lib/
   auth.ts              # NextAuth configuration
   prisma.ts            # Prisma client (uses absolute path for SQLite)
   format.ts            # Shared formatting helpers (currency, percent, date)
+  text-utils.ts        # Name normalization, legal form abbreviation, display formatting
+  industry-icons.ts    # NACE section → Lucide icon mapping
   types/company.ts     # Shared Company interface and sub-types
   data-gov/client.ts   # CKAN API client for financial data (on-demand)
   business-register/   # Business Register API client, mappers, types
@@ -84,7 +89,7 @@ prisma/
 - Default locale: Latvian (lv)
 - Supported locales: lv, en
 - Translation files: `messages/lv.json`, `messages/en.json`
-- Key namespaces: `common`, `navigation`, `home`, `auth`, `company`, `compare`, `companySelector`
+- Key namespaces: `common`, `navigation`, `home`, `auth`, `company`, `compare`, `companySelector`, `industries`
 - **i18n pattern**: API returns raw enum values (e.g., `REGISTERED`, `BOARD_MEMBER`), frontend translates via `translateEnum(t, 'namespace.ENUM_VALUE', rawValue)` from `lib/i18n/translate-enum.ts`. Components use local `te()` wrapper for brevity
 - Translation namespaces for enums: `companyStatus`, `legalForm`, `register`, `position`, `governingBody`, `representationRights`, `controlType`, `country`
 - Use `useTranslations('namespace')` hook in client components
@@ -97,6 +102,8 @@ npx prisma db push    # Push schema to database
 npx prisma studio     # Open database GUI
 npm run import:all    # Import all CSV data (includes people data from UR open data)
 npm run import:people # Import person data only (register, members, officers, beneficial owners, stockholders)
+npm run import:financial # Import financial data from CKAN (revenue, profit, assets ~1M records)
+npm run import:nace   # Import NACE classification with hierarchy
 /ship                 # Run shipping pipeline (review, fix, build, commit, push)
 ```
 
@@ -135,7 +142,8 @@ Data imported via scripts from VID/UR open data (CC0). Run `npm run import:all` 
 - **Insolvency**: `scripts/import-insolvency-data.ts` — insolvency proceedings (~17K)
 - **Taxpayer ratings**: `scripts/import-taxpayer-rating.ts` — VID A/B/C/N/J ratings (~141K)
 - **VAT payers**: `scripts/import-vat-payers.ts` — PVN registry from VID (~280K, ISO-8859-1 encoding)
-- **NACE codes**: `scripts/import-nace-codes.ts` — NACE 2.0 + 2.1 classifiers from data.gov.lv
+- **NACE codes**: `scripts/import-nace-codes.ts` — NACE 2.0 + 2.1 classifiers from data.gov.lv. Imports hierarchy (parentCode, level). NACE 2.0 sections/divisions are authoritative; 2.1 only updates names for existing codes (does not override parentCode)
+- **Financial data**: `scripts/import-financial-data.ts` — bulk import from data.gov.lv CKAN API (revenue, profit, assets, employees). ~1M records. `npm run import:financial`
 - **State aid**: `scripts/import-state-aid.ts` — de minimis aid from deminimis.fm.gov.lv
 - **Name history**: `scripts/import-name-history.ts` — previous company names from dati.ur.gov.lv (~93K)
 - **Reorganizations**: `scripts/import-reorganizations.ts` — company reorganizations from dati.ur.gov.lv (~10K)
@@ -178,10 +186,22 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 
 ## Search
 - **Unified search**: Both company and person results in one dropdown (header + home page)
-- **Enter key**: Navigates to `/search?q=...` full results page with both sections
+- **Enter key**: Navigates to `/search?q=...` full results page. **Cmd+Enter** opens in new tab. **Cmd+Click** on results opens in new tab
 - **Company search**: BR API + local DB (482K companies) in parallel
 - **Person search**: `/api/person/search` — queries 3 tables, reversed name matching, dedup by normalized name
 - **Geocoding**: `/api/geocode` — Nominatim proxy with DB coordinate caching on Company model (latitude/longitude)
+
+## Industry Browsing
+- **Route**: `/industries` — grid of 21 NACE sections (A-U) with company counts, revenue, employees
+- **Detail**: `/industries/[code]` — drill-down with breadcrumb, stats cards, subcategories, top 20 companies
+- **API**: `/api/industries` (list sections/children), `/api/industries/[code]` (detail + top companies)
+- **Ranking**: 4 metrics — profit, revenue, taxes, employees. Sortable columns, year selector
+- **Data sources**: `TaxPayment.naceCode` for industry classification, `FinancialData` table for revenue/profit (bulk CKAN import)
+- **NACE hierarchy**: `NaceCode` model with `parentCode` and `level` (1=Section, 2=Division, 3=Group, 4=Class)
+- **NACE import**: NACE 2.0 provides authoritative section→division mapping; NACE 2.1 only updates names (not parentCode)
+- **Company names**: `formatCompanyDisplayName` in `lib/text-utils.ts` moves legal form to end ("SIA Foo" → "Foo, SIA")
+- **Icons**: `lib/industry-icons.ts` maps sections to Lucide icons
+- **SQL**: Uses `$queryRawUnsafe` with validated inputs to avoid SQLite 999-parameter limit
 
 ## Compare Page
 - URL state persistence: Selected companies stored in `?companies=id1,id2,id3` parameter

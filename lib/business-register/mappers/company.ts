@@ -11,18 +11,7 @@ import type {
 } from '../types/api-responses';
 import type { CompanyAnnualReport } from '@/lib/types/company';
 
-const LEGAL_FORM_ABBREVIATIONS: [RegExp, string][] = [
-  [/Sabiedrība ar ierobežotu atbildību/gi, 'SIA'],
-  [/Akciju sabiedrība/gi, 'AS'],
-];
-
-function abbreviateLegalForm(name: string): string {
-  let result = name;
-  for (const [pattern, abbr] of LEGAL_FORM_ABBREVIATIONS) {
-    result = result.replace(pattern, abbr);
-  }
-  return result;
-}
+import { abbreviateLegalForm } from '@/lib/text-utils';
 
 export class CompanyMapper {
   fromLegalEntity(api: LegalEntityApiResponse): Company {

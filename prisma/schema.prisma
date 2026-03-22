@@ -120,16 +120,37 @@ model TaxPayment {
   @@unique([registrationNumber, year])
   @@index([registrationNumber])
   @@index([year])
+  @@index([naceCode, year])
 }
 
 model NaceCode {
-  code   String @id  // Formatted code e.g. "41.00", "95.31"
-  nameLv String      // Latvian description
-  nameEn String      // English description
+  code       String  @id  // "F", "41", "41.1", "41.10"
+  nameLv     String       // Latvian description
+  nameEn     String       // English description
+  parentCode String?      // Parent NACE code for hierarchy (e.g. "41" → "F")
+  level      Int     @default(0) // 1=Section, 2=Division, 3=Group, 4=Class
+
+  @@index([parentCode])
+  @@index([level])
 }
 
-// FinancialRatio data is fetched on-demand from data.gov.lv CKAN API
-// See lib/data-gov/client.ts
+model FinancialData {
+  id                 Int      @id @default(autoincrement())
+  registrationNumber String
+  year               Int
+  revenue            Float?   // Net turnover (EUR)
+  netIncome          Float?   // Net income (EUR)
+  totalAssets        Float?   // Total assets (EUR)
+  equity             Float?   // Equity (EUR)
+  employees          Int?     // Average employee count
+
+  @@unique([registrationNumber, year])
+  @@index([registrationNumber])
+  @@index([year])
+}
+
+// FinancialRatio (detailed 27 ratios) still fetched on-demand from data.gov.lv CKAN API
+// See lib/data-gov/client.ts — FinancialData above stores only key figures for bulk ranking
 
 model BoardMember {
   id                  String    @id @default(cuid())

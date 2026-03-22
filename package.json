@@ -24,8 +24,9 @@
     "import:officers": "tsx scripts/import-officers.ts",
     "import:beneficial-owners": "tsx scripts/import-beneficial-owners.ts",
     "import:stockholders": "tsx scripts/import-stockholders.ts",
+    "import:financial": "tsx scripts/import-financial-data.ts",
     "import:people": "npm run import:register && npm run import:members && npm run import:officers && npm run import:beneficial-owners && npm run import:stockholders",
-    "import:all": "npm run import:nace && npm run import:tax && npm run import:insolvency && npm run import:rating && npm run import:vat && npm run import:stateaid && npm run import:names && npm run import:reorganizations && npm run import:people",
+    "import:all": "npm run import:nace && npm run import:tax && npm run import:insolvency && npm run import:rating && npm run import:vat && npm run import:stateaid && npm run import:names && npm run import:reorganizations && npm run import:people && npm run import:financial",
     "postinstall": "prisma generate"
   },
   "prisma": {

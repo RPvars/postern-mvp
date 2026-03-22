@@ -13,7 +13,7 @@
     "notFound": "Nav atrasts",
     "yes": "Jā",
     "no": "Nē",
-    "copyright": "© 2025 Posterns. Visas tiesības aizsargātas.",
+    "copyright": "© {year} Posterns. Visas tiesības aizsargātas.",
     "notAvailable": "N/A",
     "year": "Gads",
     "date": "Datums",
@@ -151,6 +151,7 @@
   "navigation": {
     "search": "Meklēt",
     "compare": "Salīdzināt",
+    "industries": "Nozares",
     "analytics": "Analītika",
     "reports": "Ziņojumi",
     "login": "Pieslēgties",
@@ -656,5 +657,31 @@
       "employeeCount": "Vid. darbinieki",
       "noData": "Nav datu"
     }
+  },
+  "industries": {
+    "title": "Nozares",
+    "allSections": "Visas nozares",
+    "topCompanies": "Lielākie uzņēmumi",
+    "companies": "uzņēmumi",
+    "subcategories": "Apakškategorijas",
+    "rank": "#",
+    "companyName": "Uzņēmums",
+    "address": "Adrese",
+    "noData": "Nav datu par šo nozari",
+    "metric": {
+      "revenue": "Apgrozījums",
+      "employees": "Darbinieki",
+      "taxes": "Nodokļi",
+      "profit": "Peļņa"
+    },
+    "stats": {
+      "totalCompanies": "Uzņēmumu skaits",
+      "totalRevenue": "Kopējais apgrozījums",
+      "totalEmployees": "Kopā darbinieku",
+      "totalTaxes": "Kopējie nodokļi",
+      "avgRevenue": "Vidējais apgrozījums"
+    },
+    "year": "Gads",
+    "sortBy": "Kārtot pēc"
   }
 }
