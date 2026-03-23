@@ -3,6 +3,10 @@ import { prisma } from '@/lib/prisma';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { formatCompanyDisplayName } from '@/lib/text-utils';
 
+// Cache for rank history queries (expensive: 3 extra queries per page)
+const RANK_CACHE_TTL = 5 * 60 * 1000;
+const rankCache = new Map<string, { data: Map<string, number>; expiry: number }>();
+
 type Metric = 'revenue' | 'employees' | 'taxes' | 'profit';
 
 /**
@@ -54,17 +58,15 @@ export async function GET(
 
   const prefixes = await getNacePrefixes(code, industry.level);
 
-  const [stats, childrenWithCounts, topCompaniesRaw] = await Promise.all([
+  const [stats, childCountMap, topCompaniesRaw] = await Promise.all([
     getStats(prefixes, year),
-    Promise.all(
-      children.map(async (child) => {
-        const childPrefixes = await getNacePrefixes(child.code, child.level);
-        const count = await getCompanyCount(childPrefixes, year);
-        return { ...child, companyCount: count };
-      })
-    ),
+    getChildrenCounts(children, year),
     getTopCompanies(prefixes, year, metric, limit),
   ]);
+  const childrenWithCounts = children.map((child) => ({
+    ...child,
+    companyCount: childCountMap.get(child.code) ?? 0,
+  }));
 
   // Add rank history (previous 3 years)
   const topCompanies = await addRankHistory(topCompaniesRaw, prefixes, year, metric);
@@ -123,12 +125,60 @@ async function getNacePrefixes(code: string, level: number): Promise<string[]> {
   return [code.replace('.', '')];
 }
 
-/** Build SQL LIKE clause for NACE prefix matching on TaxPayment.naceCode */
+/**
+ * Build SQL LIKE clause for NACE prefix matching.
+ * SAFETY: Prefixes are strictly validated as 1-2 digit numbers before interpolation.
+ * Using $queryRawUnsafe because Prisma.sql doesn't support dynamic LIKE OR chains with aliases.
+ */
 function buildNaceLikeClause(prefixes: string[], alias = 'tp'): string {
-  return prefixes
-    .filter((p) => /^\d{1,2}$/.test(p)) // Only allow 1-2 digit numeric prefixes
-    .map((p) => `${alias}.naceCode LIKE '${p}%'`)
-    .join(' OR ') || '1=0'; // Fallback to false if no valid prefixes
+  const safe = prefixes.filter((p) => /^\d{1,2}$/.test(p));
+  if (safe.length === 0) return '1=0';
+  return safe.map((p) => `${alias}.naceCode LIKE '${p}%'`).join(' OR ');
+}
+
+/**
+ * Batch count companies for all children in ONE query using SUBSTR grouping.
+ * Replaces N+1 pattern (one query per child).
+ */
+async function getChildrenCounts(
+  children: { code: string; level: number }[],
+  year: number
+): Promise<Map<string, number>> {
+  if (children.length === 0) return new Map();
+
+  // For divisions (level 2), group by first 2 digits of naceCode
+  // For groups (level 3), group by first 3 digits (without dot)
+  const prefixLen = children[0].level === 2 ? 2 : children[0].level === 3 ? 3 : 4;
+
+  // Build one LIKE clause covering all children
+  const allPrefixes: string[] = [];
+  for (const child of children) {
+    const p = child.code.replace('.', '');
+    if (/^\d{1,4}$/.test(p)) allPrefixes.push(p);
+  }
+  if (allPrefixes.length === 0) return new Map();
+
+  const naceFilter = allPrefixes.map((p) => `tp.naceCode LIKE '${p}%'`).join(' OR ');
+
+  const rows = await prisma.$queryRawUnsafe<{ prefix: string; cnt: number }[]>(`
+    SELECT SUBSTR(tp.naceCode, 1, ${prefixLen}) as prefix, COUNT(tp.registrationNumber) as cnt
+    FROM TaxPayment tp
+    WHERE tp.year = ${year} AND (${naceFilter})
+    GROUP BY SUBSTR(tp.naceCode, 1, ${prefixLen})
+  `);
+
+  const countMap = new Map<string, number>();
+  for (const row of rows) {
+    // Map prefix back to child code (e.g. "41" → "41", "411" → "41.1")
+    for (const child of children) {
+      const childPrefix = child.code.replace('.', '');
+      if (row.prefix === childPrefix || row.prefix.startsWith(childPrefix)) {
+        countMap.set(child.code, (countMap.get(child.code) ?? 0) + Number(row.cnt));
+      }
+    }
+  }
+
+  return countMap;
 }
 
 async function getCompanyCount(prefixes: string[], year: number): Promise<number> {
@@ -279,12 +329,25 @@ async function addRankHistory(
   const regNums = new Set(companies.map(c => c.registrationNumber));
   const historyYears = [currentYear - 1, currentYear - 2, currentYear - 3];
 
-  // Fetch top 50 for each previous year to find rank positions
+  // Fetch top 50 for each previous year (cached)
   const yearRanks = await Promise.all(
     historyYears.map(async (y) => {
+      const cacheKey = `${prefixes.join(',')}_${y}_${metric}`;
+      const cached = rankCache.get(cacheKey);
+      if (cached && Date.now() < cached.expiry) {
+        return { year: y, ranks: cached.data };
+      }
+
       const prevTop = await getTopCompanies(prefixes, y, metric, 50);
       const rankMap = new Map<string, number>();
       prevTop.forEach((c, i) => rankMap.set(c.registrationNumber, i + 1));
+
+      rankCache.set(cacheKey, { data: rankMap, expiry: Date.now() + RANK_CACHE_TTL });
+      if (rankCache.size > 100) {
+        const oldest = rankCache.keys().next().value;
+        if (oldest) rankCache.delete(oldest);
+      }
+
       return { year: y, ranks: rankMap };
     })
   );

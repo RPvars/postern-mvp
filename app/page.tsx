@@ -206,14 +206,14 @@ export default function Home() {
                 <span className="flex-1">{t('topCompanies.company')}</span>
                 <button
                   onClick={() => setTopMetric('revenue')}
-                  className={`inline-flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors ${topMetric === 'revenue' ? 'text-foreground font-semibold' : ''}`}
+                  className={`w-36 text-right inline-flex items-center justify-end gap-1 cursor-pointer select-none hover:text-foreground transition-colors ${topMetric === 'revenue' ? 'text-foreground font-semibold' : ''}`}
                 >
                   {t('topCompanies.revenue')}
                   {topMetric === 'revenue' ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-30" />}
                 </button>
                 <button
                   onClick={() => setTopMetric('profit')}
-                  className={`hidden md:inline-flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors ${topMetric === 'profit' ? 'text-foreground font-semibold' : ''}`}
+                  className={`w-36 text-right hidden md:inline-flex items-center justify-end gap-1 cursor-pointer select-none hover:text-foreground transition-colors ${topMetric === 'profit' ? 'text-foreground font-semibold' : ''}`}
                 >
                   {t('topCompanies.profit')}
                   {topMetric === 'profit' ? <ArrowDown className="h-3 w-3" /> : <ArrowUpDown className="h-3 w-3 opacity-30" />}
@@ -258,10 +258,10 @@ export default function Home() {
                         {company.name}
                       </span>
                     </div>
-                    <span className={`text-sm tabular-nums ${topMetric === 'revenue' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                    <span className={`w-36 text-right text-sm tabular-nums ${topMetric === 'revenue' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                       {formatCurrency(company.revenue ?? 0)}
                     </span>
-                    <span className={`text-sm tabular-nums hidden md:inline ${topMetric === 'profit' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
+                    <span className={`w-36 text-right text-sm tabular-nums hidden md:inline ${topMetric === 'profit' ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                       {formatCurrency(company.netIncome ?? 0)}
                     </span>
                     <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />

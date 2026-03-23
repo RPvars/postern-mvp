@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
-import { useSearchParams, useParams } from 'next/navigation';
+import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Navigation } from '@/components/navigation';
 import { Card, CardContent } from '@/components/ui/card';
@@ -17,6 +17,7 @@ import type { Metric, TopCompany, IndustryData } from '@/components/industry/typ
 export default function IndustryDetailPage() {
   const t = useTranslations('industries');
   const locale = useLocale();
+  const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams();
   const code = params.code as string;
@@ -39,6 +40,7 @@ export default function IndustryDetailPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(false);
+    setActiveSub(''); // Reset sub before fetching to prevent race condition
     try {
       const params = new URLSearchParams();
       params.set('metric', metric);
@@ -49,12 +51,10 @@ export default function IndustryDetailPage() {
       if (res.ok) {
         const result = await res.json();
         setData(result);
+        setDisplayStats(result.stats);
+        setDisplayCompanies(result.topCompanies);
         if (!year && result.year) {
           setYear(String(result.year));
-        }
-        if (!activeSub) {
-          setDisplayStats(result.stats);
-          setDisplayCompanies(result.topCompanies);
         }
       } else {
         setError(true);
@@ -69,7 +69,6 @@ export default function IndustryDetailPage() {
 
   useEffect(() => {
     fetchData();
-    setActiveSub('');
   }, [fetchData]);
 
   useEffect(() => {
@@ -94,9 +93,17 @@ export default function IndustryDetailPage() {
           const result = await res.json();
           setDisplayStats(result.stats);
           setDisplayCompanies(result.topCompanies);
+        } else {
+          // Revert to main data on failure
+          setDisplayStats(data.stats);
+          setDisplayCompanies(data.topCompanies);
+          setActiveSub('');
         }
       } catch (err) {
         console.error('Failed to load sub-category:', err);
+        setDisplayStats(data.stats);
+        setDisplayCompanies(data.topCompanies);
+        setActiveSub('');
       } finally {
         setSubLoading(false);
       }
@@ -113,8 +120,8 @@ export default function IndustryDetailPage() {
     if (activeSub) params.set('sub', activeSub);
     const query = params.toString();
     const newUrl = `/industries/${code}${query ? `?${query}` : ''}`;
-    window.history.replaceState(null, '', newUrl);
-  }, [code, metric, year, activeSub, data?.availableYears]);
+    router.replace(newUrl, { scroll: false });
+  }, [code, metric, year, activeSub, data?.availableYears, router]);
 
   const sectionHeading = activeSub
     ? (() => { const c = data?.children.find(c => c.code === activeSub); return c ? n(c) : ''; })()

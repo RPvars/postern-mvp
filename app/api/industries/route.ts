@@ -97,11 +97,15 @@ async function getNacePrefixes(code: string, level: number): Promise<string[]> {
   return [code.replace('.', '')];
 }
 
+/**
+ * Build SQL LIKE clause for NACE prefix matching.
+ * SAFETY: Prefixes are strictly validated as 1-2 digit numbers before interpolation.
+ * Using $queryRawUnsafe because Prisma.sql doesn't support dynamic LIKE OR chains.
+ */
 function buildNaceLikeClause(prefixes: string[]): string {
-  return prefixes
-    .filter((p) => /^\d{1,2}$/.test(p)) // Only allow 1-2 digit numeric prefixes
-    .map((p) => `tp.naceCode LIKE '${p}%'`)
-    .join(' OR ') || '1=0';
+  const safe = prefixes.filter((p) => /^\d{1,2}$/.test(p));
+  if (safe.length === 0) return '1=0';
+  return safe.map((p) => `tp.naceCode LIKE '${p}%'`).join(' OR ');
 }
 
 async function getIndustryStats(prefixes: string[], year: number) {
