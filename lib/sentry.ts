@@ -6,6 +6,18 @@ import { env } from './env';
  * @param error The error to capture
  * @param context Additional context to attach to the error
  */
+// PII fields that must never be sent to Sentry
+const PII_FIELDS = ['personalCode', 'birthDate', 'citizenship', 'residenceCountry', 'latvianIdentityNumber'];
+
+function scrubPII(obj: Record<string, any> | undefined): Record<string, any> | undefined {
+  if (!obj) return obj;
+  const scrubbed = { ...obj };
+  for (const key of PII_FIELDS) {
+    if (key in scrubbed) scrubbed[key] = '[REDACTED]';
+  }
+  return scrubbed;
+}
+
 export function captureException(error: unknown, context?: Record<string, any>) {
   // Only capture in production or when Sentry is configured
   if (!env.SENTRY_DSN && env.NODE_ENV !== 'production') {
@@ -13,7 +25,7 @@ export function captureException(error: unknown, context?: Record<string, any>) 
   }
 
   Sentry.captureException(error, {
-    tags: context,
+    tags: scrubPII(context),
   });
 }
 

@@ -783,5 +783,62 @@
       "revenue": "By revenue",
       "employees": "By employees"
     }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privacy Policy",
+      "lastUpdated": "Last updated",
+      "controller": {
+        "title": "Data Controller",
+        "description": "SIA \"Posterns\" (hereinafter — Posterns) is responsible for processing your personal data in accordance with the General Data Protection Regulation (GDPR)."
+      },
+      "dataProcessed": {
+        "title": "Data We Process",
+        "description": "We process the following categories of data:",
+        "companyData": "Company registration data (name, registration number, address, legal form)",
+        "financialData": "Financial data (tax payments, annual reports) from public sources",
+        "personData": "Personal data (name, personal code, date of birth, citizenship) from the Enterprise Register",
+        "accountData": "Account data (email, name) when you register"
+      },
+      "legalBasis": {
+        "title": "Legal Basis",
+        "description": "The legal basis for data processing:",
+        "publicRegisters": "GDPR Art. 6(1)(e) — processing in the public interest (public register data from UR, VID, data.gov.lv)",
+        "legitimateInterest": "GDPR Art. 6(1)(f) — legitimate interest (providing business analytics)",
+        "consent": "GDPR Art. 6(1)(a) — consent (account creation and email notifications)"
+      },
+      "dataSources": {
+        "title": "Data Sources",
+        "description": "Company and personal data is obtained from public sources: the Enterprise Register of the Republic of Latvia (UR), State Revenue Service (VID) open data (data.gov.lv), and the Enterprise Register API (VDAA). All data is publicly available under Latvian law."
+      },
+      "retention": {
+        "title": "Data Retention",
+        "description": "Public register data is stored and periodically updated as long as it is available at the source. Account data is stored until account deletion. Session data is automatically deleted after 30 days."
+      },
+      "rights": {
+        "title": "Your Rights",
+        "description": "Under the GDPR, you have the following rights:",
+        "access": "Right to access your data",
+        "rectification": "Right to rectification of inaccurate data",
+        "erasure": "Right to erasure (\"right to be forgotten\")",
+        "restriction": "Right to restriction of processing",
+        "portability": "Right to data portability",
+        "objection": "Right to object to processing",
+        "contact": "To exercise your rights, contact: privacy@posterns.lv"
+      },
+      "cookies": {
+        "title": "Cookies",
+        "description": "We use only functional cookies (session management and language preference). We do not use advertising or tracking cookies."
+      },
+      "complaints": {
+        "title": "Complaints",
+        "description": "If you believe your data protection rights have been violated, you have the right to lodge a complaint with the Data State Inspectorate (DVI): www.dvi.gov.lv"
+      }
+    },
+    "footer": {
+      "privacy": "Privacy Policy",
+      "terms": "Terms of Use",
+      "copyright": "Posterns. All rights reserved."
+    }
   }
 }

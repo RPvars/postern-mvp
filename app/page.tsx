@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { SearchBar } from '@/components/search-bar';
 import { Navigation } from '@/components/navigation';
+import { Footer } from '@/components/footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Search, BarChart3, Building2, TrendingUp, ChevronRight, ArrowDown, ArrowUpDown } from 'lucide-react';
@@ -329,11 +330,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="border-t bg-background/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-          {common('copyright', { year: new Date().getFullYear() })}
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

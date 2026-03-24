@@ -783,5 +783,62 @@
       "revenue": "Pēc apgrozījuma",
       "employees": "Pēc darbiniekiem"
     }
+  },
+  "legal": {
+    "privacy": {
+      "title": "Privātuma politika",
+      "lastUpdated": "Pēdējoreiz atjaunināts",
+      "controller": {
+        "title": "Datu pārzinis",
+        "description": "SIA \"Posterns\" (turpmāk — Posterns) ir atbildīga par jūsu personas datu apstrādi saskaņā ar Vispārīgo datu aizsardzības regulu (GDPR)."
+      },
+      "dataProcessed": {
+        "title": "Apstrādātie dati",
+        "description": "Mēs apstrādājam šādas datu kategorijas:",
+        "companyData": "Uzņēmumu reģistrācijas dati (nosaukums, reģistrācijas numurs, adrese, juridiskā forma)",
+        "financialData": "Finanšu dati (nodokļu maksājumi, gada pārskati) no publiskajiem avotiem",
+        "personData": "Personu dati (vārds, personas kods, dzimšanas datums, pilsonība) no Uzņēmumu reģistra",
+        "accountData": "Konta dati (e-pasts, vārds) reģistrācijas gadījumā"
+      },
+      "legalBasis": {
+        "title": "Tiesiskais pamats",
+        "description": "Datu apstrādes tiesiskais pamats:",
+        "publicRegisters": "VDAR 6(1)(e) — apstrāde sabiedrības interesēs (publisko reģistru dati no UR, VID, data.gov.lv)",
+        "legitimateInterest": "VDAR 6(1)(f) — leģitīmā interese (biznesa analītikas nodrošināšana)",
+        "consent": "VDAR 6(1)(a) — piekrišana (konta izveide un e-pasta paziņojumi)"
+      },
+      "dataSources": {
+        "title": "Datu avoti",
+        "description": "Uzņēmumu un personu dati tiek iegūti no publiskajiem avotiem: Latvijas Republikas Uzņēmumu reģistra (UR), Valsts ieņēmumu dienesta (VID) atvērtajiem datiem (data.gov.lv), un Uzņēmumu reģistra API (VDAA). Visi dati ir publiski pieejami saskaņā ar Latvijas likumdošanu."
+      },
+      "retention": {
+        "title": "Datu glabāšanas termiņi",
+        "description": "Publisko reģistru dati tiek glabāti un periodiski atjaunināti, kamēr tie ir pieejami avotā. Konta dati tiek glabāti līdz konta dzēšanai. Sesijas dati tiek automātiski dzēsti pēc 30 dienām."
+      },
+      "rights": {
+        "title": "Jūsu tiesības",
+        "description": "Saskaņā ar VDAR jums ir šādas tiesības:",
+        "access": "Tiesības piekļūt saviem datiem",
+        "rectification": "Tiesības labot neprecīzus datus",
+        "erasure": "Tiesības uz dzēšanu (\"tiesības tikt aizmirstam\")",
+        "restriction": "Tiesības ierobežot apstrādi",
+        "portability": "Tiesības uz datu pārnesamību",
+        "objection": "Tiesības iebilst pret apstrādi",
+        "contact": "Lai izmantotu savas tiesības, rakstiet uz: privacy@posterns.lv"
+      },
+      "cookies": {
+        "title": "Sīkdatnes",
+        "description": "Mēs izmantojam tikai funkcionālas sīkdatnes (sesijas pārvaldībai un valodas izvēlei). Mēs neizmantojam reklāmas vai izsekošanas sīkdatnes."
+      },
+      "complaints": {
+        "title": "Sūdzības",
+        "description": "Ja uzskatāt, ka jūsu datu aizsardzības tiesības ir pārkāptas, jums ir tiesības iesniegt sūdzību Datu valsts inspekcijai (DVI): www.dvi.gov.lv"
+      }
+    },
+    "footer": {
+      "privacy": "Privātuma politika",
+      "terms": "Lietošanas noteikumi",
+      "copyright": "Posterns. Visas tiesības aizsargātas."
+    }
   }
 }

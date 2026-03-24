@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { validateSearchQuery } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
@@ -18,6 +19,12 @@ function abbreviateLegalForm(name: string): string {
 }
 
 export async function GET(request: NextRequest) {
+  // GDPR: person search requires authentication
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   const identifier = getClientIdentifier(request);
   const rateLimitResult = rateLimit(
     `search:${identifier}`,

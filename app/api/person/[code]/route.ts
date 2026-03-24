@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
 import { rateLimit, getClientIdentifier } from '@/lib/rate-limit';
 import { captureException } from '@/lib/sentry';
 import { prisma } from '@/lib/prisma';
@@ -9,6 +10,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ code: string }> }
 ) {
+  // GDPR: personal data requires authentication
+  const session = await auth();
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
   const identifier = getClientIdentifier(request);
   const rateLimitResult = rateLimit(`person:${identifier}`, 30, 60000);
   if (!rateLimitResult.success) {

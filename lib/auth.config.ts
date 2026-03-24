@@ -24,12 +24,11 @@ export const authConfig: NextAuthConfig = {
         return Response.redirect(new URL('/', nextUrl));
       }
 
-      // Currently all pages are public, no protection needed
-      // Add protected routes here in the future:
-      // const isOnProtectedPage = nextUrl.pathname.startsWith('/dashboard');
-      // if (isOnProtectedPage && !isLoggedIn) {
-      //   return false; // Redirect to login
-      // }
+      // Person pages require authentication (GDPR — personal data protection)
+      const isProtectedPage = nextUrl.pathname.startsWith('/person');
+      if (isProtectedPage && !isLoggedIn) {
+        return false; // Redirects to /login
+      }
 
       return true;
     },
