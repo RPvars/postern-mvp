@@ -1,15 +1,13 @@
 import { prisma } from '@/lib/prisma';
 import dns from 'dns';
 import { promisify } from 'util';
-import https from 'https';
-import http from 'http';
+import { fetchUrl, runWithConcurrency } from './lib/http';
 
 const resolve4 = promisify(dns.resolve4);
 
 // Config
 const DNS_CONCURRENCY = 20;
 const HTTP_CONCURRENCY = 10;
-const HTTP_TIMEOUT = 8000;
 const DEFAULT_LIMIT = 10000;
 const BATCH_SIZE = 100;
 
@@ -87,63 +85,7 @@ async function checkDNS(domain: string): Promise<boolean> {
 }
 
 async function fetchHomepage(domain: string): Promise<string | null> {
-  const url = `https://${domain}`;
-  return new Promise((resolve) => {
-    const timeout = setTimeout(() => resolve(null), HTTP_TIMEOUT);
-
-    const req = https.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Posterns/1.0; +https://posterns.lv)',
-        'Accept': 'text/html',
-      },
-      timeout: HTTP_TIMEOUT,
-    }, (res) => {
-      // Follow one redirect
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        clearTimeout(timeout);
-        const rawLocation = res.headers.location;
-        let redirectUrl: string;
-        try {
-          redirectUrl = new URL(rawLocation, `https://${domain}`).href;
-        } catch {
-          clearTimeout(timeout);
-          resolve(null);
-          return;
-        }
-        const proto = redirectUrl.startsWith('http://') ? http : https;
-        const timeout2 = setTimeout(() => resolve(null), HTTP_TIMEOUT);
-        const req2 = proto.get(redirectUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Posterns/1.0)' },
-          timeout: HTTP_TIMEOUT,
-        }, (res2) => {
-          let body = '';
-          res2.setEncoding('utf8');
-          res2.on('data', (chunk) => {
-            body += chunk;
-            // Only read first 50KB
-            if (body.length > 50000) res2.destroy();
-          });
-          res2.on('end', () => { clearTimeout(timeout2); resolve(body); });
-          res2.on('error', () => { clearTimeout(timeout2); resolve(null); });
-        });
-        req2.on('error', () => { clearTimeout(timeout2); resolve(null); });
-        req2.on('timeout', () => { req2.destroy(); clearTimeout(timeout2); resolve(null); });
-        return;
-      }
-
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => {
-        body += chunk;
-        if (body.length > 50000) res.destroy();
-      });
-      res.on('end', () => { clearTimeout(timeout); resolve(body); });
-      res.on('error', () => { clearTimeout(timeout); resolve(null); });
-    });
-
-    req.on('error', () => { clearTimeout(timeout); resolve(null); });
-    req.on('timeout', () => { req.destroy(); clearTimeout(timeout); resolve(null); });
-  });
+  return fetchUrl(`https://${domain}`, { maxBytes: 50000 });
 }
 
 type VerifyResult = { confidence: 'high' | 'medium' | 'none' };
@@ -173,21 +115,6 @@ function verifyHomepage(html: string, registrationNumber: string, companyName: s
   if (originalCleaned.length >= 5 && lowerHtml.includes(originalCleaned)) return { confidence: 'medium' };
 
   return { confidence: 'none' };
-}
-
-async function runWithConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<void>,
-): Promise<void> {
-  let index = 0;
-  const workers = Array.from({ length: concurrency }, async () => {
-    while (index < items.length) {
-      const i = index++;
-      await fn(items[i]);
-    }
-  });
-  await Promise.all(workers);
 }
 
 async function main() {

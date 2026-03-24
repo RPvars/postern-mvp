@@ -1,9 +1,7 @@
 import { prisma } from '@/lib/prisma';
-import https from 'https';
-import http from 'http';
+import { fetchUrl, runWithConcurrency } from './lib/http';
 
 const HTTP_CONCURRENCY = 10;
-const HTTP_TIMEOUT = 8000;
 
 // Junk email domains to ignore
 const JUNK_DOMAINS = new Set([
@@ -125,73 +123,6 @@ function normalizePhone(raw: string): string | null {
   return `+371 ${num.slice(0, 2)} ${num.slice(2, 5)} ${num.slice(5)}`;
 }
 
-async function fetchPage(url: string): Promise<string | null> {
-  return new Promise((resolve) => {
-    const timeout = setTimeout(() => resolve(null), HTTP_TIMEOUT);
-    const proto = url.startsWith('http://') ? http : https;
-
-    const req = proto.get(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Posterns/1.0; +https://posterns.lv)',
-        'Accept': 'text/html',
-      },
-      timeout: HTTP_TIMEOUT,
-    }, (res) => {
-      // Follow one redirect
-      if (res.statusCode && res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        clearTimeout(timeout);
-        const rawLocation = res.headers.location;
-        let redirectUrl: string;
-        try {
-          redirectUrl = new URL(rawLocation, url).href;
-        } catch {
-          resolve(null);
-          return;
-        }
-        const timeout2 = setTimeout(() => resolve(null), HTTP_TIMEOUT);
-        const proto2 = redirectUrl.startsWith('http://') ? http : https;
-        const req2 = proto2.get(redirectUrl, {
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Posterns/1.0)' },
-          timeout: HTTP_TIMEOUT,
-        }, (res2) => {
-          let body = '';
-          res2.setEncoding('utf8');
-          res2.on('data', (chunk) => { body += chunk; if (body.length > 100000) res2.destroy(); });
-          res2.on('end', () => { clearTimeout(timeout2); resolve(body); });
-          res2.on('error', () => { clearTimeout(timeout2); resolve(null); });
-        });
-        req2.on('error', () => { clearTimeout(timeout2); resolve(null); });
-        req2.on('timeout', () => { req2.destroy(); clearTimeout(timeout2); resolve(null); });
-        return;
-      }
-
-      let body = '';
-      res.setEncoding('utf8');
-      res.on('data', (chunk) => { body += chunk; if (body.length > 100000) res.destroy(); });
-      res.on('end', () => { clearTimeout(timeout); resolve(body); });
-      res.on('error', () => { clearTimeout(timeout); resolve(null); });
-    });
-
-    req.on('error', () => { clearTimeout(timeout); resolve(null); });
-    req.on('timeout', () => { req.destroy(); clearTimeout(timeout); resolve(null); });
-  });
-}
-
-async function runWithConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<void>,
-): Promise<void> {
-  let index = 0;
-  const workers = Array.from({ length: concurrency }, async () => {
-    while (index < items.length) {
-      const i = index++;
-      await fn(items[i]);
-    }
-  });
-  await Promise.all(workers);
-}
-
 async function main() {
   const args = process.argv.slice(2);
   const dryRun = args.includes('--dry-run');
@@ -216,7 +147,7 @@ async function main() {
   await runWithConcurrency(companies, HTTP_CONCURRENCY, async (company) => {
     if (!company.website) return;
 
-    const html = await fetchPage(company.website);
+    const html = await fetchUrl(company.website);
     if (!html) {
       processed++;
       return;

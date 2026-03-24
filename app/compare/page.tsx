@@ -12,101 +12,20 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { TrendingUp, Building2, AlertCircle, Link2, Check, Download } from 'lucide-react';
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
-
-const TOOLTIP_STYLE: React.CSSProperties = {
-  backgroundColor: 'var(--popover)',
-  border: '1px solid var(--border)',
-  borderRadius: '0.5rem',
-  color: 'var(--popover-foreground)',
-};
+import { CompareCompany } from '@/components/compare/types';
+import { SummaryCards } from '@/components/compare/summary-cards';
+import { FinancialSummary } from '@/components/compare/financial-summary';
+import { OwnershipComparison } from '@/components/compare/ownership-comparison';
+import { CompareRadarChart } from '@/components/compare/radar-chart';
+import { TrendCharts } from '@/components/compare/trend-charts';
+import { TaxBreakdown } from '@/components/compare/tax-breakdown';
 
 interface SelectedCompany {
   id: string;
   name: string;
   registrationNumber: string;
 }
-
-interface Company {
-  id: string;
-  name: string;
-  registrationNumber: string;
-  taxNumber: string;
-  legalAddress: string;
-  registrationDate: string;
-  status: string;
-  legalForm: string | null;
-  shareCapital: number | null;
-  registeredVehiclesCount: number | null;
-  taxPayments: {
-    year: number;
-    amount: number;
-    iinAmount: number | null;
-    vsaoiAmount: number | null;
-    employeeCount: number | null;
-  }[];
-  financialRatios: {
-    year: number;
-    revenue: number | null;
-    netIncome: number | null;
-    totalAssets: number | null;
-    equity: number | null;
-    totalDebt: number | null;
-    employees: number | null;
-    returnOnEquity: number | null;
-    returnOnAssets: number | null;
-    roce: number | null;
-    netProfitMargin: number | null;
-    grossProfitMargin: number | null;
-    operatingProfitMargin: number | null;
-    ebitdaMargin: number | null;
-    cashFlowMargin: number | null;
-    revenuePerEmployee: number | null;
-    profitPerEmployee: number | null;
-    currentRatio: number | null;
-    quickRatio: number | null;
-    cashRatio: number | null;
-    workingCapitalRatio: number | null;
-    debtToEquity: number | null;
-    debtRatio: number | null;
-    interestCoverageRatio: number | null;
-    equityMultiplier: number | null;
-    assetTurnover: number | null;
-    inventoryTurnover: number | null;
-    receivablesTurnover: number | null;
-    payablesTurnover: number | null;
-    dso: number | null;
-    dpo: number | null;
-    cashConversionCycle: number | null;
-  }[];
-  owners: {
-    id: string;
-    owner: { name: string; isLegalEntity: boolean };
-    sharePercentage: number;
-  }[];
-  vatPayer: {
-    vatNumber: string;
-    isActive: boolean;
-    registeredDate: string | null;
-  } | null;
-}
-
-// Warm + cool accent color palette for maximum line contrast
-// Maintains the Posterns brand vibe with strategic cool accents for distinction
-const COMPANY_COLORS = [
-  '#FEC200', // Posterns Yellow (main brand)
-  '#F97316', // Vibrant Orange
-  '#14B8A6', // Teal (cool accent - high contrast)
-  '#DC2626', // Red (warm but distinct)
-  '#0EA5E9', // Sky Blue (cool accent - high contrast)
-];
-
-// Get color for a company by index
-const getCompanyColor = (index: number): string => {
-  return COMPANY_COLORS[index % COMPANY_COLORS.length];
-};
 
 export default function ComparePage() {
   const t = useTranslations('compare');
@@ -116,7 +35,7 @@ export default function ComparePage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [selectedCompanies, setSelectedCompanies] = useState<SelectedCompany[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompareCompany[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRestoringFromUrl, setIsRestoringFromUrl] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -276,12 +195,12 @@ export default function ComparePage() {
   }, [companies]);
 
   // Get financial ratios for selected year (memoized callback)
-  const getFinancialRatios = useCallback((company: Company) => {
+  const getFinancialRatios = useCallback((company: CompareCompany) => {
     return company.financialRatios.find((r) => r.year === selectedYear) || null;
   }, [selectedYear]);
 
   // Get tax payment for selected year (memoized callback)
-  const getTaxPayment = useCallback((company: Company) => {
+  const getTaxPayment = useCallback((company: CompareCompany) => {
     return company.taxPayments.find((t) => t.year === selectedYear) || null;
   }, [selectedYear]);
 
@@ -379,7 +298,7 @@ export default function ComparePage() {
       });
       const valid = values.filter((v): v is number => v != null);
       if (valid.length === 0) {
-        companies.forEach((c, i) => { point[c.id] = 0; });
+        companies.forEach((c) => { point[c.id] = 0; });
         return point;
       }
       const min = Math.min(...valid);
@@ -517,48 +436,11 @@ export default function ComparePage() {
               </div>
 
               {/* Summary Cards */}
-              <div className={`grid gap-4 ${
-                companies.length === 2 ? 'grid-cols-2' :
-                companies.length === 3 ? 'grid-cols-3' :
-                companies.length === 4 ? 'grid-cols-2 lg:grid-cols-4' :
-                'grid-cols-2 lg:grid-cols-5'
-              }`}>
-                {companies.map((company, idx) => {
-                  const r = getFinancialRatios(company);
-                  const tp = getTaxPayment(company);
-                  return (
-                    <Card key={company.id} className="border-l-4" style={{ borderLeftColor: getCompanyColor(idx) }}>
-                      <CardContent className="pt-4 pb-3">
-                        <div className="font-semibold text-sm truncate mb-2">{company.name}</div>
-                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                          <div>
-                            <div className="text-muted-foreground">{t('summary.revenue')}</div>
-                            <div className="font-medium tabular-nums">
-                              {r?.revenue != null ? formatCurrency(r.revenue) : '—'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">{t('summary.profit')}</div>
-                            <div className="font-medium tabular-nums">
-                              {r?.netIncome != null ? formatCurrency(r.netIncome) : '—'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">{t('summary.employees')}</div>
-                            <div className="font-medium tabular-nums">{tp?.employeeCount ?? '—'}</div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground">{t('summary.taxes')}</div>
-                            <div className="font-medium tabular-nums">
-                              {tp ? formatCurrency(tp.amount) : '—'}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
-              </div>
+              <SummaryCards
+                companies={companies}
+                selectedYear={selectedYear}
+                formatCurrency={formatCurrency}
+              />
 
               {/* Basic Company Info */}
               <Card>
@@ -623,11 +505,11 @@ export default function ComparePage() {
                               {company.vatPayer ? (
                                 <div className="flex items-center gap-1">
                                   <Badge variant={company.vatPayer.isActive ? 'default' : 'destructive'} className="text-xs">
-                                    {company.vatPayer.isActive ? 'Aktīvs' : 'Neaktīvs'}
+                                    {company.vatPayer.isActive ? 'Akt\u012Bvs' : 'Neakt\u012Bvs'}
                                   </Badge>
                                   <span className="text-xs text-muted-foreground">{company.vatPayer.vatNumber}</span>
                                 </div>
-                              ) : '—'}
+                              ) : '\u2014'}
                             </TableCell>
                           ))}
                         </TableRow>
@@ -665,152 +547,25 @@ export default function ComparePage() {
 
               {/* Financial Summary Table */}
               {availableYears.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('financialSummary.title')} ({selectedYear})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-48">{t('financialSummary.metric')}</TableHead>
-                            {companies.map((company) => (
-                              <TableHead key={company.id} className="min-w-36 text-right">{company.name}</TableHead>
-                            ))}
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {/* Absolute figures */}
-                          {([
-                            { key: 'revenue', field: 'revenue' as const, format: formatCurrency, higher: true },
-                            { key: 'netIncome', field: 'netIncome' as const, format: formatCurrency, higher: true },
-                            { key: 'totalAssets', field: 'totalAssets' as const, format: formatCurrency, higher: true },
-                            { key: 'equity', field: 'equity' as const, format: formatCurrency, higher: true },
-                            { key: 'totalDebt', field: 'totalDebt' as const, format: formatCurrency, higher: false },
-                            { key: 'employees', field: 'employees' as const, format: (v: number | null) => v != null ? v.toLocaleString('lv-LV') : 'N/A', higher: true },
-                            { key: 'revenuePerEmployee', field: 'revenuePerEmployee' as const, format: formatCurrency, higher: true },
-                            { key: 'profitPerEmployee', field: 'profitPerEmployee' as const, format: formatCurrency, higher: true },
-                          ] as const).map(({ key, field, format, higher }) => {
-                            const values = companies.map((c) => getFinancialRatios(c)?.[field] ?? null);
-                            const { best, worst } = getBestWorst(values, higher);
-                            return (
-                              <TableRow key={key}>
-                                <TableCell className="font-medium">{t(`financialSummary.${key}`)}</TableCell>
-                                {companies.map((c, i) => (
-                                  <TableCell key={c.id} className={`text-right text-sm tabular-nums ${getCellColor(values[i], best, worst)}`}>
-                                    {format(values[i])}
-                                  </TableCell>
-                                ))}
-                              </TableRow>
-                            );
-                          })}
-                          {/* YoY Growth rows */}
-                          {([
-                            { key: 'revenueGrowth', field: 'revenue' as const },
-                            { key: 'profitGrowth', field: 'netIncome' as const },
-                            { key: 'employeeGrowth', field: 'employees' as const },
-                          ] as const).map(({ key, field }) => {
-                            const values = companies.map((c) => {
-                              const current = c.financialRatios.find(r => r.year === selectedYear)?.[field];
-                              const previous = c.financialRatios.find(r => r.year === selectedYear - 1)?.[field];
-                              if (current == null || previous == null || previous === 0) return null;
-                              return (current - previous) / Math.abs(previous);
-                            });
-                            const { best, worst } = getBestWorst(values, true);
-                            return (
-                              <TableRow key={key}>
-                                <TableCell className="font-medium">{t(`financialSummary.${key}`)}</TableCell>
-                                {companies.map((c, i) => {
-                                  const v = values[i];
-                                  return (
-                                    <TableCell key={c.id} className={`text-right text-sm tabular-nums ${getCellColor(v, best, worst)}`}>
-                                      {v != null ? `${v > 0 ? '+' : ''}${(v * 100).toFixed(1)}%` : 'N/A'}
-                                    </TableCell>
-                                  );
-                                })}
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
+                <FinancialSummary
+                  companies={companies}
+                  selectedYear={selectedYear}
+                  formatCurrency={formatCurrency}
+                />
               )}
 
               {/* Ownership Comparison */}
               {companies.some(c => c.owners?.some(o => o.sharePercentage > 0)) && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('owners.title')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="overflow-x-auto">
-                      <div className={`grid gap-4 ${
-                        companies.length === 2 ? 'grid-cols-2' :
-                        companies.length === 3 ? 'grid-cols-3' :
-                        companies.length === 4 ? 'grid-cols-2 lg:grid-cols-4' :
-                        'grid-cols-2 lg:grid-cols-5'
-                      }`}>
-                        {companies.map((company, idx) => (
-                          <div key={company.id} className="space-y-2">
-                            <div className="text-sm font-semibold truncate" style={{ color: getCompanyColor(idx) }}>{company.name}</div>
-                            {company.owners && company.owners.filter(o => o.sharePercentage > 0).length > 0 ? (
-                              company.owners
-                                .filter(o => o.sharePercentage > 0)
-                                .slice(0, 5)
-                                .map((o) => (
-                                  <div key={o.id} className="flex items-center justify-between gap-2 text-sm">
-                                    <span className="truncate text-muted-foreground">{o.owner.name}</span>
-                                    <span className="shrink-0 font-medium tabular-nums">{o.sharePercentage.toFixed(1)}%</span>
-                                  </div>
-                                ))
-                            ) : (
-                              <div className="text-sm text-muted-foreground">{t('owners.noOwners')}</div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <OwnershipComparison companies={companies} />
               )}
 
               {/* Radar Chart */}
               {radarChartData.length > 0 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('radar.title')} ({selectedYear})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RadarChart data={radarChartData}>
-                          <PolarGrid stroke="var(--chart-grid, #e5e7eb)" />
-                          <PolarAngleAxis dataKey="metric" tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
-                          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
-                          {companies.map((company, idx) => (
-                            <Radar
-                              key={company.id}
-                              name={company.name}
-                              dataKey={company.id}
-                              stroke={getCompanyColor(idx)}
-                              fill={getCompanyColor(idx)}
-                              fillOpacity={0.1}
-                              strokeWidth={2}
-                            />
-                          ))}
-                          <Legend formatter={(value) => {
-                            const c = companies.find(co => co.id === value);
-                            return <span className="text-foreground text-xs">{c?.name ?? value}</span>;
-                          }} />
-                          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => Math.round(v)} />
-                        </RadarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CompareRadarChart
+                  companies={companies}
+                  selectedYear={selectedYear}
+                  radarChartData={radarChartData}
+                />
               )}
 
               {/* Financial Ratios Comparison */}
@@ -1203,124 +958,21 @@ export default function ComparePage() {
 
               {/* Trend Charts — Revenue & Profit over years */}
               {trendChartData.length > 1 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>{t('trends.title')}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Revenue trend */}
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('summary.revenue')}</h4>
-                        <div className="h-60">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={trendChartData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, #e5e7eb)" opacity={0.3} />
-                              <XAxis dataKey="year" tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
-                              <YAxis tickFormatter={(v) => `€${(v / 1000000).toFixed(0)}M`} tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
-                              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(v as number)} />
-                              {companies.map((c, i) => (
-                                <Line key={c.id} type="monotone" dataKey={`rev_${c.id}`} name={c.name}
-                                  stroke={getCompanyColor(i)} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                              ))}
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                      {/* Profit trend */}
-                      <div>
-                        <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('summary.profit')}</h4>
-                        <div className="h-60">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={trendChartData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, #e5e7eb)" opacity={0.3} />
-                              <XAxis dataKey="year" tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
-                              <YAxis tickFormatter={(v) => `€${(v / 1000000).toFixed(0)}M`} tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
-                              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(v as number)} />
-                              {companies.map((c, i) => (
-                                <Line key={c.id} type="monotone" dataKey={`profit_${c.id}`} name={c.name}
-                                  stroke={getCompanyColor(i)} strokeWidth={2} dot={{ r: 3 }} connectNulls />
-                              ))}
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <TrendCharts
+                  companies={companies}
+                  trendChartData={trendChartData}
+                  formatCurrency={formatCurrency}
+                />
               )}
 
               {/* Tax Payments Comparison */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t('taxPayments.title')}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('taxPayments.company')}</TableHead>
-                          <TableHead className="text-right">{t('taxPayments.amount')} ({selectedYear})</TableHead>
-                          <TableHead className="text-right">{t('taxBreakdown.iinAmount')}</TableHead>
-                          <TableHead className="text-right">{t('taxBreakdown.vsaoiAmount')}</TableHead>
-                          <TableHead className="text-right">{t('taxPayments.employeeCount')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {companies.map((company) => {
-                          const payment = getTaxPayment(company);
-                          return (
-                            <TableRow key={company.id}>
-                              <TableCell className="font-medium">{company.name}</TableCell>
-                              <TableCell className="text-right">
-                                {payment ? formatCurrency(payment.amount) : t('taxPayments.noData')}
-                              </TableCell>
-                              <TableCell className="text-right text-sm text-muted-foreground">
-                                {payment?.iinAmount != null ? formatCurrency(payment.iinAmount) : '-'}
-                              </TableCell>
-                              <TableCell className="text-right text-sm text-muted-foreground">
-                                {payment?.vsaoiAmount != null ? formatCurrency(payment.vsaoiAmount) : '-'}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {payment?.employeeCount ?? '-'}
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-
-                  {/* Tax Payments Line Chart */}
-                  <div className="mt-6 h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={taxPaymentsChartData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="year" />
-                        <YAxis
-                          tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
-                          domain={taxPaymentsYAxisDomain as [number, number]}
-                        />
-                        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => formatCurrency(value as number)} />
-                        <Legend formatter={(value) => <span className="text-foreground">{value}</span>} />
-                        {companies.map((company, index) => (
-                          <Line
-                            key={company.id}
-                            type="monotone"
-                            dataKey={company.name}
-                            stroke={getCompanyColor(index)}
-                            strokeWidth={2}
-                            dot={{ r: 4 }}
-                            activeDot={{ r: 6 }}
-                            connectNulls
-                          />
-                        ))}
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+              <TaxBreakdown
+                companies={companies}
+                selectedYear={selectedYear}
+                formatCurrency={formatCurrency}
+                taxPaymentsChartData={taxPaymentsChartData}
+                taxPaymentsYAxisDomain={taxPaymentsYAxisDomain}
+              />
             </>
           )}
         </div>
