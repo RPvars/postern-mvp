@@ -12,8 +12,16 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { TrendingUp, Building2, AlertCircle } from 'lucide-react';
+import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { TrendingUp, Building2, AlertCircle, Link2, Check, Download } from 'lucide-react';
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from 'recharts';
+
+const TOOLTIP_STYLE: React.CSSProperties = {
+  backgroundColor: 'var(--popover)',
+  border: '1px solid var(--border)',
+  borderRadius: '0.5rem',
+  color: 'var(--popover-foreground)',
+};
 
 interface SelectedCompany {
   id: string;
@@ -41,6 +49,12 @@ interface Company {
   }[];
   financialRatios: {
     year: number;
+    revenue: number | null;
+    netIncome: number | null;
+    totalAssets: number | null;
+    equity: number | null;
+    totalDebt: number | null;
+    employees: number | null;
     returnOnEquity: number | null;
     returnOnAssets: number | null;
     roce: number | null;
@@ -67,6 +81,16 @@ interface Company {
     dpo: number | null;
     cashConversionCycle: number | null;
   }[];
+  owners: {
+    id: string;
+    owner: { name: string; isLegalEntity: boolean };
+    sharePercentage: number;
+  }[];
+  vatPayer: {
+    vatNumber: string;
+    isActive: boolean;
+    registeredDate: string | null;
+  } | null;
 }
 
 // Warm + cool accent color palette for maximum line contrast
@@ -97,6 +121,7 @@ export default function ComparePage() {
   const [isRestoringFromUrl, setIsRestoringFromUrl] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [linkCopied, setLinkCopied] = useState(false);
   const initialLoadDone = useRef(false);
 
   // Restore selected companies from URL on mount and auto-trigger comparison
@@ -113,28 +138,35 @@ export default function ComparePage() {
 
       setIsRestoringFromUrl(true);
       try {
-        const response = await fetch(`/api/companies/batch?ids=${ids.join(',')}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data.companies && data.companies.length > 0) {
-            setSelectedCompanies(data.companies);
+        if (wasCompared && ids.length >= 2) {
+          // Parallel: batch (for selector) + compare (for data)
+          const [batchRes, compareRes] = await Promise.all([
+            fetch(`/api/companies/batch?ids=${ids.join(',')}`),
+            fetch('/api/compare', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ companyIds: ids }),
+            }),
+          ]);
 
-            // Auto-trigger comparison if it was previously compared
-            if (wasCompared && data.companies.length >= 2) {
-              // Fetch comparison data
-              const compareResponse = await fetch('/api/compare', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ companyIds: data.companies.map((c: SelectedCompany) => c.id) }),
-              });
-              if (compareResponse.ok) {
-                const compareData = await compareResponse.json();
-                setCompanies(compareData.companies);
-                if (compareData.companies.length > 0 && compareData.companies[0].financialRatios.length > 0) {
-                  setSelectedYear(compareData.companies[0].financialRatios[0].year);
-                }
-              }
+          if (batchRes.ok) {
+            const batchData = await batchRes.json();
+            if (batchData.companies?.length > 0) setSelectedCompanies(batchData.companies);
+          }
+
+          if (compareRes.ok) {
+            const compareData = await compareRes.json();
+            setCompanies(compareData.companies);
+            if (compareData.companies?.[0]?.financialRatios?.length > 0) {
+              setSelectedYear(compareData.companies[0].financialRatios[0].year);
             }
+          }
+        } else {
+          // Just restore selector (no auto-compare)
+          const response = await fetch(`/api/companies/batch?ids=${ids.join(',')}`);
+          if (response.ok) {
+            const data = await response.json();
+            if (data.companies?.length > 0) setSelectedCompanies(data.companies);
           }
         }
       } catch (err) {
@@ -311,6 +343,104 @@ export default function ComparePage() {
     ];
   }, [companies]);
 
+  // Trend chart data (revenue + profit over years)
+  const trendChartData = useMemo(() => {
+    if (companies.length === 0) return [];
+    const allYears = Array.from(
+      new Set(companies.flatMap(c => c.financialRatios.map(r => r.year)))
+    ).sort((a, b) => a - b);
+    return allYears.map(year => {
+      const point: Record<string, number | string | null> = { year };
+      companies.forEach(c => {
+        const r = c.financialRatios.find(r => r.year === year);
+        point[`rev_${c.id}`] = r?.revenue ?? null;
+        point[`profit_${c.id}`] = r?.netIncome ?? null;
+      });
+      return point;
+    });
+  }, [companies]);
+
+  // Radar chart data — normalize metrics to 0-100 scale
+  const radarChartData = useMemo(() => {
+    if (companies.length === 0) return [];
+    const metrics = [
+      { key: 'returnOnEquity', label: t('radar.roe'), higher: true },
+      { key: 'currentRatio', label: t('radar.liquidity'), higher: true },
+      { key: 'netProfitMargin', label: t('radar.profitMargin'), higher: true },
+      { key: 'assetTurnover', label: t('radar.efficiency'), higher: true },
+      { key: 'debtRatio', label: t('radar.leverage'), higher: false },
+    ];
+
+    return metrics.map(({ key, label, higher }) => {
+      const point: Record<string, string | number> = { metric: label };
+      const values = companies.map(c => {
+        const r = getFinancialRatios(c);
+        return r ? (r as Record<string, number | null>)[key] : null;
+      });
+      const valid = values.filter((v): v is number => v != null);
+      if (valid.length === 0) {
+        companies.forEach((c, i) => { point[c.id] = 0; });
+        return point;
+      }
+      const min = Math.min(...valid);
+      const max = Math.max(...valid);
+      const range = max - min || 1;
+      companies.forEach((c, i) => {
+        const v = values[i];
+        if (v == null) { point[c.id] = 0; return; }
+        const normalized = ((v - min) / range) * 80 + 10; // 10-90 scale
+        point[c.id] = higher ? normalized : (100 - normalized);
+      });
+      return point;
+    });
+  }, [companies, getFinancialRatios, t]);
+
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(window.location.href);
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const handleExportCSV = () => {
+    if (companies.length === 0) return;
+    const headers = [
+      t('basicInfo.company'),
+      t('basicInfo.regNumber'),
+      t('basicInfo.legalForm'),
+      t('financialRatios.profitability.returnOnEquity'),
+      t('financialRatios.profitability.netProfitMargin'),
+      t('financialRatios.liquidity.currentRatio'),
+      t('financialRatios.leverage.debtToEquity'),
+      t('taxPayments.amount'),
+      t('taxPayments.employeeCount'),
+    ].join(',');
+
+    const rows = companies.map(c => {
+      const r = getFinancialRatios(c);
+      const tp = getTaxPayment(c);
+      return [
+        `"${c.name.replace(/"/g, '""')}"`,
+        c.registrationNumber,
+        `"${c.legalForm ?? ''}"`,
+        r?.returnOnEquity != null ? (r.returnOnEquity * 100).toFixed(2) : '',
+        r?.netProfitMargin != null ? (r.netProfitMargin * 100).toFixed(2) : '',
+        r?.currentRatio?.toFixed(2) ?? '',
+        r?.debtToEquity?.toFixed(2) ?? '',
+        tp?.amount ?? '',
+        tp?.employeeCount ?? '',
+      ].join(',');
+    });
+
+    const csv = '\uFEFF' + [headers, ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `salidz-${selectedYear}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
@@ -374,6 +504,62 @@ export default function ComparePage() {
           {/* Comparison Results */}
           {!isLoading && companies.length > 0 && (
             <>
+              {/* Action buttons */}
+              <div className="flex gap-2 justify-end">
+                <Button variant="outline" size="sm" onClick={handleCopyLink}>
+                  {linkCopied ? <Check className="h-4 w-4 mr-1" /> : <Link2 className="h-4 w-4 mr-1" />}
+                  {linkCopied ? t('actions.copied') : t('actions.copyLink')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleExportCSV}>
+                  <Download className="h-4 w-4 mr-1" />
+                  CSV
+                </Button>
+              </div>
+
+              {/* Summary Cards */}
+              <div className={`grid gap-4 ${
+                companies.length === 2 ? 'grid-cols-2' :
+                companies.length === 3 ? 'grid-cols-3' :
+                companies.length === 4 ? 'grid-cols-2 lg:grid-cols-4' :
+                'grid-cols-2 lg:grid-cols-5'
+              }`}>
+                {companies.map((company, idx) => {
+                  const r = getFinancialRatios(company);
+                  const tp = getTaxPayment(company);
+                  return (
+                    <Card key={company.id} className="border-l-4" style={{ borderLeftColor: getCompanyColor(idx) }}>
+                      <CardContent className="pt-4 pb-3">
+                        <div className="font-semibold text-sm truncate mb-2">{company.name}</div>
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                          <div>
+                            <div className="text-muted-foreground">{t('summary.revenue')}</div>
+                            <div className="font-medium tabular-nums">
+                              {r?.revenue != null ? formatCurrency(r.revenue) : '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">{t('summary.profit')}</div>
+                            <div className="font-medium tabular-nums">
+                              {r?.netIncome != null ? formatCurrency(r.netIncome) : '—'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">{t('summary.employees')}</div>
+                            <div className="font-medium tabular-nums">{tp?.employeeCount ?? '—'}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground">{t('summary.taxes')}</div>
+                            <div className="font-medium tabular-nums">
+                              {tp ? formatCurrency(tp.amount) : '—'}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+
               {/* Basic Company Info */}
               <Card>
                 <CardHeader>
@@ -423,18 +609,25 @@ export default function ComparePage() {
                           ))}
                         </TableRow>
                         <TableRow>
-                          <TableCell className="font-medium">{t('basicInfo.vehicles')}</TableCell>
-                          {companies.map((company) => (
-                            <TableCell key={company.id} className="text-sm">
-                              {company.registeredVehiclesCount ?? tCommon('notAvailable')}
-                            </TableCell>
-                          ))}
-                        </TableRow>
-                        <TableRow>
                           <TableCell className="font-medium">{t('basicInfo.registrationDate')}</TableCell>
                           {companies.map((company) => (
                             <TableCell key={company.id} className="text-sm">
                               {formatDate(company.registrationDate)}
+                            </TableCell>
+                          ))}
+                        </TableRow>
+                        <TableRow>
+                          <TableCell className="font-medium">PVN</TableCell>
+                          {companies.map((company) => (
+                            <TableCell key={company.id} className="text-sm">
+                              {company.vatPayer ? (
+                                <div className="flex items-center gap-1">
+                                  <Badge variant={company.vatPayer.isActive ? 'default' : 'destructive'} className="text-xs">
+                                    {company.vatPayer.isActive ? 'Aktīvs' : 'Neaktīvs'}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">{company.vatPayer.vatNumber}</span>
+                                </div>
+                              ) : '—'}
                             </TableCell>
                           ))}
                         </TableRow>
@@ -465,6 +658,156 @@ export default function ComparePage() {
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Financial Summary Table */}
+              {availableYears.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('financialSummary.title')} ({selectedYear})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-48">{t('financialSummary.metric')}</TableHead>
+                            {companies.map((company) => (
+                              <TableHead key={company.id} className="min-w-36 text-right">{company.name}</TableHead>
+                            ))}
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {/* Absolute figures */}
+                          {([
+                            { key: 'revenue', field: 'revenue' as const, format: formatCurrency, higher: true },
+                            { key: 'netIncome', field: 'netIncome' as const, format: formatCurrency, higher: true },
+                            { key: 'totalAssets', field: 'totalAssets' as const, format: formatCurrency, higher: true },
+                            { key: 'equity', field: 'equity' as const, format: formatCurrency, higher: true },
+                            { key: 'totalDebt', field: 'totalDebt' as const, format: formatCurrency, higher: false },
+                            { key: 'employees', field: 'employees' as const, format: (v: number | null) => v != null ? v.toLocaleString('lv-LV') : 'N/A', higher: true },
+                            { key: 'revenuePerEmployee', field: 'revenuePerEmployee' as const, format: formatCurrency, higher: true },
+                            { key: 'profitPerEmployee', field: 'profitPerEmployee' as const, format: formatCurrency, higher: true },
+                          ] as const).map(({ key, field, format, higher }) => {
+                            const values = companies.map((c) => getFinancialRatios(c)?.[field] ?? null);
+                            const { best, worst } = getBestWorst(values, higher);
+                            return (
+                              <TableRow key={key}>
+                                <TableCell className="font-medium">{t(`financialSummary.${key}`)}</TableCell>
+                                {companies.map((c, i) => (
+                                  <TableCell key={c.id} className={`text-right text-sm tabular-nums ${getCellColor(values[i], best, worst)}`}>
+                                    {format(values[i])}
+                                  </TableCell>
+                                ))}
+                              </TableRow>
+                            );
+                          })}
+                          {/* YoY Growth rows */}
+                          {([
+                            { key: 'revenueGrowth', field: 'revenue' as const },
+                            { key: 'profitGrowth', field: 'netIncome' as const },
+                            { key: 'employeeGrowth', field: 'employees' as const },
+                          ] as const).map(({ key, field }) => {
+                            const values = companies.map((c) => {
+                              const current = c.financialRatios.find(r => r.year === selectedYear)?.[field];
+                              const previous = c.financialRatios.find(r => r.year === selectedYear - 1)?.[field];
+                              if (current == null || previous == null || previous === 0) return null;
+                              return (current - previous) / Math.abs(previous);
+                            });
+                            const { best, worst } = getBestWorst(values, true);
+                            return (
+                              <TableRow key={key}>
+                                <TableCell className="font-medium">{t(`financialSummary.${key}`)}</TableCell>
+                                {companies.map((c, i) => {
+                                  const v = values[i];
+                                  return (
+                                    <TableCell key={c.id} className={`text-right text-sm tabular-nums ${getCellColor(v, best, worst)}`}>
+                                      {v != null ? `${v > 0 ? '+' : ''}${(v * 100).toFixed(1)}%` : 'N/A'}
+                                    </TableCell>
+                                  );
+                                })}
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Ownership Comparison */}
+              {companies.some(c => c.owners?.some(o => o.sharePercentage > 0)) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('owners.title')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <div className={`grid gap-4 ${
+                        companies.length === 2 ? 'grid-cols-2' :
+                        companies.length === 3 ? 'grid-cols-3' :
+                        companies.length === 4 ? 'grid-cols-2 lg:grid-cols-4' :
+                        'grid-cols-2 lg:grid-cols-5'
+                      }`}>
+                        {companies.map((company, idx) => (
+                          <div key={company.id} className="space-y-2">
+                            <div className="text-sm font-semibold truncate" style={{ color: getCompanyColor(idx) }}>{company.name}</div>
+                            {company.owners && company.owners.filter(o => o.sharePercentage > 0).length > 0 ? (
+                              company.owners
+                                .filter(o => o.sharePercentage > 0)
+                                .slice(0, 5)
+                                .map((o) => (
+                                  <div key={o.id} className="flex items-center justify-between gap-2 text-sm">
+                                    <span className="truncate text-muted-foreground">{o.owner.name}</span>
+                                    <span className="shrink-0 font-medium tabular-nums">{o.sharePercentage.toFixed(1)}%</span>
+                                  </div>
+                                ))
+                            ) : (
+                              <div className="text-sm text-muted-foreground">{t('owners.noOwners')}</div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Radar Chart */}
+              {radarChartData.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('radar.title')} ({selectedYear})</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <RadarChart data={radarChartData}>
+                          <PolarGrid stroke="var(--chart-grid, #e5e7eb)" />
+                          <PolarAngleAxis dataKey="metric" tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
+                          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={false} axisLine={false} />
+                          {companies.map((company, idx) => (
+                            <Radar
+                              key={company.id}
+                              name={company.name}
+                              dataKey={company.id}
+                              stroke={getCompanyColor(idx)}
+                              fill={getCompanyColor(idx)}
+                              fillOpacity={0.1}
+                              strokeWidth={2}
+                            />
+                          ))}
+                          <Legend formatter={(value) => {
+                            const c = companies.find(co => co.id === value);
+                            return <span className="text-foreground text-xs">{c?.name ?? value}</span>;
+                          }} />
+                          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: number) => Math.round(v)} />
+                        </RadarChart>
+                      </ResponsiveContainer>
                     </div>
                   </CardContent>
                 </Card>
@@ -858,6 +1201,55 @@ export default function ComparePage() {
                 </CardContent>
               </Card>
 
+              {/* Trend Charts — Revenue & Profit over years */}
+              {trendChartData.length > 1 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t('trends.title')}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Revenue trend */}
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('summary.revenue')}</h4>
+                        <div className="h-60">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={trendChartData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, #e5e7eb)" opacity={0.3} />
+                              <XAxis dataKey="year" tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
+                              <YAxis tickFormatter={(v) => `€${(v / 1000000).toFixed(0)}M`} tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
+                              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(v as number)} />
+                              {companies.map((c, i) => (
+                                <Line key={c.id} type="monotone" dataKey={`rev_${c.id}`} name={c.name}
+                                  stroke={getCompanyColor(i)} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                              ))}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                      {/* Profit trend */}
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">{t('summary.profit')}</h4>
+                        <div className="h-60">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={trendChartData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid, #e5e7eb)" opacity={0.3} />
+                              <XAxis dataKey="year" tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
+                              <YAxis tickFormatter={(v) => `€${(v / 1000000).toFixed(0)}M`} tick={{ fill: 'var(--chart-text, #6b7280)', fontSize: 12 }} />
+                              <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v) => formatCurrency(v as number)} />
+                              {companies.map((c, i) => (
+                                <Line key={c.id} type="monotone" dataKey={`profit_${c.id}`} name={c.name}
+                                  stroke={getCompanyColor(i)} strokeWidth={2} dot={{ r: 3 }} connectNulls />
+                              ))}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Tax Payments Comparison */}
               <Card>
                 <CardHeader>
@@ -870,6 +1262,8 @@ export default function ComparePage() {
                         <TableRow>
                           <TableHead>{t('taxPayments.company')}</TableHead>
                           <TableHead className="text-right">{t('taxPayments.amount')} ({selectedYear})</TableHead>
+                          <TableHead className="text-right">{t('taxBreakdown.iinAmount')}</TableHead>
+                          <TableHead className="text-right">{t('taxBreakdown.vsaoiAmount')}</TableHead>
                           <TableHead className="text-right">{t('taxPayments.employeeCount')}</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -881,6 +1275,12 @@ export default function ComparePage() {
                               <TableCell className="font-medium">{company.name}</TableCell>
                               <TableCell className="text-right">
                                 {payment ? formatCurrency(payment.amount) : t('taxPayments.noData')}
+                              </TableCell>
+                              <TableCell className="text-right text-sm text-muted-foreground">
+                                {payment?.iinAmount != null ? formatCurrency(payment.iinAmount) : '-'}
+                              </TableCell>
+                              <TableCell className="text-right text-sm text-muted-foreground">
+                                {payment?.vsaoiAmount != null ? formatCurrency(payment.vsaoiAmount) : '-'}
                               </TableCell>
                               <TableCell className="text-right">
                                 {payment?.employeeCount ?? '-'}
@@ -902,7 +1302,7 @@ export default function ComparePage() {
                           tickFormatter={(value) => `€${(value / 1000).toFixed(0)}k`}
                           domain={taxPaymentsYAxisDomain as [number, number]}
                         />
-                        <Tooltip formatter={(value) => formatCurrency(value as number)} />
+                        <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(value) => formatCurrency(value as number)} />
                         <Legend formatter={(value) => <span className="text-foreground">{value}</span>} />
                         {companies.map((company, index) => (
                           <Line

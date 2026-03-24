@@ -48,7 +48,7 @@ export async function GET(
       httpClient.getLegalEntity(id),
       prisma.company.findUnique({
         where: { registrationNumber: id },
-        select: { legalAddress: true },
+        select: { legalAddress: true, website: true },
       }),
       prisma.taxPayment.findMany({
         where: { registrationNumber: id },
@@ -108,6 +108,7 @@ export async function GET(
       houseNumber: legalEntity.address.houseNumber || null,
       addressRegisterCode: legalEntity.address.addressRegisterCode ?? null,
       atvkCode: legalEntity.atvkCode || null,
+      website: localCompany?.website || null,
       isAnnulled: legalEntity.isAnnulled,
       register: legalEntity.register,
       cleanedShortName: legalEntity.cleanedShortName || null,

@@ -6,6 +6,8 @@ import { comparisonSchema } from '@/lib/validations/search';
 import { APP_CONFIG } from '@/lib/config';
 import { env } from '@/lib/env';
 import { captureException } from '@/lib/sentry';
+import { httpClient } from '@/lib/business-register/client/http';
+import { formatCompanyDisplayName } from '@/lib/text-utils';
 
 export async function POST(request: NextRequest) {
   // Rate limiting
@@ -97,15 +99,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Fetch tax payments separately (no longer a Company relation)
+    // Fetch tax, VAT, financial data, and BR data all in parallel
     const regNumbers = companies.map((c) => c.registrationNumber);
-    const taxPayments = await prisma.taxPayment.findMany({
-      where: {
-        registrationNumber: { in: regNumbers },
-        year: { gte: startYear },
-      },
-      orderBy: { year: 'desc' },
-    });
+    const vatNumbers = companies.map((c) => `LV${c.registrationNumber}`);
+
+    const [taxPayments, vatPayers, financialDataResults, brResults] = await Promise.all([
+      prisma.taxPayment.findMany({
+        where: { registrationNumber: { in: regNumbers }, year: { gte: startYear } },
+        orderBy: { year: 'desc' },
+      }),
+      prisma.vatPayer.findMany({
+        where: { vatNumber: { in: vatNumbers } },
+      }),
+      Promise.allSettled(
+        companies.map((c) => getFinancialData(c.registrationNumber))
+      ),
+      Promise.allSettled(
+        companies.map(async (c) => {
+          const data = await httpClient.getLegalEntity(c.registrationNumber);
+          const equity = (data as any)?.commercialEntityDetails?.equityCapitals?.find(
+            (ec: any) => ec.type === 'PAID_UP_EQUITY'
+          );
+          return {
+            regNr: c.registrationNumber,
+            shareCapital: equity?.amount ?? null,
+            shareCapitalDate: equity?.registeredOn ?? null,
+          };
+        })
+      ),
+    ]);
 
     // Group tax payments by registration number
     const taxPaymentsByRegNr = new Map<string, typeof taxPayments>();
@@ -115,21 +137,11 @@ export async function POST(request: NextRequest) {
       taxPaymentsByRegNr.set(tp.registrationNumber, list);
     }
 
-    // Fetch VAT payer data
-    const vatNumbers = companies.map((c) => `LV${c.registrationNumber}`);
-    const vatPayers = await prisma.vatPayer.findMany({
-      where: { vatNumber: { in: vatNumbers } },
-    });
     const vatPayerByRegNr = new Map<string, typeof vatPayers[number]>();
     for (const vp of vatPayers) {
-      // Strip "LV" prefix to map back to registration number
       vatPayerByRegNr.set(vp.vatNumber.slice(2), vp);
     }
 
-    // Fetch financial data from data.gov.lv for all companies in parallel
-    const financialDataResults = await Promise.allSettled(
-      companies.map((c) => getFinancialData(c.registrationNumber))
-    );
     const financialDataByRegNr = new Map<string, Awaited<ReturnType<typeof getFinancialData>>>();
     companies.forEach((c, i) => {
       const result = financialDataResults[i];
@@ -139,12 +151,24 @@ export async function POST(request: NextRequest) {
       );
     });
 
+    // Map BR API results
+    const brDataByRegNr = new Map<string, { shareCapital: number | null; shareCapitalDate: string | null }>();
+    for (const result of brResults) {
+      if (result.status === 'fulfilled' && result.value) {
+        brDataByRegNr.set(result.value.regNr, result.value);
+      }
+    }
+
     // Return companies in the same order as requested, with tax payments and financial data attached
     const orderedCompanies = companyIds.map((id) => {
       const company = companies.find((c) => isRegNumbers ? c.registrationNumber === id : c.id === id);
       if (!company) return null;
+      const brData = brDataByRegNr.get(company.registrationNumber);
       return {
         ...company,
+        name: formatCompanyDisplayName(company.name),
+        shareCapital: company.shareCapital ?? brData?.shareCapital ?? null,
+        shareCapitalRegisteredDate: company.shareCapitalRegisteredDate ?? brData?.shareCapitalDate ?? null,
         taxPayments: taxPaymentsByRegNr.get(company.registrationNumber) || [],
         financialRatios: financialDataByRegNr.get(company.registrationNumber) || [],
         vatPayer: vatPayerByRegNr.get(company.registrationNumber) || null,

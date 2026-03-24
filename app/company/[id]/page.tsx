@@ -9,8 +9,10 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle, Info, X, ChevronDown } from 'lucide-react';
 import type { Company } from '@/lib/types/company';
 import { translateEnum } from '@/lib/i18n/translate-enum';
+import { formatCompanyDisplayName } from '@/lib/text-utils';
 import { CompanySkeleton } from '@/components/company/company-skeleton';
 import { CompanyError } from '@/components/company/company-error';
+import { BusinessCard } from '@/components/company/business-card';
 import { BasicTab } from '@/components/company/basic-tab';
 import { PeopleTab } from '@/components/company/people-tab';
 import { FinancialTab } from '@/components/company/financial-tab';
@@ -104,10 +106,9 @@ export default function CompanyPage() {
 
   useEffect(() => {
     if (company) {
-      const shortName = company.cleanedShortName || company.name.replace(/^(Sabiedrība ar ierobežotu atbildību|Akciju sabiedrība)\s*/i, '').replace(/^[""]|[""]$/g, '');
-      document.title = `${shortName} — Posterns`;
+      document.title = `${formatCompanyDisplayName(company.name)} — Posterns`;
     }
-    return () => { document.title = 'Posterns - Latvijas Uzņēmumu Analīzes Platforma'; };
+    return () => { document.title = 'Posterns'; };
   }, [company]);
 
   if (isLoading) {
@@ -191,6 +192,8 @@ export default function CompanyPage() {
           </div>
         </div>
       )}
+
+      <BusinessCard company={company} />
 
       <main className="container mx-auto px-4 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

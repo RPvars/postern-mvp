@@ -25,6 +25,8 @@ model Company {
   registrationDate  DateTime
   phone             String?
   email             String?
+  website           String?
+  websiteVerifiedAt DateTime?
 
   // Business Status & Capital
   status                      String    @default("Aktīvs")

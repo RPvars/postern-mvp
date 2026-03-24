@@ -64,7 +64,7 @@ export class BoardMemberMapper {
     const rawName = officer.naturalPerson?.name
       || officer.legalEntity?.legalName
       || officer.legalEntity?.registrationNumber
-      || 'Unknown';
+      || 'Nav zināms';
     const name = abbreviateLegalForm(rawName);
 
     // Return raw representation rights data for frontend i18n
@@ -164,7 +164,7 @@ export interface BeneficialOwnerMapped {
 export class BeneficialOwnerMapper {
   fromApiResponse(bo: BeneficialOwnerApiResponse): BeneficialOwnerMapped {
     const np = bo.naturalPerson;
-    const name = np ? `${np.forename || ''} ${np.surname || ''}`.trim() : 'Unknown';
+    const name = np ? `${np.forename || ''} ${np.surname || ''}`.trim() : 'Nav zināms';
 
     return {
       id: randomUUID(),

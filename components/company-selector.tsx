@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatCompanyDisplayName } from '@/lib/text-utils';
 
 interface SearchResult {
   id: string;
@@ -103,33 +104,24 @@ export function CompanySelector({
 
   return (
     <div className="space-y-4">
-      {/* Selected Companies */}
+      {/* Selected Companies — compact pill style */}
       {selectedCompanies.length > 0 && (
-        <div className="space-y-3">
+        <div className="flex flex-wrap gap-2">
           {selectedCompanies.map((company, index) => (
-            <Card
+            <div
               key={company.id}
-              className="relative p-4 hover:bg-accent transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border bg-accent/50 hover:bg-accent transition-colors text-sm"
             >
-              <div className="flex items-center gap-3">
-                <Badge variant="secondary" className="text-sm font-medium">
-                  {index + 1}
-                </Badge>
-                <div className="flex-1">
-                  <div className="font-medium text-foreground">{company.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {company.registrationNumber}
-                  </div>
-                </div>
-                <button
-                  onClick={() => handleRemove(company.id)}
-                  className="rounded-full p-1 hover:bg-accent transition-colors"
-                  aria-label={t('removeCompany')}
-                >
-                  <X className="h-4 w-4 text-muted-foreground" />
-                </button>
-              </div>
-            </Card>
+              <span className="text-xs font-bold text-muted-foreground">{index + 1}</span>
+              <span className="font-medium text-foreground">{formatCompanyDisplayName(company.name)}</span>
+              <button
+                onClick={() => handleRemove(company.id)}
+                className="ml-0.5 rounded-full p-0.5 hover:bg-background transition-colors"
+                aria-label={t('removeCompany')}
+              >
+                <X className="h-3 w-3 text-muted-foreground" />
+              </button>
+            </div>
           ))}
         </div>
       )}

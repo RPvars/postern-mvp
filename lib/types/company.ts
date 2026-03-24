@@ -158,6 +158,7 @@ export interface Company {
   registrationDate: string;
   phone: string | null;
   email: string | null;
+  website: string | null;
   isAnnulled: boolean;
 
   status: string;

@@ -16,6 +16,8 @@
     "import:rating": "tsx scripts/import-taxpayer-rating.ts",
     "import:vat": "tsx scripts/import-vat-payers.ts",
     "import:nace": "tsx scripts/import-nace-codes.ts",
+    "enrich:websites": "tsx scripts/enrich-websites.ts",
+    "enrich:contacts": "tsx scripts/enrich-contacts.ts",
     "import:stateaid": "tsx scripts/import-state-aid.ts",
     "import:names": "tsx scripts/import-name-history.ts",
     "import:reorganizations": "tsx scripts/import-reorganizations.ts",

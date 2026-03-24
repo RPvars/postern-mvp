@@ -189,7 +189,7 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
           <div className="h-16 w-px bg-border" />
 
           <Select value={country} onValueChange={onCountryChange}>
-            <SelectTrigger className="w-auto h-28 border-0 shadow-none bg-transparent ring-0 focus:ring-0 focus-visible:ring-0 px-3 gap-1">
+            <SelectTrigger className="w-auto h-28 border-0 shadow-none bg-transparent! ring-0 focus:ring-0 focus-visible:ring-0 px-3 gap-1">
               <SelectValue>
                 <span className="text-3xl">{getCountryFlag(country)}</span>
               </SelectValue>

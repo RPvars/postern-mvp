@@ -63,7 +63,8 @@
       "MUNICIPAL_ENTERPRISE": "Municipal Enterprise",
       "FARM_ENTERPRISE": "Farm Enterprise",
       "FISHING_ENTERPRISE": "Fishing Enterprise",
-      "ASSOCIATION_BDR": "Association"
+      "ASSOCIATION_BDR": "Association",
+      "INDIVIDUAL_UNDERTAKING_IND": "Individual Undertaking"
     },
     "register": {
       "COMMERCIAL": "Commercial Register",
@@ -71,7 +72,9 @@
       "TRADE_UNION": "Trade Union Register",
       "RELIGIOUS": "Religious Organization Register",
       "POLITICAL_PARTY": "Political Party Register",
-      "ASSOCIATIONS_AND_FOUNDATIONS": "Associations and Foundations Register"
+      "ASSOCIATIONS_AND_FOUNDATIONS": "Associations and Foundations Register",
+      "ENTERPRISE_REGISTER_JOURNAL": "Enterprise Register Journal",
+      "COMMERCIAL_REGISTER": "Commercial Register"
     },
     "position": {
       "CHAIR_OF_BOARD": "Chair of the Board",
@@ -693,6 +696,50 @@
       "amount": "Amount",
       "employeeCount": "Avg. Employees",
       "noData": "No data"
+    },
+    "summary": {
+      "revenue": "Revenue",
+      "profit": "Profit",
+      "employees": "Employees",
+      "taxes": "Taxes"
+    },
+    "actions": {
+      "copyLink": "Copy link",
+      "copied": "Copied!"
+    },
+    "radar": {
+      "title": "Company profile",
+      "roe": "Profitability",
+      "liquidity": "Liquidity",
+      "profitMargin": "Profit margin",
+      "efficiency": "Efficiency",
+      "leverage": "Debt burden"
+    },
+    "trends": {
+      "title": "Financial trends"
+    },
+    "financialSummary": {
+      "title": "Financial Summary",
+      "revenue": "Revenue",
+      "netIncome": "Net Income",
+      "totalAssets": "Total Assets",
+      "equity": "Equity",
+      "totalDebt": "Total Debt",
+      "employees": "Employees",
+      "revenuePerEmployee": "Revenue / Employee",
+      "profitPerEmployee": "Profit / Employee",
+      "revenueGrowth": "Revenue Growth",
+      "profitGrowth": "Profit Growth",
+      "employeeGrowth": "Employee Growth",
+      "metric": "Metric"
+    },
+    "owners": {
+      "title": "Major Shareholders",
+      "noOwners": "No data"
+    },
+    "taxBreakdown": {
+      "iinAmount": "PIT",
+      "vsaoiAmount": "Social Insurance"
     }
   },
   "industries": {

@@ -104,6 +104,8 @@ npm run import:all    # Import all CSV data (includes people data from UR open d
 npm run import:people # Import person data only (register, members, officers, beneficial owners, stockholders)
 npm run import:financial # Import financial data from CKAN (revenue, profit, assets ~1M records)
 npm run import:nace   # Import NACE classification with hierarchy
+npm run enrich:websites # Discover company websites via DNS + homepage verification
+npm run enrich:contacts # Extract email/phone from known company websites
 /ship                 # Run shipping pipeline (review, fix, build, commit, push)
 ```
 
@@ -154,6 +156,14 @@ Data imported via scripts from VID/UR open data (CC0). Run `npm run import:all` 
 - **Stockholders**: `scripts/import-stockholders.ts` — AS company shareholders (~22K)
 - **Note**: Imported data is static snapshots — needs periodic re-import to stay current
 - **Person import**: `npm run import:people` runs all 5 person-related imports in sequence
+
+## Company Data Enrichment
+Scripts that discover and populate contact data from company websites:
+- **Website discovery**: `scripts/enrich-websites.ts` — generates domain candidates from company names, DNS-checks them, fetches homepage HTML, verifies by finding registration number or company name. Stores verified URL in `Company.website`. Run: `npm run enrich:websites -- --limit=1000`
+- **Contact extraction**: `scripts/enrich-contacts.ts` — fetches known company websites, extracts email (mailto: links + regex, domain-matched, generic prefixes only) and phone (tel: links + LV phone regex). Run: `npm run enrich:contacts`
+- **Business card**: `components/company/business-card.tsx` — displays address, NACE, website, phone, email, Clearbit logo on company detail page
+- **Enrichment pipeline**: Run `enrich:websites` first (populates `website`), then `enrich:contacts` (populates `email`/`phone` from those websites)
+- **Logo**: Clearbit Logo API (`https://logo.clearbit.com/{domain}`) with `<img onError>` fallback to Building2 icon
 
 ## Company Detail Progressive Loading
 The company detail page uses 3 parallel API calls for progressive rendering:
@@ -210,10 +220,13 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 ## Compare Page
 - URL state persistence: Selected companies stored in `?companies=id1,id2,id3` parameter
 - Comparison state: `?compared=true` tracks if comparison was executed
-- Auto-restore: On language change/reload, companies and comparison are restored from URL
+- Auto-restore: On language change/reload, companies and comparison are restored from URL (parallel batch+compare fetch)
 - Max 5 companies, min 2 required for comparison
 - **Supports both ID formats**: Compare API auto-detects registration numbers (all digits) vs internal IDs (cuid)
 - **BigInt serialization**: Ownership.sharesCount is BigInt — API uses JSON replacer to convert to Number before response
+- **Sections**: Summary cards → Basic info (incl PVN) → Year selector → Financial summary (absolute EUR + YoY growth %) → Ownership comparison → Radar chart → Financial ratios (4 tabs) → Tax payments (with IIN/VSAOI breakdown) → Trend charts
+- **Financial summary**: Shows revenue, profit, assets, equity, debt, employees as absolute EUR figures + YoY growth % with best/worst highlighting
+- **Actions**: Copy link to clipboard, CSV export with BOM for Excel compatibility
 
 ## Known Issues & Solutions
 1. **"Unable to open database file"**: Clear `.next` cache and restart (`rm -rf .next && npm run dev`)

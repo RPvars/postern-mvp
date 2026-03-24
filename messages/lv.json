@@ -63,7 +63,8 @@
       "MUNICIPAL_ENTERPRISE": "Pašvaldības uzņēmums",
       "FARM_ENTERPRISE": "Zemnieku saimniecība",
       "FISHING_ENTERPRISE": "Zvejnieku saimniecība",
-      "ASSOCIATION_BDR": "Biedrība"
+      "ASSOCIATION_BDR": "Biedrība",
+      "INDIVIDUAL_UNDERTAKING_IND": "Individuālais uzņēmums"
     },
     "register": {
       "COMMERCIAL": "Komercreģistrs",
@@ -71,7 +72,9 @@
       "TRADE_UNION": "Arodbiedrību reģistrs",
       "RELIGIOUS": "Reliģisko organizāciju reģistrs",
       "POLITICAL_PARTY": "Politisko partiju reģistrs",
-      "ASSOCIATIONS_AND_FOUNDATIONS": "Biedrību un nodibinājumu reģistrs"
+      "ASSOCIATIONS_AND_FOUNDATIONS": "Biedrību un nodibinājumu reģistrs",
+      "ENTERPRISE_REGISTER_JOURNAL": "Uzņēmumu reģistra žurnāls",
+      "COMMERCIAL_REGISTER": "Komercreģistrs"
     },
     "position": {
       "CHAIR_OF_BOARD": "Valdes priekšsēdētājs",
@@ -693,6 +696,50 @@
       "amount": "Summa",
       "employeeCount": "Vid. darbinieki",
       "noData": "Nav datu"
+    },
+    "summary": {
+      "revenue": "Apgrozījums",
+      "profit": "Peļņa",
+      "employees": "Darbinieki",
+      "taxes": "Nodokļi"
+    },
+    "actions": {
+      "copyLink": "Kopēt saiti",
+      "copied": "Nokopēts!"
+    },
+    "radar": {
+      "title": "Uzņēmumu profils",
+      "roe": "Rentabilitāte",
+      "liquidity": "Likviditāte",
+      "profitMargin": "Peļņas marža",
+      "efficiency": "Efektivitāte",
+      "leverage": "Parādu slodze"
+    },
+    "trends": {
+      "title": "Finanšu tendences"
+    },
+    "financialSummary": {
+      "title": "Finanšu kopsavilkums",
+      "revenue": "Apgrozījums",
+      "netIncome": "Tīrā peļņa",
+      "totalAssets": "Kopējie aktīvi",
+      "equity": "Pašu kapitāls",
+      "totalDebt": "Kopējie parādi",
+      "employees": "Darbinieki",
+      "revenuePerEmployee": "Apgrozījums / darbinieks",
+      "profitPerEmployee": "Peļņa / darbinieks",
+      "revenueGrowth": "Apgrozījuma izaugsme",
+      "profitGrowth": "Peļņas izaugsme",
+      "employeeGrowth": "Darbinieku izmaiņas",
+      "metric": "Rādītājs"
+    },
+    "owners": {
+      "title": "Galvenie īpašnieki",
+      "noOwners": "Nav datu"
+    },
+    "taxBreakdown": {
+      "iinAmount": "IIN",
+      "vsaoiAmount": "VSAOI"
     }
   },
   "industries": {
