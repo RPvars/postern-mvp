@@ -12,6 +12,26 @@ export function normalizeName(name: string): string {
     .trim();
 }
 
+/**
+ * Normalize a Latvian address for matching: lowercase, remove quotes,
+ * strip postal codes, sort parts alphabetically so different orderings match.
+ * "Rēznas iela 9A, Rīga, LV-1019" → "rīga, rēznas iela 9a"
+ * "Rīga, Rēznas iela 9A"           → "rīga, rēznas iela 9a"
+ */
+export function normalizeAddress(address: string): string {
+  const cleaned = address
+    .toLowerCase()
+    .replace(/[""\u201C\u201D]/g, '');
+
+  const parts = cleaned
+    .split(',')
+    .map(p => p.replace(/\s+/g, ' ').trim())
+    .filter(p => p && !/^lv-?\d{4}$/i.test(p));  // Remove postal codes (LV-1019)
+
+  parts.sort();
+  return parts.join(', ');
+}
+
 const LEGAL_FORM_ABBREVIATIONS: [RegExp, string][] = [
   [/Sabiedrība ar ierobežotu atbildību/gi, 'SIA'],
   [/Akciju sabiedrība/gi, 'AS'],

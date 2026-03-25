@@ -199,7 +199,9 @@
         "board": "Board",
         "beneficial": "UBO"
       },
-      "viewAll": "View all results"
+      "viewAll": "View all results",
+      "addresses": "Addresses",
+      "company": "company"
     },
     "countries": {
       "latvia": "Latvia",
@@ -357,7 +359,27 @@
     "companies": "Companies",
     "people": "People",
     "noResults": "No results found",
-    "noResultsHint": "Try a different search query"
+    "noResultsHint": "Try a different search query",
+    "addresses": "Addresses",
+    "company": "company",
+    "companiesPlural": "companies"
+  },
+  "address": {
+    "title": "Address",
+    "companiesAtAddress": "Companies at this address",
+    "companyCount": "{count, plural, one {# company} other {# companies}}",
+    "noCompanies": "No companies found at this address",
+    "notFound": "Address not found",
+    "backToSearch": "Back to search",
+    "map": "Location",
+    "companyName": "Company",
+    "regNumber": "Reg. No.",
+    "legalForm": "Legal Form",
+    "status": "Status",
+    "registrationDate": "Registered",
+    "prevPage": "Previous",
+    "nextPage": "Next",
+    "searchAddresses": "Addresses"
   },
   "person": {
     "notFound": "Person not found",

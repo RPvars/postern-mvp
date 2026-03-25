@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Building2, MapPin, Phone, Mail, Tag, Globe, ExternalLink } from 'lucide-react';
+import { AddressLink } from '@/components/address/address-link';
+import { Building2, Phone, Mail, Tag, Globe, ExternalLink } from 'lucide-react';
 import type { Company } from '@/lib/types/company';
 
 interface BusinessCardProps {
@@ -62,9 +63,8 @@ export function BusinessCard({ company }: BusinessCardProps) {
         <div className="flex-1 min-w-0 space-y-1">
           {/* Address */}
           {company.legalAddress && (
-            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              <span className="truncate">{company.legalAddress}</span>
+            <div className="text-sm text-muted-foreground">
+              <AddressLink address={company.legalAddress} />
             </div>
           )}
 

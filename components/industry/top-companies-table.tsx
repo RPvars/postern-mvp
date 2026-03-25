@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ArrowUpDown, ArrowDown, Undo2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
+import { AddressLink } from '@/components/address/address-link';
 import type { Metric, TopCompany, IndustryData } from './types';
 
 interface TopCompaniesTableProps {
@@ -115,7 +116,9 @@ export function TopCompaniesTable({ data, displayCompanies, metric, setMetric, y
                     <TableCell>
                       <div>
                         <div className="font-medium">{company.name}</div>
-                        <div className="text-xs text-muted-foreground truncate max-w-[300px]">{company.legalAddress}</div>
+                        <div className="text-xs text-muted-foreground max-w-[300px]">
+                          <AddressLink address={company.legalAddress} showIcon={false} className="text-xs" />
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">

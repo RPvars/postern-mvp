@@ -8,7 +8,8 @@ import { Navigation } from '@/components/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Building2, User, Search, ArrowRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Building2, User, MapPin, Search, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CompanyResult {
@@ -24,6 +25,11 @@ interface PersonResult {
   roles: string[];
   companyCount: number;
   companies: { registrationNumber: string; name: string }[];
+}
+
+interface AddressResult {
+  address: string;
+  companyCount: number;
 }
 
 const ROLE_COLORS: Record<string, string> = {
@@ -42,13 +48,16 @@ export default function SearchPage() {
   const [query, setQuery] = useState(initialQuery);
   const [companies, setCompanies] = useState<CompanyResult[]>([]);
   const [persons, setPersons] = useState<PersonResult[]>([]);
+  const [addresses, setAddresses] = useState<AddressResult[]>([]);
   const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
   const [isLoadingPersons, setIsLoadingPersons] = useState(false);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
 
   const search = useCallback(async (q: string) => {
     if (q.trim().length < 2) {
       setCompanies([]);
       setPersons([]);
+      setAddresses([]);
       return;
     }
 
@@ -56,11 +65,13 @@ export default function SearchPage() {
 
     setIsLoadingCompanies(true);
     setIsLoadingPersons(true);
+    setIsLoadingAddresses(true);
 
-    // Fetch both in parallel
-    const [companyRes, personRes] = await Promise.allSettled([
+    // Fetch all in parallel
+    const [companyRes, personRes, addressRes] = await Promise.allSettled([
       fetch(`/api/search?q=${encoded}`).then(r => r.json()),
       fetch(`/api/person/search?q=${encoded}`).then(r => r.json()),
+      fetch(`/api/address/search?q=${encoded}`).then(r => r.json()),
     ]);
 
     if (companyRes.status === 'fulfilled') {
@@ -72,6 +83,11 @@ export default function SearchPage() {
       setPersons(personRes.value.results || []);
     }
     setIsLoadingPersons(false);
+
+    if (addressRes.status === 'fulfilled') {
+      setAddresses(addressRes.value.results || []);
+    }
+    setIsLoadingAddresses(false);
   }, []);
 
   useEffect(() => {
@@ -87,8 +103,8 @@ export default function SearchPage() {
     }
   };
 
-  const isLoading = isLoadingCompanies || isLoadingPersons;
-  const hasNoResults = !isLoading && companies.length === 0 && persons.length === 0 && initialQuery.length >= 2;
+  const isLoading = isLoadingCompanies || isLoadingPersons || isLoadingAddresses;
+  const hasNoResults = !isLoading && companies.length === 0 && persons.length === 0 && addresses.length === 0 && initialQuery.length >= 2;
 
   return (
     <>
@@ -198,6 +214,40 @@ export default function SearchPage() {
                       </div>
                     </div>
                     <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Address results */}
+        {!isLoadingAddresses && addresses.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <MapPin className="h-5 w-5" />
+                {t('addresses')}
+                <span className="text-sm font-normal text-muted-foreground">({addresses.length})</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="divide-y">
+                {addresses.map((result, i) => (
+                  <Link
+                    key={`addr-${i}`}
+                    href={`/address?q=${encodeURIComponent(result.address)}`}
+                    className="flex items-center justify-between px-6 py-3 hover:bg-accent transition-colors group"
+                  >
+                    <div>
+                      <div className="font-medium text-foreground group-hover:text-primary transition-colors">
+                        {result.address}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {result.companyCount} {result.companyCount === 1 ? t('company') : t('companiesPlural')}
+                      </div>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </Link>
                 ))}
               </div>

@@ -7,7 +7,7 @@ import { captureException } from '@/lib/sentry';
 import { httpClient } from '@/lib/business-register/client/http';
 import { companyMapper, boardMemberMapper, memberMapper, beneficialOwnerMapper } from '@/lib/business-register/mappers/company';
 import { prisma } from '@/lib/prisma';
-import { normalizeName } from '@/lib/text-utils';
+import { normalizeName, normalizeAddress } from '@/lib/text-utils';
 
 export async function GET(
   request: NextRequest,
@@ -217,13 +217,17 @@ async function cachePersonData(
       name: legalEntity.legalName,
       status: legalEntity.status || 'unknown',
       lastCrawledAt: new Date(),
-      ...(legalEntity.address.addressComplete ? { legalAddress: legalEntity.address.addressComplete } : {}),
+      ...(legalEntity.address.addressComplete ? {
+        legalAddress: legalEntity.address.addressComplete,
+        legalAddressNormalized: normalizeAddress(legalEntity.address.addressComplete),
+      } : {}),
     },
     create: {
       registrationNumber: regNumber,
       name: legalEntity.legalName,
       taxNumber: regNumber,
       legalAddress: legalEntity.address.addressComplete,
+      legalAddressNormalized: normalizeAddress(legalEntity.address.addressComplete),
       registrationDate: legalEntity.registeredOn ? new Date(legalEntity.registeredOn) : new Date('1900-01-01'),
       status: legalEntity.status || 'unknown',
       legalForm: legalEntity.type || null,

@@ -5,7 +5,8 @@ import { useTranslations } from 'next-intl';
 import { Command, CommandInput } from '@/components/ui/command';
 import { useCompanySearch } from '@/hooks/use-company-search';
 import { usePersonSearch, PersonSearchResult } from '@/hooks/use-person-search';
-import { Building2, User, ArrowRight } from 'lucide-react';
+import { useAddressSearch, AddressSearchResult } from '@/hooks/use-address-search';
+import { Building2, User, MapPin, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const ROLE_COLORS: Record<string, string> = {
@@ -21,24 +22,28 @@ export function HeaderSearch() {
 
   const companySearch = useCompanySearch();
   const personSearch = usePersonSearch();
+  const addressSearch = useAddressSearch();
 
-  const isOpen = companySearch.isOpen || personSearch.isOpen;
-  const isLoading = companySearch.isLoading || personSearch.isLoading;
+  const isOpen = companySearch.isOpen || personSearch.isOpen || addressSearch.isOpen;
+  const isLoading = companySearch.isLoading || personSearch.isLoading || addressSearch.isLoading;
   const query = companySearch.query; // Both hooks share the same query via handleQueryChange
 
   const handleQueryChange = (value: string) => {
     companySearch.handleQueryChange(value);
     personSearch.handleQueryChange(value);
+    addressSearch.handleQueryChange(value);
   };
 
   const handleFocus = () => {
     companySearch.handleFocus();
     personSearch.handleFocus();
+    addressSearch.handleFocus();
   };
 
   const handleBlur = () => {
     companySearch.handleBlur();
     personSearch.handleBlur();
+    addressSearch.handleBlur();
   };
 
   const navigate = (url: string, newTab: boolean) => {
@@ -49,6 +54,7 @@ export function HeaderSearch() {
     }
     companySearch.clearSearch();
     personSearch.clearSearch();
+    addressSearch.clearSearch();
   };
 
   const handleCompanySelect = (companyId: string, e?: React.MouseEvent) => {
@@ -60,6 +66,10 @@ export function HeaderSearch() {
     navigate(`/person/${encodeURIComponent(code)}?name=${encodeURIComponent(person.name)}`, !!(e?.metaKey || e?.ctrlKey));
   };
 
+  const handleAddressSelect = (address: AddressSearchResult, e?: React.MouseEvent) => {
+    navigate(`/address?q=${encodeURIComponent(address.address)}`, !!(e?.metaKey || e?.ctrlKey));
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && query.trim().length >= 2) {
       e.preventDefault();
@@ -67,7 +77,7 @@ export function HeaderSearch() {
     }
   };
 
-  const hasResults = companySearch.results.length > 0 || personSearch.results.length > 0;
+  const hasResults = companySearch.results.length > 0 || personSearch.results.length > 0 || addressSearch.results.length > 0;
   const noResults = !isLoading && query.length >= 2 && !hasResults;
 
   return (
@@ -148,6 +158,32 @@ export function HeaderSearch() {
                     <div className="text-xs text-muted-foreground">
                       {person.companies.map(c => c.name).join(', ')}
                       {person.companyCount > 3 && ` +${person.companyCount - 3}`}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Address results */}
+          {!isLoading && addressSearch.results.length > 0 && (
+            <div>
+              {(companySearch.results.length > 0 || personSearch.results.length > 0) && <div className="border-t mx-2" />}
+              <div className="px-3 pt-2 pb-1 text-xs font-medium text-muted-foreground flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                {home('search.addresses')}
+              </div>
+              <div className="space-y-0.5 px-2 pb-1">
+                {addressSearch.results.slice(0, 5).map((result, i) => (
+                  <button
+                    key={`addr-${i}`}
+                    onClick={(e) => handleAddressSelect(result, e)}
+                    onMouseDown={(e) => e.preventDefault()}
+                    className="w-full text-left px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
+                  >
+                    <div className="font-medium text-sm text-foreground">{result.address}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {result.companyCount} {result.companyCount === 1 ? home('search.company') : home('search.companies')}
                     </div>
                   </button>
                 ))}

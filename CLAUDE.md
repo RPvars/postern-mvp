@@ -25,6 +25,7 @@ app/                    # Next.js App Router pages
     companies/batch/   # Batch fetch companies by IDs
     industries/        # Industry listing + detail API (NACE hierarchy)
   industries/          # Industry browsing pages (NACE drill-down)
+  address/             # Reverse address search page
 components/
   auth/                # Auth UI components
   ui/                  # shadcn/ui components
@@ -42,7 +43,7 @@ lib/
   auth.ts              # NextAuth configuration
   prisma.ts            # Prisma client (uses absolute path for SQLite)
   format.ts            # Shared formatting helpers (currency, percent, date)
-  text-utils.ts        # Name normalization, legal form abbreviation, display formatting
+  text-utils.ts        # Name normalization, legal form abbreviation, address normalization, display formatting
   industry-icons.ts    # NACE section → Lucide icon mapping
   types/company.ts     # Shared Company interface and sub-types
   data-gov/client.ts   # CKAN API client for financial data (on-demand)
@@ -195,11 +196,23 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **Legal entities**: Still link to `/company/[regcode]` as before
 
 ## Search
-- **Unified search**: Both company and person results in one dropdown (header + home page)
+- **Unified search**: Company, person, and address results in one dropdown (header + home page)
 - **Enter key**: Navigates to `/search?q=...` full results page. **Cmd+Enter** opens in new tab. **Cmd+Click** on results opens in new tab
 - **Company search**: BR API + local DB (482K companies) in parallel
 - **Person search**: `/api/person/search` — queries 3 tables, reversed name matching, dedup by normalized name
+- **Address search**: `/api/address/search` — GROUP BY normalized address, returns unique addresses with company counts
 - **Geocoding**: `/api/geocode` — Nominatim proxy with DB coordinate caching on Company model (latitude/longitude)
+
+## Address Reverse Search
+- **Route**: `/address?q=<encoded-address>` — shows all companies at a given address
+- **API**: `/api/address?q=<address>&page=1&limit=50` — paginated company list by normalized address match
+- **Search API**: `/api/address/search?q=<partial>` — grouped addresses with company counts (LIKE on `legalAddressNormalized`)
+- **Normalization**: `normalizeAddress()` in `lib/text-utils.ts` — lowercase, remove quotes, strip postal codes (LV-XXXX), sort parts alphabetically. This ensures "Rīga, Rēznas iela 9A" and "Rēznas iela 9A, Rīga, LV-1019" normalize to the same value
+- **DB field**: `Company.legalAddressNormalized` with index. Updated on CSV import and BR API cache
+- **Clickable addresses**: `AddressLink` component (`components/address/address-link.tsx`) — used in business card, basic tab, industry table. Yellow (#FEC200) text with underline on hover
+- **Migration script**: `scripts/normalize-addresses.ts` — one-time batch normalization of all addresses
+- **i18n**: `address` namespace in `messages/lv.json`, `messages/en.json`
+- **No auth required**: Address data is public company registration data (unlike person pages which are GDPR-gated)
 
 ## Industry Browsing
 - **Route**: `/industries` — grid of 21 NACE sections (A-U) with company counts, revenue, employees

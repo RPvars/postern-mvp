@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { createReadStream } from 'fs';
 import { createInterface } from 'readline';
 import { downloadCSV, parseCSVLine } from '@/lib/import-utils';
+import { normalizeAddress } from '@/lib/text-utils';
 
 const CSV_URL = 'https://dati.ur.gov.lv/register/register.csv';
 const BATCH_SIZE = 500;
@@ -102,6 +103,7 @@ async function upsertBatch(records: RegisterRecord[]): Promise<number> {
         update: {
           name: r.name,
           legalAddress: r.legalAddress,
+          legalAddressNormalized: normalizeAddress(r.legalAddress),
           status: r.status,
           legalForm: r.legalForm,
           registryName: r.registryName,
@@ -114,6 +116,7 @@ async function upsertBatch(records: RegisterRecord[]): Promise<number> {
           taxNumberNormalized: r.registrationNumber,
           registrationNumberNormalized: r.registrationNumber,
           legalAddress: r.legalAddress,
+          legalAddressNormalized: normalizeAddress(r.legalAddress),
           registrationDate: r.registrationDate,
           status: r.status,
           legalForm: r.legalForm,

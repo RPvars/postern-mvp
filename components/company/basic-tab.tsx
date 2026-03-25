@@ -7,10 +7,29 @@ import { TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Building2, Calendar, TrendingUp, FileText, AlertCircle, CheckCircle2, XCircle, ExternalLink, Landmark, History, ArrowRightLeft } from 'lucide-react';
+import { Building2, Calendar, FileText, AlertCircle, CheckCircle2, XCircle, ExternalLink, Landmark, History, ArrowRightLeft } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/format';
 import { translateEnum } from '@/lib/i18n/translate-enum';
+import { AddressLink } from '@/components/address/address-link';
 import type { Company } from '@/lib/types/company';
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex justify-between items-baseline py-2.5 px-3 gap-2 border-b border-border">
+      <dt className="text-sm text-muted-foreground shrink-0">{label}</dt>
+      <dd className="text-sm text-right font-medium">{children}</dd>
+    </div>
+  );
+}
+
+function InfoBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="py-2 border-b border-border last:border-0">
+      <dt className="text-sm text-muted-foreground mb-1">{label}</dt>
+      <dd className="text-sm">{children}</dd>
+    </div>
+  );
+}
 
 interface BasicTabProps {
   company: Company;
@@ -26,51 +45,71 @@ export function BasicTab({ company }: BasicTabProps) {
   return (
     <TabsContent value="basic">
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Pamatdati */}
-        <Card>
+        {/* Pamatdati — merged with Kapitāls and Darbība */}
+        <Card className="lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Building2 className="h-4 w-4" />
               {t('companyInfo.basicData')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {company.cleanedShortName && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.shortName')}</div>
-                <div className="text-sm">{company.cleanedShortName}</div>
-              </div>
-            )}
-            {company.legalForm && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.legalForm')}</div>
-                <div className="text-sm">{te(`legalForm.${company.legalForm}`, company.legalForm)}</div>
-              </div>
-            )}
-            {company.register && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.register')}</div>
-                <div className="text-sm">{te(`register.${company.register}`, company.register)}</div>
-              </div>
-            )}
-            {company.legalAddress && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.legalAddress')}</div>
-                <div className="text-sm">{company.legalAddress}</div>
-              </div>
-            )}
-            {company.phone && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.phone')}</div>
-                <div className="text-sm">{company.phone}</div>
-              </div>
-            )}
-            {company.email && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.email')}</div>
-                <div className="text-sm">{company.email}</div>
-              </div>
-            )}
+          <CardContent>
+            <dl className="grid grid-cols-1 lg:grid-cols-2 lg:gap-x-8">
+              {company.cleanedShortName && (
+                <InfoRow label={t('companyInfo.shortName')}>{company.cleanedShortName}</InfoRow>
+              )}
+              {company.legalForm && (
+                <InfoRow label={t('companyInfo.legalForm')}>{te(`legalForm.${company.legalForm}`, company.legalForm)}</InfoRow>
+              )}
+              {company.register && (
+                <InfoRow label={t('companyInfo.register')}>{te(`register.${company.register}`, company.register)}</InfoRow>
+              )}
+              {company.legalAddress && (
+                <InfoRow label={t('companyInfo.legalAddress')}>
+                  <AddressLink address={company.legalAddress} showIcon={false} />
+                </InfoRow>
+              )}
+              {company.phone && (
+                <InfoRow label={t('companyInfo.phone')}>{company.phone}</InfoRow>
+              )}
+              {company.email && (
+                <InfoRow label={t('companyInfo.email')}>{company.email}</InfoRow>
+              )}
+              {company.shareCapital && (
+                <InfoRow label={t('companyInfo.shareCapital')}>
+                  {formatCurrency(company.shareCapital)}
+                  {company.shareCapitalRegisteredDate && (
+                    <span className="text-xs text-muted-foreground ml-1">
+                      ({t('companyInfo.registered')} {formatDate(company.shareCapitalRegisteredDate)})
+                    </span>
+                  )}
+                </InfoRow>
+              )}
+              {company.registeredVehiclesCount != null && (
+                <InfoRow label={t('companyInfo.vehicles')}>{company.registeredVehiclesCount}</InfoRow>
+              )}
+              {company.naceCode && (
+                <InfoRow label={t('companyInfo.naceCode')}>
+                  <a
+                    href={`/industries/${company.naceCode.replace('.', '').slice(0, 2)}`}
+                    className="text-[#FEC200] hover:underline hover:decoration-[#FEC200] transition-colors"
+                  >
+                    {company.naceDescription || company.naceCode}
+                    <span className="text-muted-foreground ml-1">({company.naceCode})</span>
+                  </a>
+                </InfoRow>
+              )}
+              {company.durationIndefinite != null && (
+                <InfoRow label={t('companyInfo.duration')}>
+                  {company.durationIndefinite ? t('companyInfo.durationIndefinite') : t('companyInfo.durationDefinite')}
+                </InfoRow>
+              )}
+              {company.businessPurpose && (
+                <div className="lg:col-span-2">
+                  <InfoBlock label={t('companyInfo.businessPurpose')}>{company.businessPurpose}</InfoBlock>
+                </div>
+              )}
+            </dl>
           </CardContent>
         </Card>
 
@@ -82,35 +121,29 @@ export function BasicTab({ company }: BasicTabProps) {
               {t('companyInfo.registrationSection')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.registrationNumberDate')}</div>
-              <div className="text-sm">{company.registrationNumber}, {formatDate(company.registrationDate)}</div>
-            </div>
-            {company.articlesDate && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.articlesDate')}</div>
-                <div className="text-sm">{formatDate(company.articlesDate)}</div>
-              </div>
-            )}
-            {company.lastModifiedAt && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.lastModified')}</div>
-                <div className="text-sm">{formatDate(company.lastModifiedAt)}</div>
-              </div>
-            )}
-            {company.sepaCreditorId && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.sepaId')}</div>
-                <div className="text-sm font-mono">{company.sepaCreditorId}</div>
-              </div>
-            )}
+          <CardContent>
+            <dl>
+              <InfoRow label={t('companyInfo.registrationNumberDate')}>
+                {company.registrationNumber}, {formatDate(company.registrationDate)}
+              </InfoRow>
+              {company.articlesDate && (
+                <InfoRow label={t('companyInfo.articlesDate')}>{formatDate(company.articlesDate)}</InfoRow>
+              )}
+              {company.lastModifiedAt && (
+                <InfoRow label={t('companyInfo.lastModified')}>{formatDate(company.lastModifiedAt)}</InfoRow>
+              )}
+              {company.sepaCreditorId && (
+                <InfoRow label={t('companyInfo.sepaId')}>
+                  <span className="font-mono">{company.sepaCreditorId}</span>
+                </InfoRow>
+              )}
+            </dl>
             {/* PVN maksātāju reģistrs */}
-            <div className="border-t pt-3 mt-1">
+            <div className="border-t pt-3 mt-3">
               <div className="text-xs font-medium text-muted-foreground">{t('vatRegistry.title')}</div>
               {company.vatPayer ? (
                 <div>
-                  <div className="text-sm flex items-center gap-1 flex-wrap">
+                  <div className="text-sm flex items-center gap-1 flex-wrap mt-1">
                     <span className="font-medium">{company.vatPayer.vatNumber}</span>
                     <span className="text-muted-foreground">·</span>
                     {company.vatPayer.isActive ? (
@@ -148,86 +181,71 @@ export function BasicTab({ company }: BasicTabProps) {
                   </a>
                 </div>
               ) : (
-                <div className="text-sm text-muted-foreground">{t('vatRegistry.notRegistered')}</div>
+                <div className="text-sm text-muted-foreground mt-1">{t('vatRegistry.notRegistered')}</div>
               )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Kapitāls */}
+        {/* Risk & Compliance Information */}
         <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TrendingUp className="h-4 w-4" />
-              {t('companyInfo.capital')}
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" />
+              {t('risk.title')}
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
-            {company.shareCapital ? (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.shareCapital')}</div>
-                <div className="text-sm">
-                  {formatCurrency(company.shareCapital)}
-                  {company.shareCapitalRegisteredDate && (
-                    <span className="text-xs text-muted-foreground ml-1">
-                      ({t('companyInfo.registered')} {formatDate(company.shareCapitalRegisteredDate)})
-                    </span>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground">{tCommon('notAvailable')}</div>
-            )}
-            {company.registeredVehiclesCount != null && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.vehicles')}</div>
-                <div className="text-sm">{company.registeredVehiclesCount}</div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Darbība */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <FileText className="h-4 w-4" />
-              {t('companyInfo.operations')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {company.naceCode && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.naceCode')}</div>
-                <div className="text-sm">
-                  <a
-                    href={`/industries/${company.naceCode.replace('.', '').slice(0, 2)}`}
-                    className="hover:text-[#FEC200] transition-colors"
-                  >
-                    {company.naceDescription || company.naceCode}
-                    <span className="text-muted-foreground ml-1">({company.naceCode})</span>
-                  </a>
-                </div>
-                <div className="text-xs text-muted-foreground mt-0.5">{t('companyInfo.naceSource')}</div>
-              </div>
-            )}
-            {company.durationIndefinite != null && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.duration')}</div>
-                <div className="text-sm">
-                  {company.durationIndefinite ? t('companyInfo.durationIndefinite') : t('companyInfo.durationDefinite')}
-                </div>
-              </div>
-            )}
-            {company.businessPurpose && (
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">{t('companyInfo.businessPurpose')}</div>
-                <div className="text-sm">{company.businessPurpose}</div>
-              </div>
-            )}
-            {!company.naceCode && !company.durationIndefinite && company.durationIndefinite == null && !company.businessPurpose && (
-              <div className="text-sm text-muted-foreground">{tCommon('notAvailable')}</div>
-            )}
+          <CardContent>
+            <Table>
+              <TableBody>
+                <TableRow>
+                  <TableCell className="font-medium">{t('risk.liquidation')}</TableCell>
+                  <TableCell className={company.inLiquidation ? 'text-[#FF8042] font-semibold' : ''}>
+                    {company.inLiquidation ? t('risk.hasValue') : t('risk.noValue')}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">{t('risk.insolvency')}</TableCell>
+                  <TableCell className={company.inInsolvencyRegister ? 'text-red-600 font-semibold' : ''}>
+                    {company.inInsolvencyRegister ? t('risk.hasValue') : t('risk.noValue')}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">{t('risk.securities')}</TableCell>
+                  <TableCell className={company.hasSecurities ? 'text-[#FF8042] font-semibold' : ''}>
+                    {company.hasSecurities
+                      ? `${t('risk.hasValue')} (${company.securingMeasures.length})`
+                      : t('risk.noValue')}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">{t('risk.sanctionsRisk')}</TableCell>
+                  <TableCell className={company.sanctionsRisk ? 'text-red-600 font-semibold' : ''}>
+                    {company.sanctionsRisk ? t('risk.hasValue') : t('risk.noValue')}
+                  </TableCell>
+                </TableRow>
+                <TableRow>
+                  <TableCell className="font-medium">{t('risk.taxpayerRating')}</TableCell>
+                  <TableCell>
+                    {company.taxpayerRating ? (
+                      <span className={`font-semibold ${
+                        company.taxpayerRating === 'A' ? 'text-green-600' :
+                        company.taxpayerRating === 'B' ? 'text-yellow-600' :
+                        company.taxpayerRating === 'C' ? 'text-red-600' :
+                        'text-muted-foreground'
+                      }`}>
+                        {company.taxpayerRating}
+                        {company.taxpayerRatingDescription && (
+                          <span className="font-normal text-muted-foreground text-sm ml-2">
+                            ({company.taxpayerRatingDescription})
+                          </span>
+                        )}
+                      </span>
+                    ) : t('risk.noValue')}
+                  </TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
 
@@ -286,80 +304,6 @@ export function BasicTab({ company }: BasicTabProps) {
             </CardContent>
           </Card>
         )}
-
-        {/* Risk & Compliance Information */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5" />
-              {t('risk.title')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableBody>
-                <TableRow>
-                  <TableCell className="font-medium">{t('risk.liquidation')}</TableCell>
-                  <TableCell className={company.inLiquidation ? 'text-[#FF8042] font-semibold' : ''}>
-                    {company.inLiquidation ? t('risk.hasValue') : t('risk.noValue')}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">{t('risk.insolvency')}</TableCell>
-                  <TableCell className={company.inInsolvencyRegister ? 'text-red-600 font-semibold' : ''}>
-                    {company.inInsolvencyRegister ? t('risk.hasValue') : t('risk.noValue')}
-                  </TableCell>
-                </TableRow>
-                <TableRow className="opacity-50">
-                  <TableCell className="font-medium">{t('risk.paymentClaims')}</TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground italic">{t('risk.noDataSource')}</span>
-                  </TableCell>
-                </TableRow>
-                <TableRow className="opacity-50">
-                  <TableCell className="font-medium">{t('risk.commercialPledges')}</TableCell>
-                  <TableCell>
-                    <span className="text-xs text-muted-foreground italic">{t('risk.noDataSource')}</span>
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">{t('risk.securities')}</TableCell>
-                  <TableCell className={company.hasSecurities ? 'text-[#FF8042] font-semibold' : ''}>
-                    {company.hasSecurities
-                      ? `${t('risk.hasValue')} (${company.securingMeasures.length})`
-                      : t('risk.noValue')}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">{t('risk.sanctionsRisk')}</TableCell>
-                  <TableCell className={company.sanctionsRisk ? 'text-red-600 font-semibold' : ''}>
-                    {company.sanctionsRisk ? t('risk.hasValue') : t('risk.noValue')}
-                  </TableCell>
-                </TableRow>
-                <TableRow>
-                  <TableCell className="font-medium">{t('risk.taxpayerRating')}</TableCell>
-                  <TableCell>
-                    {company.taxpayerRating ? (
-                      <span className={`font-semibold ${
-                        company.taxpayerRating === 'A' ? 'text-green-600' :
-                        company.taxpayerRating === 'B' ? 'text-yellow-600' :
-                        company.taxpayerRating === 'C' ? 'text-red-600' :
-                        'text-muted-foreground'
-                      }`}>
-                        {company.taxpayerRating}
-                        {company.taxpayerRatingDescription && (
-                          <span className="font-normal text-muted-foreground text-sm ml-2">
-                            ({company.taxpayerRatingDescription})
-                          </span>
-                        )}
-                      </span>
-                    ) : t('risk.noValue')}
-                  </TableCell>
-                </TableRow>
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
 
         {company.specialStatuses.length > 0 && (
           <Card className="lg:col-span-2">

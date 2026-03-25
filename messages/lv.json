@@ -199,7 +199,9 @@
         "board": "Valde",
         "beneficial": "PLG"
       },
-      "viewAll": "Skatīt visus rezultātus"
+      "viewAll": "Skatīt visus rezultātus",
+      "addresses": "Adreses",
+      "company": "uzņēmums"
     },
     "countries": {
       "latvia": "Latvija",
@@ -357,7 +359,27 @@
     "companies": "Uzņēmumi",
     "people": "Personas",
     "noResults": "Nav rezultātu",
-    "noResultsHint": "Mēģiniet citu meklēšanas vaicājumu"
+    "noResultsHint": "Mēģiniet citu meklēšanas vaicājumu",
+    "addresses": "Adreses",
+    "company": "uzņēmums",
+    "companiesPlural": "uzņēmumi"
+  },
+  "address": {
+    "title": "Adrese",
+    "companiesAtAddress": "Uzņēmumi šajā adresē",
+    "companyCount": "{count, plural, one {# uzņēmums} other {# uzņēmumi}}",
+    "noCompanies": "Nav atrasti uzņēmumi šajā adresē",
+    "notFound": "Adrese nav atrasta",
+    "backToSearch": "Atpakaļ uz meklēšanu",
+    "map": "Atrašanās vieta",
+    "companyName": "Uzņēmums",
+    "regNumber": "Reģ. nr.",
+    "legalForm": "Juridiskā forma",
+    "status": "Statuss",
+    "registrationDate": "Reģistrēts",
+    "prevPage": "Iepriekšējā",
+    "nextPage": "Nākamā",
+    "searchAddresses": "Adreses"
   },
   "person": {
     "notFound": "Persona nav atrasta",
