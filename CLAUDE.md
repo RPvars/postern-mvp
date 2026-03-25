@@ -180,7 +180,8 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **Toggle**: Sun/Moon icon button in navigation header
 - **CSS Variables**: All colors defined in `globals.css` `:root` and `.dark` selectors (shadcn/ui pattern)
 - **Chart colors**: `--chart-grid` and `--chart-text` CSS vars for Recharts components
-- **Brand yellow** (#FEC200): Used consistently in both themes for logo, CTA buttons, chart lines
+- **Brand yellow** (#FEC200): Used for logo, CTA buttons (bg), chart lines. Never as text color directly
+- **Link accent**: `--link-accent` CSS variable — `#B45309` (amber-700) in light mode, `#FEC200` in dark mode. Use `text-link-accent` for accent links, `text-muted-foreground hover:text-foreground` for subtle links. `AddressLink` component supports `variant="accent"|"subtle"`
 - **Color mapping**: All components use Tailwind CSS variable classes (`bg-background`, `text-foreground`, `bg-card`, `text-muted-foreground`, `bg-accent`, `border-border`) — no hardcoded `bg-white`, `text-slate-*`, etc.
 
 ## Person Profile Page
@@ -216,7 +217,7 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 
 ## Industry Browsing
 - **Route**: `/industries` — grid of 21 NACE sections (A-U) with company counts, revenue, employees
-- **Detail**: `/industries/[code]` — drill-down with breadcrumb, stats cards, subcategories, top 20 companies
+- **Detail**: `/industries/[code]` — drill-down with breadcrumb, inline subcategory expansion (dynamic depth), stats cards, top 20 companies
 - **API**: `/api/industries` (list sections/children), `/api/industries/[code]` (detail + top companies)
 - **Ranking**: 4 metrics — profit, revenue, taxes, employees. Sortable columns, year selector
 - **Data sources**: `TaxPayment.naceCode` for industry classification, `FinancialData` table for revenue/profit (bulk CKAN import)
@@ -224,7 +225,8 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **NACE import**: NACE 2.0 provides authoritative section→division mapping; NACE 2.1 only updates names (not parentCode)
 - **Company names**: `formatCompanyDisplayName` in `lib/text-utils.ts` moves legal form to end ("SIA Foo" → "Foo, SIA")
 - **Icons**: `lib/industry-icons.ts` maps sections AND divisions to Lucide icons
-- **SQL**: Uses `$queryRawUnsafe` with sanitized inputs (NACE prefixes validated as 1-2 digit numbers) to avoid SQLite 999-parameter limit
+- **Inline drill-down**: `drillPath` array tracks selected codes at each level. `levelData` Map stores fetched children. `ancestorTabs` auto-populates when landing on deep codes via direct link. URL syncs via `?path=33,33.1,33.14`
+- **SQL**: Uses `$queryRawUnsafe` with sanitized inputs (NACE prefixes validated as 1-4 digit numbers) to avoid SQLite 999-parameter limit
 - **Rank history**: Top companies show ▲/▼ rank change vs previous year with hover tooltip (3-year history)
 - **Compare integration**: Checkbox selection in top table → "Salīdzināt" sticky bar → `/compare?companies=...&compared=true`
 - **CSV export**: Client-side CSV generation with BOM for Excel UTF-8 compatibility

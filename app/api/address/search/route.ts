@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
        GROUP BY legalAddressNormalized
        ORDER BY COUNT(*) DESC
        LIMIT ?`,
-      `%${normalizedTerm}%`,
+      `${normalizedTerm}%`,
       MAX_RESULTS
     );
 

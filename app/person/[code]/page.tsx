@@ -101,7 +101,6 @@ export default function PersonPage() {
     if (person?.name) {
       document.title = `${person.name} — Posterns`;
     }
-    return () => { document.title = 'Posterns - Latvijas Uzņēmumu Analīzes Platforma'; };
   }, [person]);
 
   const totalCompanies = new Set([

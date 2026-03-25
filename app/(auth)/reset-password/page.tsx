@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { ResetPasswordForm } from '@/components/auth/reset-password-form';
 
 export const metadata = {
-  title: 'Atjaunot paroli | Posterns',
+  title: 'Atjaunot paroli — Posterns',
   description: 'Iestatīt jaunu paroli',
 };
 

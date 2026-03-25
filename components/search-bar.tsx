@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useCompanySearch } from '@/hooks/use-company-search';
 import { usePersonSearch, PersonSearchResult } from '@/hooks/use-person-search';
 import { Building2, User, ArrowRight } from 'lucide-react';
+import { formatCompanyDisplayName } from '@/lib/text-utils';
 
 const ROLE_COLORS: Record<string, string> = {
   owner: 'bg-[#FEC200]',
@@ -128,7 +129,7 @@ export function SearchBar({ country, onCountryChange }: SearchBarProps) {
                         >
                           <Building2 className="h-4 w-4 text-muted-foreground mr-2 shrink-0" />
                           <div className="flex flex-col gap-0.5 w-full">
-                            <div className="font-medium">{company.name}</div>
+                            <div className="font-medium">{formatCompanyDisplayName(company.name)}</div>
                             <div className="text-sm text-muted-foreground">{company.registrationNumber}</div>
                           </div>
                         </CommandItem>

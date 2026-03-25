@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Building2, User, MapPin, Search, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatCompanyDisplayName } from '@/lib/text-utils';
 
 interface CompanyResult {
   id: string;
@@ -96,6 +97,12 @@ export default function SearchPage() {
     }
   }, [initialQuery, search]);
 
+  useEffect(() => {
+    document.title = initialQuery
+      ? `${t('searchTitle')}: ${initialQuery} — Posterns`
+      : `${t('searchTitle')} — Posterns`;
+  }, [initialQuery, t]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (query.trim().length >= 2) {
@@ -163,7 +170,7 @@ export default function SearchPage() {
                   >
                     <div>
                       <div className="font-medium text-foreground group-hover:text-primary transition-colors">
-                        {company.name}
+                        {formatCompanyDisplayName(company.name)}
                       </div>
                       <div className="text-sm text-muted-foreground">{company.registrationNumber}</div>
                     </div>

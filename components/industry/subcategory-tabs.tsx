@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { ChevronRight } from 'lucide-react';
+import { Building2 } from 'lucide-react';
 import { getIndustryIcon } from '@/lib/industry-icons';
 import type { IndustryChild } from './types';
 
@@ -35,24 +34,21 @@ export function SubcategoryTabs({ children, activeSub, onSelect, name, t, locale
               key={child.code}
               aria-pressed={isActive}
               onClick={() => onSelect(isActive ? '' : child.code)}
-              className={`group/sub flex items-start gap-2 px-3 py-2.5 rounded-lg text-left text-sm transition-all grow ${basisClass} min-w-[160px] sm:min-w-[200px] ${
+              className={`group/sub relative flex items-start gap-2 px-3 py-2.5 rounded-lg text-left text-sm transition-all grow ${basisClass} min-w-[160px] sm:min-w-[200px] ${
                 isActive
-                  ? 'bg-[#FEC200]/10 ring-2 ring-[#FEC200] text-foreground'
+                  ? 'bg-link-accent/10 ring-2 ring-link-accent text-foreground'
                   : 'bg-card border hover:bg-accent/50 text-muted-foreground hover:text-foreground'
               }`}
             >
-              <SubIcon className={`h-4 w-4 shrink-0 mt-0.5 ${isActive ? 'text-[#FEC200]' : ''}`} />
-              <div className="flex-1">
+              <span className="absolute top-1.5 right-2 text-[9px] font-medium opacity-40 bg-muted/60 px-1.5 py-0.5 rounded-full">{child.code}</span>
+              <SubIcon className={`h-4 w-4 shrink-0 mt-0.5 ${isActive ? 'text-link-accent' : ''}`} />
+              <div className="flex-1 pr-8">
                 <div className="text-xs font-medium leading-tight">{name(child)}</div>
-                <div className="text-[10px] opacity-60 mt-0.5">{child.companyCount.toLocaleString(locale === 'en' ? 'en-US' : 'lv-LV')}</div>
+                <div className="text-[10px] opacity-60 mt-0.5 flex items-center gap-1">
+                  <Building2 className="h-2.5 w-2.5" />
+                  {child.companyCount.toLocaleString(locale === 'en' ? 'en-US' : 'lv-LV')}
+                </div>
               </div>
-              <Link
-                href={`/industries/${child.code}`}
-                onClick={(e) => e.stopPropagation()}
-                className="shrink-0 mt-0.5 opacity-40 group-hover/sub:opacity-100 transition-opacity hover:text-[#FEC200]"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </Link>
             </button>
           );
         })}

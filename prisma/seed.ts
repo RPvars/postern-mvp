@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { normalizeAddress } from '@/lib/text-utils';
 
 const prisma = new PrismaClient();
 
@@ -404,7 +405,10 @@ async function main() {
     const { ownersData, ...companyInfo } = companyData;
 
     const company = await prisma.company.create({
-      data: companyInfo,
+      data: {
+        ...companyInfo,
+        legalAddressNormalized: normalizeAddress(companyInfo.legalAddress),
+      },
     });
 
     // Create ownership relationships

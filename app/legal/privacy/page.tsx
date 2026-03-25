@@ -1,10 +1,16 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { Navigation } from '@/components/navigation';
 
 export default function PrivacyPolicyPage() {
   const t = useTranslations('legal.privacy');
+
+  useEffect(() => {
+    document.title = `${t('title')} — Posterns`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">

@@ -78,13 +78,20 @@ export default function AddressPage() {
     if (addressQuery) {
       document.title = `${addressQuery} — Posterns`;
     }
-    return () => { document.title = 'Posterns - Latvijas Uzņēmumu Analīzes Platforma'; };
   }, [addressQuery]);
 
-  const allLocations = data?.companies.map(c => ({
+  // Show single map pin for the address — use first company with coordinates
+  const firstWithCoords = data?.companies.find(c => c.latitude && c.longitude);
+  const mapLocation = firstWithCoords ? [{
+    registrationNumber: firstWithCoords.registrationNumber,
+    name: data!.address,
+    legalAddress: data!.address,
+    latitude: firstWithCoords.latitude,
+    longitude: firstWithCoords.longitude,
+  }] : data?.companies.slice(0, 1).map(c => ({
     registrationNumber: c.registrationNumber,
-    name: c.name,
-    legalAddress: c.legalAddress,
+    name: data!.address,
+    legalAddress: data!.address,
     latitude: c.latitude,
     longitude: c.longitude,
   })) || [];
@@ -133,7 +140,7 @@ export default function AddressPage() {
 
           <main className="container mx-auto px-4 py-8 space-y-6">
             {/* Map */}
-            {allLocations.length > 0 && (
+            {mapLocation.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -142,7 +149,7 @@ export default function AddressPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <CompanyMap companies={allLocations} />
+                  <CompanyMap companies={mapLocation} />
                 </CardContent>
               </Card>
             )}
@@ -156,72 +163,85 @@ export default function AddressPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t('companyName')}</TableHead>
-                        <TableHead>{t('regNumber')}</TableHead>
-                        <TableHead>{t('legalForm')}</TableHead>
-                        <TableHead>{t('status')}</TableHead>
-                        <TableHead>{t('registrationDate')}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {data.companies.map((company) => (
-                        <TableRow key={company.registrationNumber}>
-                          <TableCell>
-                            <Link
-                              href={`/company/${company.registrationNumber}`}
-                              className="font-medium text-primary hover:underline"
-                            >
-                              {formatCompanyDisplayName(company.name)}
-                            </Link>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {company.registrationNumber}
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {company.legalForm ? te(`legalForm.${company.legalForm}`, company.legalForm) : '—'}
-                          </TableCell>
-                          <TableCell>
-                            <Badge
-                              variant={company.status === 'REGISTERED' ? 'default' : 'secondary'}
-                              className={company.status === 'REGISTERED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : ''}
-                            >
-                              {te(`companyStatus.${company.status}`, company.status)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {formatDate(company.registrationDate)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                {/* Pagination */}
-                {data.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-4">
-                    <button
-                      onClick={() => setPage(p => Math.max(1, p - 1))}
-                      disabled={page <= 1}
-                      className="px-3 py-1 rounded border bg-card text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent"
+                {data.totalCount === 0 ? (
+                  <div className="py-8 text-center">
+                    <Building2 className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-muted-foreground mb-2">{t('noCompanies')}</p>
+                    <Link
+                      href={`/search?q=${encodeURIComponent(data.address)}`}
+                      className="text-sm text-link-accent hover:text-link-accent-hover hover:underline"
                     >
-                      {t('prevPage')}
-                    </button>
-                    <span className="text-sm text-muted-foreground">
-                      {page} / {data.totalPages}
-                    </span>
-                    <button
-                      onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
-                      disabled={page >= data.totalPages}
-                      className="px-3 py-1 rounded border bg-card text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent"
-                    >
-                      {t('nextPage')}
-                    </button>
+                      {t('trySearch')}
+                    </Link>
                   </div>
+                ) : (
+                  <>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>{t('companyName')}</TableHead>
+                            <TableHead>{t('regNumber')}</TableHead>
+                            <TableHead>{t('legalForm')}</TableHead>
+                            <TableHead>{t('status')}</TableHead>
+                            <TableHead>{t('registrationDate')}</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {data.companies.map((company) => (
+                            <TableRow key={company.registrationNumber}>
+                              <TableCell>
+                                <Link
+                                  href={`/company/${company.registrationNumber}`}
+                                  className="font-medium text-primary hover:underline"
+                                >
+                                  {formatCompanyDisplayName(company.name)}
+                                </Link>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {company.registrationNumber}
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {company.legalForm ? te(`legalForm.${company.legalForm}`, company.legalForm) : '—'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={company.status === 'REGISTERED' ? 'default' : 'secondary'}
+                                  className={company.status === 'REGISTERED' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : ''}
+                                >
+                                  {te(`companyStatus.${company.status}`, company.status)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-muted-foreground">
+                                {formatDate(company.registrationDate)}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                    {data.totalPages > 1 && (
+                      <div className="flex items-center justify-center gap-2 mt-4">
+                        <button
+                          onClick={() => setPage(p => Math.max(1, p - 1))}
+                          disabled={page <= 1}
+                          className="px-3 py-1 rounded border bg-card text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent"
+                        >
+                          {t('prevPage')}
+                        </button>
+                        <span className="text-sm text-muted-foreground">
+                          {page} / {data.totalPages}
+                        </span>
+                        <button
+                          onClick={() => setPage(p => Math.min(data.totalPages, p + 1))}
+                          disabled={page >= data.totalPages}
+                          className="px-3 py-1 rounded border bg-card text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent"
+                        >
+                          {t('nextPage')}
+                        </button>
+                      </div>
+                    )}
+                  </>
                 )}
               </CardContent>
             </Card>

@@ -108,7 +108,6 @@ export default function CompanyPage() {
     if (company) {
       document.title = `${formatCompanyDisplayName(company.name)} — Posterns`;
     }
-    return () => { document.title = 'Posterns'; };
   }, [company]);
 
   if (isLoading) {
@@ -127,7 +126,7 @@ export default function CompanyPage() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">{company.name}</h1>
+              <h1 className="text-3xl font-bold text-foreground">{formatCompanyDisplayName(company.name)}</h1>
               <p className="text-muted-foreground">{company.registrationNumber}</p>
             </div>
             <Badge variant={company.status === 'REGISTERED' ? 'default' : 'destructive'} className="text-sm">

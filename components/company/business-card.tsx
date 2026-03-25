@@ -64,7 +64,7 @@ export function BusinessCard({ company }: BusinessCardProps) {
           {/* Address */}
           {company.legalAddress && (
             <div className="text-sm text-muted-foreground">
-              <AddressLink address={company.legalAddress} />
+              <AddressLink address={company.legalAddress} variant="subtle" />
             </div>
           )}
 

@@ -355,6 +355,7 @@
     }
   },
   "searchResults": {
+    "searchTitle": "Meklēšana",
     "searchPlaceholder": "Meklēt uzņēmumus un personas...",
     "companies": "Uzņēmumi",
     "people": "Personas",
@@ -379,7 +380,8 @@
     "registrationDate": "Reģistrēts",
     "prevPage": "Iepriekšējā",
     "nextPage": "Nākamā",
-    "searchAddresses": "Adreses"
+    "searchAddresses": "Adreses",
+    "trySearch": "Mēģiniet meklēt šo adresi →"
   },
   "person": {
     "notFound": "Persona nav atrasta",

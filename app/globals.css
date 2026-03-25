@@ -21,6 +21,8 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-link-accent: var(--link-accent);
+  --color-link-accent-hover: var(--link-accent-hover);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -70,6 +72,8 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --chart-grid: #e5e7eb;
   --chart-text: #6b7280;
+  --link-accent: #B45309;
+  --link-accent-hover: #92400E;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -106,6 +110,8 @@
   --chart-5: oklch(0.645 0.246 16.439);
   --chart-grid: oklch(1 0 0 / 15%);
   --chart-text: oklch(1 0 0 / 50%);
+  --link-accent: #FEC200;
+  --link-accent-hover: #FFD44F;
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);

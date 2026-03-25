@@ -355,6 +355,7 @@
     }
   },
   "searchResults": {
+    "searchTitle": "Search",
     "searchPlaceholder": "Search companies and people...",
     "companies": "Companies",
     "people": "People",
@@ -379,7 +380,8 @@
     "registrationDate": "Registered",
     "prevPage": "Previous",
     "nextPage": "Next",
-    "searchAddresses": "Addresses"
+    "searchAddresses": "Addresses",
+    "trySearch": "Try searching for this address →"
   },
   "person": {
     "notFound": "Person not found",

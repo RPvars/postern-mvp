@@ -19,7 +19,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Posterns - Latvijas Uzņēmumu Analīzes Platforma",
+  title: {
+    template: '%s — Posterns',
+    default: 'Posterns — Latvijas Uzņēmumu Analīzes Platforma',
+  },
   description: "Meklējiet un analizējiet Latvijas uzņēmumus ar pilnīgu finanšu informāciju, īpašumtiesību struktūrām un nodokļu maksājumu datiem.",
 };
 

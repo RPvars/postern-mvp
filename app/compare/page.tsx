@@ -43,6 +43,11 @@ export default function ComparePage() {
   const [linkCopied, setLinkCopied] = useState(false);
   const initialLoadDone = useRef(false);
 
+  useEffect(() => {
+    document.title = `${t('title')} — Posterns`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Restore selected companies from URL on mount and auto-trigger comparison
   useEffect(() => {
     const restoreCompaniesFromUrl = async () => {

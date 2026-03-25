@@ -170,7 +170,7 @@ export function CompanySelector({
                           className="cursor-pointer"
                         >
                           <div className="flex flex-col gap-1 w-full">
-                            <div className="font-medium">{company.name}</div>
+                            <div className="font-medium">{formatCompanyDisplayName(company.name)}</div>
                             <div className="text-sm text-muted-foreground">
                               {company.registrationNumber} • {company.taxNumber}
                             </div>

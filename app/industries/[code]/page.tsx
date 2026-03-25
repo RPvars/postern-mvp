@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useSearchParams, useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -12,7 +12,7 @@ import { SECTION_ICONS } from '@/lib/industry-icons';
 import { StatsCards } from '@/components/industry/stats-cards';
 import { SubcategoryTabs } from '@/components/industry/subcategory-tabs';
 import { TopCompaniesTable } from '@/components/industry/top-companies-table';
-import type { Metric, TopCompany, IndustryData } from '@/components/industry/types';
+import type { Metric, TopCompany, IndustryData, IndustryChild } from '@/components/industry/types';
 
 export default function IndustryDetailPage() {
   const t = useTranslations('industries');
@@ -31,23 +31,48 @@ export default function IndustryDetailPage() {
     (searchParams.get('metric') as Metric) || 'profit'
   );
   const [year, setYear] = useState<string>(searchParams.get('year') || '');
-  const [activeSub, setActiveSub] = useState<string>(searchParams.get('sub') || '');
 
   const [displayStats, setDisplayStats] = useState<IndustryData['stats'] | null>(null);
   const [displayCompanies, setDisplayCompanies] = useState<TopCompany[]>([]);
   const [subLoading, setSubLoading] = useState(false);
 
+  // Dynamic depth drill-down: path of selected codes at each level
+  const initPath = searchParams.get('path')?.split(',').filter(Boolean)
+    // Backward compat with old ?sub=&subsub= params
+    ?? [searchParams.get('sub'), searchParams.get('subsub')].filter(Boolean) as string[];
+  const [drillPath, setDrillPath] = useState<string[]>(initPath);
+  // Map: code → its children (fetched when that code is selected)
+  const [levelData, setLevelData] = useState<Map<string, IndustryChild[]>>(new Map());
+
+  // Track the last fetched deepest code to avoid re-fetching on unrelated state changes
+  const lastFetchedRef = useRef<string>('');
+
+  // Ancestor hierarchy tabs (for direct navigation to deep codes like 33.14)
+  const [ancestorTabs, setAncestorTabs] = useState<{ code: string; children: IndustryChild[] }[]>([]);
+
+  function handleDrillSelect(level: number, code: string) {
+    if (drillPath[level] === code) {
+      // Deselect: trim path to this level
+      setDrillPath(prev => prev.slice(0, level));
+    } else {
+      // Select: trim to this level, append new code
+      setDrillPath(prev => [...prev.slice(0, level), code]);
+    }
+  }
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(false);
-    setActiveSub(''); // Reset sub before fetching to prevent race condition
+    setDrillPath([]);
+    setLevelData(new Map());
+    lastFetchedRef.current = '';
     try {
-      const params = new URLSearchParams();
-      params.set('metric', metric);
-      if (year) params.set('year', year);
-      params.set('limit', '20');
+      const p = new URLSearchParams();
+      p.set('metric', metric);
+      if (year) p.set('year', year);
+      p.set('limit', '20');
 
-      const res = await fetch(`/api/industries/${code}?${params}`);
+      const res = await fetch(`/api/industries/${code}?${p}`);
       if (res.ok) {
         const result = await res.json();
         setData(result);
@@ -72,62 +97,123 @@ export default function IndustryDetailPage() {
   }, [fetchData]);
 
   useEffect(() => {
-    if (!activeSub || !data) {
+    if (data) {
+      document.title = `${n(data.industry)} — Posterns`;
+    }
+  }, [data]);
+
+  // Fetch ancestor hierarchy tabs for direct navigation (e.g. /industries/33.14)
+  useEffect(() => {
+    if (!data || data.breadcrumb.length <= 1) {
+      setAncestorTabs([]);
+      return;
+    }
+
+    // Breadcrumb = [Section, Division, Group, Class(current)]
+    // Fetch children of each ancestor EXCEPT the current code (last breadcrumb entry)
+    const ancestors = data.breadcrumb.slice(0, -1);
+
+    const fetchAncestors = async () => {
+      const results = await Promise.all(
+        ancestors.map(async (crumb) => {
+          try {
+            const res = await fetch(`/api/industries/${crumb.code}?limit=1`);
+            if (!res.ok) return null;
+            const result = await res.json();
+            return { code: crumb.code, children: result.children as IndustryChild[] };
+          } catch {
+            return null;
+          }
+        })
+      );
+      setAncestorTabs(results.filter((r): r is { code: string; children: IndustryChild[] } => r !== null));
+    };
+    fetchAncestors();
+  }, [data?.breadcrumb.length, code]);
+
+  // Fetch data for the deepest selected code in drill path
+  useEffect(() => {
+    const deepestCode = drillPath[drillPath.length - 1];
+
+    if (!deepestCode || !data) {
       if (data) {
         setDisplayStats(data.stats);
         setDisplayCompanies(data.topCompanies);
       }
+      lastFetchedRef.current = '';
       return;
     }
 
-    const fetchSub = async () => {
+    // Skip if already fetched this exact code
+    if (lastFetchedRef.current === deepestCode) return;
+
+    const fetchLevel = async () => {
       setSubLoading(true);
       try {
-        const params = new URLSearchParams();
-        params.set('metric', metric);
-        if (year) params.set('year', year);
-        params.set('limit', '20');
+        const p = new URLSearchParams();
+        p.set('metric', metric);
+        if (year) p.set('year', year);
+        p.set('limit', '20');
 
-        const res = await fetch(`/api/industries/${activeSub}?${params}`);
+        const res = await fetch(`/api/industries/${deepestCode}?${p}`);
         if (res.ok) {
           const result = await res.json();
           setDisplayStats(result.stats);
           setDisplayCompanies(result.topCompanies);
+          lastFetchedRef.current = deepestCode;
+          // Store children for this code
+          setLevelData(prev => {
+            const next = new Map(prev);
+            next.set(deepestCode, result.children ?? []);
+            return next;
+          });
         } else {
-          // Revert to main data on failure
-          setDisplayStats(data.stats);
-          setDisplayCompanies(data.topCompanies);
-          setActiveSub('');
+          // Revert: pop the failed code
+          setDrillPath(prev => prev.slice(0, -1));
         }
       } catch (err) {
         console.error('Failed to load sub-category:', err);
-        setDisplayStats(data.stats);
-        setDisplayCompanies(data.topCompanies);
-        setActiveSub('');
+        setDrillPath(prev => prev.slice(0, -1));
       } finally {
         setSubLoading(false);
       }
     };
-    fetchSub();
-  }, [activeSub, metric, year, data]);
+    fetchLevel();
+  }, [drillPath, metric, year, data]);
 
+  // URL sync
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (metric !== 'profit') params.set('metric', metric);
+    const p = new URLSearchParams();
+    if (metric !== 'profit') p.set('metric', metric);
     if (year && data?.availableYears && String(data.availableYears[0]) !== year) {
-      params.set('year', year);
+      p.set('year', year);
     }
-    if (activeSub) params.set('sub', activeSub);
-    const query = params.toString();
+    if (drillPath.length > 0) p.set('path', drillPath.join(','));
+    const query = p.toString();
     const newUrl = `/industries/${code}${query ? `?${query}` : ''}`;
     router.replace(newUrl, { scroll: false });
-  }, [code, metric, year, activeSub, data?.availableYears, router]);
+  }, [code, metric, year, drillPath, data?.availableYears, router]);
 
-  const sectionHeading = activeSub
-    ? (() => { const c = data?.children.find(c => c.code === activeSub); return c ? n(c) : ''; })()
-    : data && data.children.length > 1
-      ? `${n(data.industry)} — ${t('allSubcategories')}`
-      : data ? n(data.industry) : '';
+  // Section heading: name of the deepest selected category
+  const sectionHeading = (() => {
+    if (drillPath.length === 0) {
+      return data && data.children.length > 1
+        ? `${n(data.industry)} — ${t('allSubcategories')}`
+        : data ? n(data.industry) : '';
+    }
+    const deepestCode = drillPath[drillPath.length - 1];
+    // Look in parent's children for the name
+    if (drillPath.length === 1) {
+      const match = data?.children.find(c => c.code === deepestCode);
+      if (match) return n(match);
+    } else {
+      const parentCode = drillPath[drillPath.length - 2];
+      const siblings = levelData.get(parentCode);
+      const match = siblings?.find(c => c.code === deepestCode);
+      if (match) return n(match);
+    }
+    return '';
+  })();
 
   return (
     <div className="min-h-screen bg-background">
@@ -164,7 +250,7 @@ export default function IndustryDetailPage() {
               const Icon = SECTION_ICONS[sectionCode] ?? Building2;
               return (
                 <span className="inline-flex items-center justify-center w-10 h-10 shrink-0">
-                  <Icon className="h-6 w-6 text-[#FEC200]" />
+                  <Icon className="h-6 w-6 text-link-accent" />
                 </span>
               );
             })()}
@@ -190,14 +276,52 @@ export default function IndustryDetailPage() {
           <IndustrySkeleton />
         ) : data ? (
           <>
+            {/* Ancestor hierarchy tabs (when navigated directly to a deep code) */}
+            {ancestorTabs.map((level, i) => {
+              const activeCode = data.breadcrumb[i + 1]?.code ?? '';
+              if (level.children.length <= 1) return null;
+              return (
+                <SubcategoryTabs
+                  key={level.code}
+                  children={level.children}
+                  activeSub={activeCode}
+                  onSelect={(selectedCode) => {
+                    // Navigate to the selected sibling's page
+                    router.push(`/industries/${selectedCode}`);
+                  }}
+                  name={n}
+                  t={t}
+                  locale={locale}
+                />
+              );
+            })}
+
+            {/* Current code's children (Level 0 of drill-down) */}
             <SubcategoryTabs
               children={data.children}
-              activeSub={activeSub}
-              onSelect={setActiveSub}
+              activeSub={drillPath[0] ?? ''}
+              onSelect={(code) => handleDrillSelect(0, code)}
               name={n}
               t={t}
               locale={locale}
             />
+
+            {/* Dynamic deeper levels from drill-down */}
+            {drillPath.map((selectedCode, i) => {
+              const children = levelData.get(selectedCode) ?? [];
+              if (children.length <= 1) return null;
+              return (
+                <SubcategoryTabs
+                  key={selectedCode}
+                  children={children}
+                  activeSub={drillPath[i + 1] ?? ''}
+                  onSelect={(code) => handleDrillSelect(i + 1, code)}
+                  name={n}
+                  t={t}
+                  locale={locale}
+                />
+              );
+            })}
 
             {/* Section heading for stats + table */}
             <div className="flex items-center gap-3 mb-4">
@@ -205,9 +329,9 @@ export default function IndustryDetailPage() {
                 {sectionHeading}
                 {year && <span className="text-muted-foreground font-normal text-base ml-2">({year})</span>}
               </h2>
-              {activeSub && (
+              {drillPath.length > 0 && (
                 <button
-                  onClick={() => setActiveSub('')}
+                  onClick={() => setDrillPath([])}
                   className="text-xs px-2 py-0.5 rounded bg-accent hover:bg-accent/80 text-muted-foreground"
                 >
                   ✕ {t('showAll')}

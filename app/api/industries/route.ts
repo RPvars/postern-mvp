@@ -99,11 +99,11 @@ async function getNacePrefixes(code: string, level: number): Promise<string[]> {
 
 /**
  * Build SQL LIKE clause for NACE prefix matching.
- * SAFETY: Prefixes are strictly validated as 1-2 digit numbers before interpolation.
+ * SAFETY: Prefixes are strictly validated as 1-4 digit numbers before interpolation.
  * Using $queryRawUnsafe because Prisma.sql doesn't support dynamic LIKE OR chains.
  */
 function buildNaceLikeClause(prefixes: string[]): string {
-  const safe = prefixes.filter((p) => /^\d{1,2}$/.test(p));
+  const safe = prefixes.filter((p) => /^\d{1,4}$/.test(p));
   if (safe.length === 0) return '1=0';
   return safe.map((p) => `tp.naceCode LIKE '${p}%'`).join(' OR ');
 }

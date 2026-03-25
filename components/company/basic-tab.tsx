@@ -91,8 +91,8 @@ export function BasicTab({ company }: BasicTabProps) {
               {company.naceCode && (
                 <InfoRow label={t('companyInfo.naceCode')}>
                   <a
-                    href={`/industries/${company.naceCode.replace('.', '').slice(0, 2)}`}
-                    className="text-[#FEC200] hover:underline hover:decoration-[#FEC200] transition-colors"
+                    href={`/industries/${company.naceCode}`}
+                    className="text-link-accent hover:text-link-accent-hover hover:underline transition-colors"
                   >
                     {company.naceDescription || company.naceCode}
                     <span className="text-muted-foreground ml-1">({company.naceCode})</span>

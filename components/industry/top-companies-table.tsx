@@ -247,7 +247,7 @@ export function RankCell({ rank, change, history }: { rank: number; change: numb
       ) : change === 0 ? (
         <span className="text-[10px] text-muted-foreground">—</span>
       ) : change === null && history && !Object.values(history).some((r, i) => i > 0 && r != null) ? (
-        <span className="text-[10px] text-[#FEC200] font-semibold">NEW</span>
+        <span className="text-[10px] text-link-accent font-semibold">NEW</span>
       ) : change === null ? (
         <Undo2 className="h-3 w-3 text-blue-400" />
       ) : null}
@@ -273,7 +273,7 @@ export function RankCell({ rank, change, history }: { rank: number; change: numb
                       {diff > 0 ? `▲${diff}` : `▼${Math.abs(diff)}`}
                     </span>
                   ) : diff === 0 ? null : isNew ? (
-                    <span className="text-[10px] text-[#FEC200] font-semibold">NEW</span>
+                    <span className="text-[10px] text-link-accent font-semibold">NEW</span>
                   ) : isReturn ? (
                     <Undo2 className="h-3 w-3 text-blue-400" />
                   ) : null}

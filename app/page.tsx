@@ -117,8 +117,8 @@ export default function Home() {
               <Link key={key} href={href}>
                 <Card className="h-full cursor-pointer transition-all hover:bg-accent/50 hover:shadow-md group">
                   <CardContent className="p-6 flex flex-col items-center text-center gap-3">
-                    <div className="bg-[#FEC200]/10 rounded-full p-3">
-                      <Icon className="h-6 w-6 text-[#FEC200]" />
+                    <div className="bg-link-accent/10 rounded-full p-3">
+                      <Icon className="h-6 w-6 text-link-accent" />
                     </div>
                     <h3 className="font-semibold text-foreground">{t(`quickLinks.${key}.title`)}</h3>
                     <p className="text-sm text-muted-foreground">{t(`quickLinks.${key}.description`)}</p>
@@ -164,7 +164,7 @@ export default function Home() {
                   >
                     <CardContent className="p-4 flex flex-col items-center text-center gap-2">
                       <div className="bg-muted/50 rounded-full p-2.5">
-                        <Icon className="h-5 w-5 text-[#FEC200]" />
+                        <Icon className="h-5 w-5 text-link-accent" />
                       </div>
                       <h3 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
                         {name(section)}
@@ -302,8 +302,8 @@ export default function Home() {
         {/* Compare CTA */}
         <div className="container mx-auto px-4 py-16 max-w-5xl border-t">
           <div className="rounded-xl border bg-card p-8 md:p-12 text-center">
-            <div className="bg-[#FEC200]/10 rounded-full p-4 w-fit mx-auto mb-4">
-              <BarChart3 className="h-8 w-8 text-[#FEC200]" />
+            <div className="bg-link-accent/10 rounded-full p-4 w-fit mx-auto mb-4">
+              <BarChart3 className="h-8 w-8 text-link-accent" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-3">
               {t('compareCta.title')}

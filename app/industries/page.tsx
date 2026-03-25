@@ -38,6 +38,11 @@ export default function IndustriesPage() {
   const [sortBy, setSortBy] = useState<SortKey>('code');
 
   useEffect(() => {
+    document.title = `${t('title')} — Posterns`;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
     async function load() {
       setError(false);
       setLoading(true);
@@ -145,7 +150,7 @@ export default function IndustriesPage() {
                     onClick={() => setSortBy(opt.key)}
                     className={`text-xs px-3 py-1.5 rounded-md transition-colors ${
                       sortBy === opt.key
-                        ? 'bg-[#FEC200]/15 text-[#FEC200] font-medium'
+                        ? 'bg-link-accent/15 text-link-accent font-medium'
                         : 'text-muted-foreground hover:text-foreground hover:bg-accent'
                     }`}
                   >
@@ -179,7 +184,7 @@ export default function IndustriesPage() {
                       }}
                     >
                       {/* Section letter badge — top-right */}
-                      <span className="absolute top-2.5 right-3 text-xs font-bold text-[#FEC200]/40 group-hover:text-[#FEC200]/70 transition-colors">
+                      <span className="absolute top-2.5 right-3 text-xs font-bold text-link-accent/40 group-hover:text-link-accent/70 transition-colors">
                         {section.code}
                       </span>
 
@@ -187,7 +192,7 @@ export default function IndustriesPage() {
                         <div className="flex items-start gap-4">
                           {/* Icon in circle */}
                           <div className="bg-muted/50 rounded-full p-2.5 shrink-0">
-                            <Icon className="h-5 w-5 text-[#FEC200]" />
+                            <Icon className="h-5 w-5 text-link-accent" />
                           </div>
 
                           <div className="flex-1 min-w-0">
