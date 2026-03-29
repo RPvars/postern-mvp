@@ -1,6 +1,6 @@
 # VISS / Uzņēmumu Reģistra API — Integrācijas statuss
 
-Pēdējo reizi atjaunināts: 2026-03-07
+Pēdējo reizi atjaunināts: 2026-03-25
 
 ---
 
@@ -10,30 +10,8 @@ Pēdējo reizi atjaunināts: 2026-03-07
 |---|---|---|
 | mTLS savienojums (pingpong) | ✅ Strādā | `vissapi.viss.gov.lv` atgriež "Healthy" |
 | Transaction API | ✅ Strādā | Sertifikāts + eServiceId akceptēts |
-| OAuth2 access_token | ❌ Bloķēts | PFAS STS kļūda ID4058 |
-| Business Register API dati | ❌ Nav reāli | `BR_USE_MOCK_DATA="true"` |
-
----
-
-## Galvenais bloķētājs: ID4058
-
-### Kāpēc rodas
-
-No **VDAA vadlīnijām v2.7, §5.2** (officiāla definīcija):
-
-> "Sertifikāts, kurš tiek izmantots izsaukumā ir vai nu **deaktivizēts/nav aktīvs** vai arī tam beidzies termiņš. Otrs variants, ka tiek lietots produkcijas vides sertifikāts testa vides talona iegūšanai vai arī otrādāk."
-
-### Kāpēc tas notiek mums
-
-No **VDAA vadlīnijām v2.7, §3.1** (obligāts solis, kas nav izdarīts):
-
-> "**!!! Iegūto sertifikātu sūtīt uz e-pasta adresi - atbalsts@vdaa.gov.lv**, kā arī pieminēt priekš kuras vides sertifikāts vajadzīgs - testa vai produkcijas."
-
-Sertifikāts `FP_RPAVARS_chain_modern.pfx` nav nosūtīts uz VDAA aktivizēšanai. PFAS STS to nepazīst → ID4058.
-
-### Risinājums
-
-Nosūtīt e-pastu uz **atbalsts@vdaa.gov.lv** (gatavs teksts: `docs/vdaa-support-email.md`).
+| OAuth2 access_token | ✅ Strādā | JWT client_assertion flow |
+| Business Register API dati | ✅ Strādā | `BR_USE_MOCK_DATA="false"` |
 
 ---
 
@@ -100,41 +78,10 @@ Kods implementēts: `lib/business-register/client/auth.ts`
 - `UR-API-AnnualReport` v1.0 — gada pārskati
 - `UR-API-NaturalPerson` v1_2 — valdes locekļi
 
----
+### Vēl nav abonēti
 
-## API endpoint karte (jāizlabo pēc auth)
-
-Pašreizējais kods `lib/business-register/client/http.ts` izmanto nepareizus ceļus:
-
-| Kods (nepareizi) | Reālais endpoint |
-|---|---|
-| `GET /companies/search` | `GET https://apigw.viss.gov.lv/searchlegalentities/search/legal-entities?q=...` |
-| `GET /companies/{regcode}` | `GET https://apigw.viss.gov.lv/legalentity/legal-entity/{regcode}` |
-| `GET /companies/{regcode}/board-members` | No `UR-API-NaturalPerson` (jāprecizē) |
-
-Katram API ir savs context path — `BR_API_BASE_URL` kā vienots URL nestrādās. `http.ts` ir jāpārraksta ar hardcoded base URLs katram API.
-
----
-
-## Nākamie soļi (secībā)
-
-### 1. TAGAD — e-pasts VDAA
-Nosūtīt `docs/vdaa-support-email.md` saturu uz **atbalsts@vdaa.gov.lv**
-
-### 2. Pēc VDAA atbildes — pārbaudīt
-```bash
-npx tsx scripts/test-certificate.ts
-```
-Step 5 "OAuth Token" jāparāda `[PASS]`.
-
-### 3. Pēc veiksmīgas auth — labot API ceļus
-Pārtaisīt `lib/business-register/client/http.ts` ar pareizajiem endpoint URL.
-
-### 4. Ieslēgt reālos datus
-```env
-BR_USE_MOCK_DATA="false"
-BR_API_BASE_URL=""   # vairs nav vajadzīgs — katram API savs URL
-```
+- `UR-API-CommercialPledge` v1.0 — komercķīlu akti
+- `UR-API-CommercialPledgeChanges` v1.0 — komercķīlu izmaiņas
 
 ---
 
@@ -150,15 +97,3 @@ BR_API_BASE_URL=""   # vairs nav vajadzīgs — katram API savs URL
 | Developer portāls | https://api.viss.gov.lv/devportal/apis |
 | Sertifikāta pieprasījums | https://www.vdaa.gov.lv/lv/api-parvaldnieks#sertifikata-pieprasijums |
 | Atbalsts | atbalsts@vdaa.gov.lv |
-
----
-
-## Izmēģinātās metodes un rezultāti
-
-| Metode | Rezultāts | Iemesls |
-|---|---|---|
-| Basic Auth + `client_credentials` | `unsupported_grant_type` | Default key manager disabled portālā |
-| Basic Auth + `password` grant | "user failed validation using PFAS" | Portāla lietotāji nav PFAS lietotāji |
-| JWT `client_assertion` | `ID4058` | Sertifikāts nav aktivizēts VDAA |
-| mTLS bez tokena | 401/403 | API prasa Bearer token |
-| Pingpong ar mTLS | `200 Healthy` | Transaction API pieejams bez tokena |

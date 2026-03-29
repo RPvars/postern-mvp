@@ -32,6 +32,7 @@ export interface TopCompany {
 export interface IndustryData {
   industry: { code: string; nameLv: string; nameEn: string; level: number; parentCode: string | null };
   breadcrumb: BreadcrumbItem[];
+  ancestorHierarchy: { code: string; children: IndustryChild[] }[];
   children: IndustryChild[];
   stats: {
     totalCompanies: number;

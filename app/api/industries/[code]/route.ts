@@ -43,7 +43,7 @@ export async function GET(
     return NextResponse.json({ error: 'Industry not found' }, { status: 404 });
   }
 
-  const breadcrumb = await buildBreadcrumb(code);
+  const { crumbs: breadcrumb, ancestorHierarchy } = await buildBreadcrumb(code);
 
   const children = await prisma.naceCode.findMany({
     where: { parentCode: code },
@@ -80,6 +80,7 @@ export async function GET(
       parentCode: industry.parentCode,
     },
     breadcrumb,
+    ancestorHierarchy,
     children: childrenWithCounts,
     stats,
     topCompanies,
@@ -90,6 +91,7 @@ export async function GET(
 
 async function buildBreadcrumb(code: string) {
   const crumbs: { code: string; nameLv: string; nameEn: string }[] = [];
+  const ancestorHierarchy: { code: string; children: { code: string; nameLv: string; nameEn: string; level: number }[] }[] = [];
   let current = code;
 
   while (current) {
@@ -99,10 +101,21 @@ async function buildBreadcrumb(code: string) {
     });
     if (!nace) break;
     crumbs.unshift({ code: nace.code, nameLv: nace.nameLv, nameEn: nace.nameEn });
+
+    // For ancestors (not the current code), fetch their children for hierarchy tabs
+    if (nace.code !== code) {
+      const children = await prisma.naceCode.findMany({
+        where: { parentCode: nace.code },
+        orderBy: { code: 'asc' },
+        select: { code: true, nameLv: true, nameEn: true, level: true },
+      });
+      ancestorHierarchy.unshift({ code: nace.code, children });
+    }
+
     current = nace.parentCode ?? '';
   }
 
-  return crumbs;
+  return { crumbs, ancestorHierarchy };
 }
 
 async function getAvailableYears(): Promise<number[]> {

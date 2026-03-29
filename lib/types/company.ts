@@ -52,6 +52,8 @@ export interface CompanyTaxPayment {
   employeeCount: number | null;
 }
 
+import type { RatioWarning } from './ratio-warning';
+
 export interface CompanyFinancialRatio {
   year: number;
   revenue: number | null;
@@ -60,9 +62,22 @@ export interface CompanyFinancialRatio {
   equity: number | null;
   totalDebt: number | null;
   employees: number | null;
+  grossProfit: number | null;
+  ebit: number | null;
+  ebitda: number | null;
+  operatingCashFlow: number | null;
+  currentAssets: number | null;
+  currentLiabilities: number | null;
+  cash: number | null;
+  inventory: number | null;
+  receivables: number | null;
+  cogs: number | null;
+  interestExpense: number | null;
   returnOnEquity: number | null;
   returnOnAssets: number | null;
   roce: number | null;
+  roic: number | null;
+  grossProfitToAssets: number | null;
   netProfitMargin: number | null;
   grossProfitMargin: number | null;
   operatingProfitMargin: number | null;
@@ -85,6 +100,7 @@ export interface CompanyFinancialRatio {
   dso: number | null;
   dpo: number | null;
   cashConversionCycle: number | null;
+  ratioWarnings?: Record<string, RatioWarning>;
 }
 
 export interface CompanyStateAid {

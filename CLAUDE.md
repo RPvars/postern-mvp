@@ -33,7 +33,7 @@ components/
     basic-tab.tsx      # Company info, registration, capital, state aid, risk
     people-tab.tsx     # Ownership, board members, beneficial owners
     financial-tab.tsx  # Financial summary, tax payments (scrollable tables)
-    documents-tab.tsx  # Annual reports table with download
+    documents-tab.tsx  # Annual reports table with download + PDF preview
     company-skeleton.tsx  # Loading skeleton
     company-error.tsx     # Error state
   financial-ratios-display.tsx  # Financial ratios with charts
@@ -131,13 +131,16 @@ Required in `.env`:
 - **Name resolution**: `/api/company/[id]/people` resolves legal entity names for members/officers missing `legalName` (max 10 parallel lookups, cached). Uses immutable mapping (no mutation of cached objects)
 - **Mock mode**: Set `BR_USE_MOCK_DATA=true` to bypass certificate requirement in development
 - **Key API endpoints used**: `/searchlegalentities/search/legal-entities`, `/legalentity/legal-entity/{regcode}`, `/legalentity/legal-entity/{regcode}/annual-reports`, `/annualreport/annual-report/{fileId}/content`
-- **Annual reports**: Listed via legalentity endpoint (flat array), downloaded via annualreport endpoint. Proxy route at `app/api/annual-report/[fileId]/content/`. Deduplication by year+type prefers PDF > HTML > DUF format
+- **Annual reports**: Listed via legalentity endpoint (flat array), downloaded via annualreport endpoint. Proxy route at `app/api/annual-report/[fileId]/content/`. Deduplication by year+type prefers PDF > HTML > DUF format. PDF preview via `?preview=true` (Content-Disposition: inline)
 
 ## Financial Data (On-Demand API)
 Financial ratios are fetched on-demand from data.gov.lv CKAN Datastore API (no auth, CC0 license).
 - **Client**: `lib/data-gov/client.ts` — SQL JOIN across CKAN resources, 10min cache, LVL→EUR conversion for pre-2014 data
-- **27 ratios** calculated: profitability, liquidity, leverage, efficiency + raw figures (revenue, assets, equity, etc.)
+- **29 ratios** calculated: profitability (incl. ROIC, Gross Profit/Assets), liquidity, leverage, efficiency + raw figures + 11 intermediate values (grossProfit, EBIT, EBITDA, etc.)
+- **Ratio warnings**: `negativeEquityNegativeIncome` (dotted chart gap + red value), `negativeEquity`, `lowEquityRatio` (equity/assets < 10%) — detected in `calculateRatios()`, displayed via `RatioWarning` type
+- **Chart tooltip**: Shows per-year absolute values for ratio components (contextFields). Invalid segments shown as dotted orange line sinking below chart
 - Units on charts: `%` (profitability), `×` (ratios), `EUR` (per-employee), `dienas/days` (DSO/DPO/CCC)
+- **Dev test page**: `/dev/ratios` — 5 mock companies testing warning scenarios (blocked in production via server-side redirect)
 
 ## Imported Data (CSV from data.gov.lv)
 Data imported via scripts from VID/UR open data (CC0). Run `npm run import:all` to refresh.

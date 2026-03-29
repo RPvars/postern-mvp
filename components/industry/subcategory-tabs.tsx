@@ -46,7 +46,7 @@ export function SubcategoryTabs({ children, activeSub, onSelect, name, t, locale
                 <div className="text-xs font-medium leading-tight">{name(child)}</div>
                 <div className="text-[10px] opacity-60 mt-0.5 flex items-center gap-1">
                   <Building2 className="h-2.5 w-2.5" />
-                  {child.companyCount.toLocaleString(locale === 'en' ? 'en-US' : 'lv-LV')}
+                  {(child.companyCount ?? 0).toLocaleString(locale === 'en' ? 'en-US' : 'lv-LV')}
                 </div>
               </div>
             </button>

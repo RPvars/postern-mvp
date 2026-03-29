@@ -47,8 +47,7 @@ export default function IndustryDetailPage() {
   // Track the last fetched deepest code to avoid re-fetching on unrelated state changes
   const lastFetchedRef = useRef<string>('');
 
-  // Ancestor hierarchy tabs (for direct navigation to deep codes like 33.14)
-  const [ancestorTabs, setAncestorTabs] = useState<{ code: string; children: IndustryChild[] }[]>([]);
+  // Ancestor hierarchy tabs — derived from API response (no extra fetch needed)
 
   function handleDrillSelect(level: number, code: string) {
     if (drillPath[level] === code) {
@@ -102,34 +101,7 @@ export default function IndustryDetailPage() {
     }
   }, [data]);
 
-  // Fetch ancestor hierarchy tabs for direct navigation (e.g. /industries/33.14)
-  useEffect(() => {
-    if (!data || data.breadcrumb.length <= 1) {
-      setAncestorTabs([]);
-      return;
-    }
-
-    // Breadcrumb = [Section, Division, Group, Class(current)]
-    // Fetch children of each ancestor EXCEPT the current code (last breadcrumb entry)
-    const ancestors = data.breadcrumb.slice(0, -1);
-
-    const fetchAncestors = async () => {
-      const results = await Promise.all(
-        ancestors.map(async (crumb) => {
-          try {
-            const res = await fetch(`/api/industries/${crumb.code}?limit=1`);
-            if (!res.ok) return null;
-            const result = await res.json();
-            return { code: crumb.code, children: result.children as IndustryChild[] };
-          } catch {
-            return null;
-          }
-        })
-      );
-      setAncestorTabs(results.filter((r): r is { code: string; children: IndustryChild[] } => r !== null));
-    };
-    fetchAncestors();
-  }, [data?.breadcrumb.length, code]);
+  const ancestorTabs: { code: string; children: IndustryChild[] }[] = data?.ancestorHierarchy ?? [];
 
   // Fetch data for the deepest selected code in drill path
   useEffect(() => {
@@ -161,9 +133,13 @@ export default function IndustryDetailPage() {
           setDisplayStats(result.stats);
           setDisplayCompanies(result.topCompanies);
           lastFetchedRef.current = deepestCode;
-          // Store children for this code
-          setLevelData(prev => {
-            const next = new Map(prev);
+          // Store children, prune entries no longer in path
+          setLevelData(() => {
+            const next = new Map<string, IndustryChild[]>();
+            for (const pathCode of drillPath) {
+              const existing = levelData.get(pathCode);
+              if (existing) next.set(pathCode, existing);
+            }
             next.set(deepestCode, result.children ?? []);
             return next;
           });

@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 import { TabsContent } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileText, FolderOpen, Download, Info, Loader2 } from 'lucide-react';
+import { FileText, FolderOpen, Download, Eye, Info, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { sanitizeFilename } from '@/lib/format';
 import { translateEnum } from '@/lib/i18n/translate-enum';
@@ -75,7 +75,7 @@ export function DocumentsTab({ company, isLoadingExternal }: DocumentsTabProps) 
                   <TableHead>{t('documents.reportType')}</TableHead>
                   <TableHead>{t('documents.registeredOn')}</TableHead>
                   <TableHead>{t('documents.format')}</TableHead>
-                  <TableHead className="w-12"></TableHead>
+                  <TableHead className="w-20"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -98,14 +98,27 @@ export function DocumentsTab({ company, isLoadingExternal }: DocumentsTabProps) 
                       </span>
                     </TableCell>
                     <TableCell>
-                      <a
-                        href={`/api/annual-report/${report.fileId}/content`}
-                        download={`${sanitizedName}_${report.year}${report.fileExtension ? '.' + report.fileExtension.toLowerCase() : ''}`}
-                        className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                        title={t('documents.download')}
-                      >
-                        <Download className="h-4 w-4" />
-                      </a>
+                      <div className="flex items-center gap-1">
+                        {report.fileExtension?.toUpperCase() === 'PDF' && (
+                          <a
+                            href={`/api/annual-report/${report.fileId}/content?preview=true`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                            title={t('documents.preview')}
+                          >
+                            <Eye className="h-4 w-4" />
+                          </a>
+                        )}
+                        <a
+                          href={`/api/annual-report/${report.fileId}/content`}
+                          download={`${sanitizedName}_${report.year}${report.fileExtension ? '.' + report.fileExtension.toLowerCase() : ''}`}
+                          className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                          title={t('documents.download')}
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

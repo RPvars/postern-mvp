@@ -63,7 +63,12 @@ export async function GET(
       headers['Content-Length'] = contentLength;
     }
 
-    if (contentDisposition) {
+    const isPreview = _request.nextUrl.searchParams.get('preview') === 'true';
+    const isPdf = contentType.includes('application/pdf');
+
+    if (isPreview && isPdf) {
+      headers['Content-Disposition'] = 'inline';
+    } else if (contentDisposition) {
       headers['Content-Disposition'] = contentDisposition;
     } else {
       headers['Content-Disposition'] = `attachment; filename="annual-report-${fileId}"`;

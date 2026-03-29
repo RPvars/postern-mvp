@@ -36,6 +36,8 @@ function setCache(key: string, data: unknown): void {
 
 // --- Types ---
 
+import type { RatioWarning } from '../types/ratio-warning';
+
 export interface FinancialDataRecord {
   year: number;
   // Raw financial figures (EUR)
@@ -45,10 +47,24 @@ export interface FinancialDataRecord {
   equity: number | null;
   totalDebt: number | null;
   employees: number | null;
+  // Intermediate values (for tooltip context)
+  grossProfit: number | null;
+  ebit: number | null;
+  ebitda: number | null;
+  operatingCashFlow: number | null;
+  currentAssets: number | null;
+  currentLiabilities: number | null;
+  cash: number | null;
+  inventory: number | null;
+  receivables: number | null;
+  cogs: number | null;
+  interestExpense: number | null;
   // Profitability
   returnOnEquity: number | null;
   returnOnAssets: number | null;
   roce: number | null;
+  roic: number | null;
+  grossProfitToAssets: number | null;
   netProfitMargin: number | null;
   grossProfitMargin: number | null;
   operatingProfitMargin: number | null;
@@ -74,11 +90,12 @@ export interface FinancialDataRecord {
   dso: number | null;
   dpo: number | null;
   cashConversionCycle: number | null;
+  ratioWarnings?: Record<string, RatioWarning>;
 }
 
 // --- API ---
 
-interface CkanRecord {
+export interface CkanRecord {
   [key: string]: string | number | null;
 }
 
@@ -102,7 +119,7 @@ async function queryCkan(sql: string): Promise<CkanRecord[]> {
   return data.result.records;
 }
 
-function safeDiv(a: number, b: number): number | null {
+export function safeDiv(a: number, b: number): number | null {
   if (b === 0 || isNaN(a) || isNaN(b)) return null;
   const result = a / b;
   if (!isFinite(result)) return null;
@@ -114,7 +131,7 @@ function num(val: string | number | null | undefined): number {
   return typeof val === 'number' ? val : parseFloat(val) || 0;
 }
 
-function calculateRatios(row: CkanRecord): FinancialDataRecord {
+export function calculateRatios(row: CkanRecord): FinancialDataRecord {
   const rounded = row.rounded_to_nearest === 'THOUSANDS' ? 1000 : 1;
   const currencyMul = row.currency === 'LVL' ? LVL_TO_EUR : 1;
   const m = rounded * currencyMul;
@@ -145,6 +162,26 @@ function calculateRatios(row: CkanRecord): FinancialDataRecord {
   const payablesTurnover = safeDiv(cogs, currentLiabilities);
   const inventoryTurnover = safeDiv(cogs, inventory);
 
+  // Detect misleading equity-based ratios
+  const LOW_EQUITY_RATIO = 0.10;
+  const equityAffectedRatios = ['returnOnEquity', 'debtToEquity', 'equityMultiplier'];
+  const ratioWarnings: Record<string, RatioWarning> = {};
+
+  if (equity_ < 0 && netIncome < 0) {
+    for (const key of equityAffectedRatios) {
+      ratioWarnings[key] = { type: 'negativeEquityNegativeIncome', messageKey: 'negativeEquityNegativeIncome' };
+    }
+  } else if (equity_ <= 0) {
+    for (const key of equityAffectedRatios) {
+      ratioWarnings[key] = { type: 'negativeEquity', messageKey: 'negativeEquity' };
+    }
+  } else if (totalAssets > 0 && equity_ / totalAssets < LOW_EQUITY_RATIO) {
+    const pct = Math.round((equity_ / totalAssets) * 100);
+    for (const key of equityAffectedRatios) {
+      ratioWarnings[key] = { type: 'lowEquityRatio', messageKey: 'lowEquityRatio', params: { pct } };
+    }
+  }
+
   return {
     year: num(row.year),
     revenue: revenue || null,
@@ -153,10 +190,29 @@ function calculateRatios(row: CkanRecord): FinancialDataRecord {
     equity: equity_ || null,
     totalDebt: totalDebt || null,
     employees: employees || null,
+    grossProfit: grossProfit || null,
+    ebit: ebit || null,
+    ebitda: ebitda || null,
+    operatingCashFlow: operatingCashFlow || null,
+    currentAssets: currentAssets || null,
+    currentLiabilities: currentLiabilities || null,
+    cash: cash || null,
+    inventory: inventory || null,
+    receivables: receivables || null,
+    cogs: cogs || null,
+    interestExpense: interestExpense || null,
     // Profitability
     returnOnEquity: safeDiv(netIncome, equity_),
     returnOnAssets: safeDiv(netIncome, totalAssets),
     roce: safeDiv(ebit, totalAssets - currentLiabilities),
+    roic: (() => {
+      const rawTaxRate = ebt !== 0 ? 1 - (netIncome / ebt) : 0;
+      const taxRate = Math.max(0, Math.min(1, rawTaxRate));
+      const nopat = ebit * (1 - taxRate);
+      const investedCapital = equity_ + totalDebt - cash;
+      return safeDiv(nopat, investedCapital);
+    })(),
+    grossProfitToAssets: safeDiv(grossProfit, totalAssets),
     netProfitMargin: safeDiv(netIncome, revenue),
     grossProfitMargin: safeDiv(grossProfit, revenue),
     operatingProfitMargin: safeDiv(ebit, revenue),
@@ -190,6 +246,7 @@ function calculateRatios(row: CkanRecord): FinancialDataRecord {
       }
       return null;
     })(),
+    ...(Object.keys(ratioWarnings).length > 0 ? { ratioWarnings } : {}),
   };
 }
 
@@ -198,6 +255,8 @@ function calculateRatios(row: CkanRecord): FinancialDataRecord {
  * Returns calculated financial ratios + raw figures for all available years.
  */
 export async function getFinancialData(regcode: string): Promise<FinancialDataRecord[]> {
+  if (!/^\d+$/.test(regcode)) return [];
+
   const cacheKey = `financial:${regcode}`;
   const cached = getCached<FinancialDataRecord[]>(cacheKey);
   if (cached) return cached;
