@@ -169,16 +169,16 @@ export function calculateRatios(row: CkanRecord): FinancialDataRecord {
 
   if (equity_ < 0 && netIncome < 0) {
     for (const key of equityAffectedRatios) {
-      ratioWarnings[key] = { type: 'negativeEquityNegativeIncome', messageKey: 'negativeEquityNegativeIncome' };
+      ratioWarnings[key] = { type: 'negativeEquityNegativeIncome' };
     }
   } else if (equity_ <= 0) {
     for (const key of equityAffectedRatios) {
-      ratioWarnings[key] = { type: 'negativeEquity', messageKey: 'negativeEquity' };
+      ratioWarnings[key] = { type: 'negativeEquity' };
     }
   } else if (totalAssets > 0 && equity_ / totalAssets < LOW_EQUITY_RATIO) {
     const pct = Math.round((equity_ / totalAssets) * 100);
     for (const key of equityAffectedRatios) {
-      ratioWarnings[key] = { type: 'lowEquityRatio', messageKey: 'lowEquityRatio', params: { pct } };
+      ratioWarnings[key] = { type: 'lowEquityRatio', params: { pct } };
     }
   }
 

@@ -9,7 +9,7 @@ import { Navigation } from '@/components/navigation';
 import { Footer } from '@/components/footer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Search, BarChart3, Building2, TrendingUp, ChevronRight, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { BarChart3, Building2, ChevronRight, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import { SECTION_ICONS } from '@/lib/industry-icons';
 import { RankCell } from '@/components/industry/top-companies-table';
@@ -82,7 +82,7 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <Navigation />
 
-      <main className="relative flex flex-1 flex-col items-center justify-center px-4 py-12">
+      <main className="relative flex min-h-[calc(100svh-74px)] flex-1 flex-col items-center justify-center px-4 py-12">
         {/* Geometric Background */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-30 dark:opacity-15"
@@ -106,31 +106,8 @@ export default function Home() {
 
       {/* Enrichment sections */}
       <section className="bg-background border-t">
-        {/* Quick Links */}
-        <div className="container mx-auto px-4 py-12 max-w-5xl">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { icon: Search, href: '/search', key: 'search' as const },
-              { icon: BarChart3, href: '/compare', key: 'compare' as const },
-              { icon: Building2, href: '/industries', key: 'industries' as const },
-            ].map(({ icon: Icon, href, key }) => (
-              <Link key={key} href={href}>
-                <Card className="h-full cursor-pointer transition-all hover:bg-accent/50 hover:shadow-md group">
-                  <CardContent className="p-6 flex flex-col items-center text-center gap-3">
-                    <div className="bg-link-accent/10 rounded-full p-3">
-                      <Icon className="h-6 w-6 text-link-accent" />
-                    </div>
-                    <h3 className="font-semibold text-foreground">{t(`quickLinks.${key}.title`)}</h3>
-                    <p className="text-sm text-muted-foreground">{t(`quickLinks.${key}.description`)}</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            ))}
-          </div>
-        </div>
-
         {/* Industry Preview */}
-        <div className="container mx-auto px-4 py-12 max-w-5xl border-t">
+        <div className="container mx-auto px-4 py-12 max-w-5xl">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-foreground">{t('industries.title')}</h2>
             <Link href="/industries" className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">

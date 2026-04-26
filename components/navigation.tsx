@@ -31,7 +31,7 @@ export function Navigation() {
     setLocale(newLocale as Locale);
   };
   return (
-    <header className="border-b bg-background/80 backdrop-blur-sm z-10 relative">
+    <header className="border-b bg-background/80 backdrop-blur-sm z-50 sticky top-0">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           {/* Logo & Navigation Links */}

@@ -138,7 +138,8 @@ Financial ratios are fetched on-demand from data.gov.lv CKAN Datastore API (no a
 - **Client**: `lib/data-gov/client.ts` — SQL JOIN across CKAN resources, 10min cache, LVL→EUR conversion for pre-2014 data
 - **29 ratios** calculated: profitability (incl. ROIC, Gross Profit/Assets), liquidity, leverage, efficiency + raw figures + 11 intermediate values (grossProfit, EBIT, EBITDA, etc.)
 - **Ratio warnings**: `negativeEquityNegativeIncome` (dotted chart gap + red value), `negativeEquity`, `lowEquityRatio` (equity/assets < 10%) — detected in `calculateRatios()`, displayed via `RatioWarning` type
-- **Chart tooltip**: Shows per-year absolute values for ratio components (contextFields). Invalid segments shown as dotted orange line sinking below chart
+- **Formula breakdown UI**: `RatioCard` accepts `formulaDescription` (static formula text under description) and `formulaSteps` (dynamic per-year computed steps shown in tooltip). Used for complex ratios (ROIC, ROCE, EBITDA margin, quick ratio, working capital ratio) where hover reveals intermediate values like Capital Employed, Invested Capital, Working Capital
+- **Chart tooltip**: Shows either `formulaSteps` (computed per year) or `contextFields` (raw values) — mutually exclusive. Invalid segments shown as dotted orange line sinking below chart
 - Units on charts: `%` (profitability), `×` (ratios), `EUR` (per-employee), `dienas/days` (DSO/DPO/CCC)
 - **Dev test page**: `/dev/ratios` — 5 mock companies testing warning scenarios (blocked in production via server-side redirect)
 

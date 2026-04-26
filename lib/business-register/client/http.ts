@@ -60,7 +60,10 @@ export class HttpClient {
 
   async searchCompanies(query: string): Promise<SearchResultItem[]> {
     if (businessRegisterConfig.useMockData) {
-      return this.getMockSearchResults();
+      const q = query.toLowerCase().trim();
+      return this.getMockSearchResults().filter(
+        (r) => r.currentName.toLowerCase().includes(q) || r.registrationNumber.includes(q),
+      );
     }
 
     const cacheKey = `search:${query.toLowerCase().trim()}`;

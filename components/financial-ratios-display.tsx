@@ -60,6 +60,86 @@ interface ContextField {
   format?: 'currency' | 'number';
 }
 
+// Formula step for complex ratio breakdown
+interface FormulaStep {
+  label: string;
+  // Function that computes the step value from a year's data
+  compute: (d: CompanyFinancialRatio) => number | null;
+  format?: 'currency' | 'number';
+}
+
+// Chart tooltip (extracted to module scope to avoid recreation per render)
+interface ChartTooltipProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  active?: boolean; payload?: Array<{ value: number; payload: Record<string, any> }>;
+  gapLabel?: string;
+  isPercentage?: boolean; decimals?: number; unit?: string;
+  contextFields?: ContextField[];
+  formulaSteps?: FormulaStep[];
+  yearData?: CompanyFinancialRatio[];
+}
+
+const formatCtxValue = (val: number | null, format?: 'currency' | 'number'): string => {
+  if (val == null) return 'N/A';
+  return format === 'number' ? val.toLocaleString('lv-LV') : formatCurrency(val);
+};
+
+const ChartTooltip = ({ active, payload, gapLabel, isPercentage, decimals = 2, unit, contextFields, formulaSteps, yearData }: ChartTooltipProps) => {
+  if (!active || !payload?.length) return null;
+  const point = payload[0].payload;
+  const isGap = point.isInvalid;
+  const displayValue = isGap ? point.originalValue : point.value;
+
+  // Find full year data for formula step computation
+  const yd = yearData?.find(r => r.year === point.year);
+
+  return (
+    <div className="bg-background border border-border rounded-md px-3 py-2 shadow-md max-w-[280px]">
+      <p className="text-sm font-semibold">{point.year}</p>
+      {isGap ? (
+        <>
+          <p className="text-sm text-muted-foreground line-through">
+            {formatRatio(displayValue, isPercentage, decimals, unit)}
+          </p>
+          {gapLabel && (
+            <p className="text-xs text-[#FF8042] mt-1">{gapLabel}</p>
+          )}
+        </>
+      ) : (
+        <p className="text-sm text-[#fec200]">
+          {formatRatio(displayValue, isPercentage, decimals, unit)}
+        </p>
+      )}
+      {formulaSteps && yd && (
+        <div className="mt-1.5 pt-1.5 border-t border-border/50 space-y-0.5">
+          {formulaSteps.map((step, i) => {
+            const val = step.compute(yd);
+            return (
+              <p key={i} className="text-xs text-muted-foreground">
+                <span className="opacity-70">{step.label}:</span>{' '}
+                <span className="font-mono">{formatCtxValue(val, step.format)}</span>
+              </p>
+            );
+          })}
+        </div>
+      )}
+      {!formulaSteps && contextFields && contextFields.length > 0 && (
+        <div className="mt-1.5 pt-1.5 border-t border-border/50 space-y-0.5">
+          {contextFields.map(f => {
+            const raw = point[f.key];
+            return (
+              <p key={f.key} className="text-xs text-muted-foreground">
+                <span className="opacity-70">{f.label}:</span>{' '}
+                <span className="font-mono">{formatCtxValue(raw as number | null, f.format)}</span>
+              </p>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Enhanced Financial Chart Component
 const FinancialChart = ({
   data,
@@ -70,7 +150,8 @@ const FinancialChart = ({
   contextFields,
   yearData,
   ratioKey,
-  gapLabel
+  gapLabel,
+  formulaSteps
 }: {
   data: (number | null)[];
   isPercentage?: boolean;
@@ -81,6 +162,7 @@ const FinancialChart = ({
   yearData?: CompanyFinancialRatio[];
   ratioKey?: string;
   gapLabel?: string;
+  formulaSteps?: FormulaStep[];
 }) => {
   // Don't render if all values are null or no data
   if (data.every(v => v == null) || data.length === 0) {
@@ -91,12 +173,11 @@ const FinancialChart = ({
     );
   }
 
-  const currentYear = new Date().getFullYear();
-
   // Create chart data with year labels (reversed to show oldest to newest)
   const chartData = [...data].reverse().map((value, index) => {
-    const year = currentYear - data.length + 1 + index;
-    const yd = yearData?.find(r => r.year === year);
+    // Derive year from yearData (handles gaps in filings) with index fallback
+    const yd = yearData ? yearData[data.length - 1 - index] : undefined;
+    const year = yd?.year ?? (new Date().getFullYear() - data.length + 1 + index);
 
     // Check if this data point is mathematically misleading
     // (e.g. both equity and income negative → ROE is a math artifact)
@@ -140,45 +221,6 @@ const FinancialChart = ({
     }
   }
 
-  // Custom tooltip formatter
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const CustomTooltip = ({ active, payload, gapLabel }: { active?: boolean; payload?: Array<{ value: number; payload: Record<string, any> }>; gapLabel?: string }) => {
-    if (active && payload && payload.length) {
-      const point = payload[0].payload;
-      const isGap = point.isInvalid;
-      const displayValue = isGap ? point.originalValue : point.value;
-
-      return (
-        <div className="bg-background border border-border rounded-md px-3 py-2 shadow-md max-w-[250px]">
-          <p className="text-sm font-semibold">{point.year}</p>
-          {isGap ? (
-            <>
-              <p className="text-sm text-muted-foreground line-through">
-                {formatRatio(displayValue, isPercentage, decimals, unit)}
-              </p>
-              {gapLabel && (
-                <p className="text-xs text-[#FF8042] mt-1">{gapLabel}</p>
-              )}
-            </>
-          ) : (
-            <p className="text-sm text-[#fec200]">
-              {formatRatio(displayValue, isPercentage, decimals, unit)}
-            </p>
-          )}
-          {contextFields?.map(f => {
-            const raw = point[f.key];
-            return (
-              <p key={f.key} className="text-xs text-muted-foreground">
-                {f.label}: {raw != null ? (f.format === 'number' ? (raw as number).toLocaleString('lv-LV') : formatCurrency(raw as number)) : 'N/A'}
-              </p>
-            );
-          })}
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <div className="h-[200px] w-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -198,7 +240,7 @@ const FinancialChart = ({
             axisLine={{ stroke: 'var(--chart-grid)' }}
             tickFormatter={(value) => formatRatio(value, isPercentage, 0)}
           />
-          <Tooltip content={<CustomTooltip gapLabel={gapLabel} />} />
+          <Tooltip content={<ChartTooltip gapLabel={gapLabel} isPercentage={isPercentage} decimals={decimals} unit={unit} contextFields={contextFields} formulaSteps={formulaSteps} yearData={yearData} />} />
           <Line
             type="monotone"
             dataKey="value"
@@ -241,7 +283,9 @@ const RatioCard = ({
   contextFields,
   yearData,
   ratioKey,
-  gapLabel
+  gapLabel,
+  formulaSteps,
+  formulaDescription
 }: {
   label: string;
   value: number | null;
@@ -257,6 +301,8 @@ const RatioCard = ({
   yearData?: CompanyFinancialRatio[];
   ratioKey?: string;
   gapLabel?: string;
+  formulaSteps?: FormulaStep[];
+  formulaDescription?: string[];
 }) => {
   // Calculate trend from most recent to previous year
   const trend = historicalValues.length >= 2
@@ -274,6 +320,13 @@ const RatioCard = ({
           <div className="flex-1">
             <CardTitle className="text-base font-semibold">{label}</CardTitle>
             <p className="text-xs text-muted-foreground mt-1">{description}</p>
+            {formulaDescription && formulaDescription.length > 0 && (
+              <div className="mt-1 space-y-0">
+                {formulaDescription.map((line, i) => (
+                  <p key={i} className="text-[10px] font-mono text-muted-foreground/70 leading-tight">{line}</p>
+                ))}
+              </div>
+            )}
             {warning && warningText && (
               <p className="text-xs text-[#FF8042] mt-1.5 flex items-start gap-1">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
@@ -308,6 +361,7 @@ const RatioCard = ({
           yearData={yearData}
           ratioKey={ratioKey}
           gapLabel={gapLabel}
+          formulaSteps={formulaSteps}
         />
       </CardContent>
     </Card>
@@ -338,7 +392,8 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
   const currentYearData = ratios[0];
 
   // Helper to extract historical values for a specific ratio
-  const getHistoricalValues = (ratioKey: keyof CompanyFinancialRatio): (number | null)[] => {
+  type NumericRatioKey = Exclude<{ [K in keyof CompanyFinancialRatio]: CompanyFinancialRatio[K] extends number | null | undefined ? K : never }[keyof CompanyFinancialRatio], undefined>;
+  const getHistoricalValues = (ratioKey: NumericRatioKey): (number | null)[] => {
     return ratios.map(r => r[ratioKey] as number | null);
   };
 
@@ -349,7 +404,7 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
   const getWarningText = (ratioKey: string): string | undefined => {
     const warning = getWarning(ratioKey);
     if (!warning) return undefined;
-    return t(`warnings.${warning.messageKey}`, warning.params);
+    return t(`warnings.${warning.type}`, warning.params);
   };
 
   return (
@@ -405,7 +460,15 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                   isPercentage
                   description={t('desc.roce')}
                   noDataText={tSelector('noDataAvailable')}
-                  contextFields={[{ key: 'ebit', label: t('ebit') }, { key: 'totalAssets', label: t('totalAssets') }, { key: 'currentLiabilities', label: t('currentLiabilities') }]}
+                  formulaDescription={[
+                    `${t('capitalEmployed')} = ${t('totalAssets')} − ${t('currentLiabilities')}`,
+                  ]}
+                  formulaSteps={[
+                    { label: t('ebit'), compute: d => d.ebit },
+                    { label: t('capitalEmployed'), compute: d => (d.totalAssets ?? 0) - (d.currentLiabilities ?? 0) },
+                    { label: t('totalAssets'), compute: d => d.totalAssets },
+                    { label: t('currentLiabilities'), compute: d => d.currentLiabilities },
+                  ]}
                   yearData={ratios}
                 />
                 <RatioCard
@@ -415,7 +478,18 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                   isPercentage
                   description={t('desc.roic')}
                   noDataText={tSelector('noDataAvailable')}
-                  contextFields={[{ key: 'netIncome', label: t('netIncome') }, { key: 'equity', label: t('equity') }, { key: 'totalDebt', label: t('totalDebt') }, { key: 'cash', label: t('cash') }]}
+                  formulaDescription={[
+                    `NOPAT = EBIT × (1 − ${t('taxRate').toLowerCase()})`,
+                    `${t('investedCapital')} = ${t('equity')} + ${t('totalDebt')} − ${t('cash')}`,
+                  ]}
+                  formulaSteps={[
+                    { label: t('ebit'), compute: d => d.ebit },
+                    { label: t('netIncome'), compute: d => d.netIncome },
+                    { label: t('investedCapital'), compute: d => (d.equity ?? 0) + (d.totalDebt ?? 0) - (d.cash ?? 0) },
+                    { label: `  ${t('equity')}`, compute: d => d.equity },
+                    { label: `  ${t('totalDebt')}`, compute: d => d.totalDebt },
+                    { label: `  ${t('cash')}`, compute: d => d.cash },
+                  ]}
                   yearData={ratios}
                 />
                 <RatioCard
@@ -445,7 +519,12 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                   isPercentage
                   description={t('desc.ebitdaMargin')}
                   noDataText={tSelector('noDataAvailable')}
-                  contextFields={[{ key: 'ebitda', label: t('ebitda') }, { key: 'revenue', label: t('revenue') }]}
+                  formulaDescription={['EBITDA = EBIT + Nolietojums']}
+                  formulaSteps={[
+                    { label: t('ebitda'), compute: d => d.ebitda },
+                    { label: t('ebit'), compute: d => d.ebit },
+                    { label: t('revenue'), compute: d => d.revenue },
+                  ]}
                   yearData={ratios}
                 />
                 <RatioCard
@@ -500,7 +579,12 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 unit="×"
                 description={t('desc.quickRatio')}
                 noDataText={tSelector('noDataAvailable')}
-                contextFields={[{ key: 'currentAssets', label: t('currentAssets') }, { key: 'inventory', label: t('inventory') }, { key: 'currentLiabilities', label: t('currentLiabilities') }]}
+                formulaSteps={[
+                  { label: `${t('currentAssets')} − ${t('inventory')}`, compute: d => (d.currentAssets ?? 0) - (d.inventory ?? 0) },
+                  { label: t('currentAssets'), compute: d => d.currentAssets },
+                  { label: t('inventory'), compute: d => d.inventory },
+                  { label: t('currentLiabilities'), compute: d => d.currentLiabilities },
+                ]}
                 yearData={ratios}
               />
               <RatioCard
@@ -520,7 +604,15 @@ export function FinancialRatiosDisplay({ ratios }: FinancialRatiosDisplayProps) 
                 isPercentage
                 description={t('desc.workingCapitalRatio')}
                 noDataText={tSelector('noDataAvailable')}
-                contextFields={[{ key: 'currentAssets', label: t('currentAssets') }, { key: 'currentLiabilities', label: t('currentLiabilities') }, { key: 'totalAssets', label: t('totalAssets') }]}
+                formulaDescription={[
+                  `${t('workingCapital')} = ${t('currentAssets')} − ${t('currentLiabilities')}`,
+                ]}
+                formulaSteps={[
+                  { label: t('workingCapital'), compute: d => (d.currentAssets ?? 0) - (d.currentLiabilities ?? 0) },
+                  { label: t('currentAssets'), compute: d => d.currentAssets },
+                  { label: t('currentLiabilities'), compute: d => d.currentLiabilities },
+                  { label: t('totalAssets'), compute: d => d.totalAssets },
+                ]}
                 yearData={ratios}
               />
             </div>
