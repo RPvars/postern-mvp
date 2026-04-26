@@ -845,7 +845,15 @@
       "revenue": "Revenue",
       "employees": "Employees",
       "taxes": "Taxes",
-      "profit": "Profit"
+      "profit": "Profit",
+      "assets": "Total Assets",
+      "equity": "Equity",
+      "debt": "Total Debt",
+      "roa": "Return on Assets"
+    },
+    "view": {
+      "volume": "Volume",
+      "balance": "Balance"
     },
     "stats": {
       "totalCompanies": "Total companies",

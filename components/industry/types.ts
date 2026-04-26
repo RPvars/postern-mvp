@@ -1,4 +1,16 @@
-export type Metric = 'revenue' | 'employees' | 'taxes' | 'profit';
+export type Metric = 'revenue' | 'employees' | 'taxes' | 'profit' | 'assets' | 'equity' | 'debt' | 'roa';
+
+export type ViewGroup = 'volume' | 'balance';
+
+export const METRIC_GROUP: Record<Metric, ViewGroup> = {
+  profit: 'volume', revenue: 'volume', taxes: 'volume', employees: 'volume',
+  assets: 'balance', equity: 'balance', debt: 'balance', roa: 'balance',
+};
+
+export const GROUP_DEFAULT_METRIC: Record<ViewGroup, Metric> = {
+  volume: 'profit',
+  balance: 'assets',
+};
 
 export interface BreadcrumbItem {
   code: string;
@@ -21,6 +33,7 @@ export interface TopCompany {
   revenue: number | null;
   netIncome: number | null;
   totalAssets: number | null;
+  equity: number | null;
   employees: number | null;
   taxAmount: number | null;
   naceCode: string | null;

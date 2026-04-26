@@ -7,7 +7,7 @@ import { formatCompanyDisplayName } from '@/lib/text-utils';
 const RANK_CACHE_TTL = 5 * 60 * 1000;
 const rankCache = new Map<string, { data: Map<string, number>; expiry: number }>();
 
-type Metric = 'revenue' | 'employees' | 'taxes' | 'profit';
+type Metric = 'revenue' | 'employees' | 'taxes' | 'profit' | 'assets' | 'equity' | 'debt' | 'roa';
 
 /**
  * GET /api/industries/[code]?metric=revenue&limit=20&year=2024
@@ -31,7 +31,7 @@ export async function GET(
   }
 
   const { searchParams } = new URL(request.url);
-  const VALID_METRICS: Metric[] = ['revenue', 'employees', 'taxes', 'profit'];
+  const VALID_METRICS: Metric[] = ['revenue', 'employees', 'taxes', 'profit', 'assets', 'equity', 'debt', 'roa'];
   const metric = VALID_METRICS.includes(searchParams.get('metric') as Metric)
     ? (searchParams.get('metric') as Metric)
     : 'profit';
@@ -250,6 +250,7 @@ interface RawTopCompany {
   revenue: number | null;
   netIncome: number | null;
   totalAssets: number | null;
+  equity: number | null;
   fdEmployees: number | null;
   taxAmount: number | null;
   tpEmployees: number | null;
@@ -266,11 +267,26 @@ async function getTopCompanies(
 
   const naceFilter = buildNaceLikeClause(prefixes);
 
-  if (metric === 'revenue' || metric === 'profit') {
-    const orderCol = metric === 'revenue' ? 'fd.revenue' : 'fd.netIncome';
+  const FD_METRICS = new Set<Metric>(['revenue', 'profit', 'assets', 'equity', 'debt', 'roa']);
+  if (FD_METRICS.has(metric)) {
+    // ROA / Debt are derived; equity & assets are direct columns
+    const orderExpr =
+      metric === 'revenue' ? 'fd.revenue' :
+      metric === 'profit' ? 'fd.netIncome' :
+      metric === 'assets' ? 'fd.totalAssets' :
+      metric === 'equity' ? 'fd.equity' :
+      metric === 'debt' ? '(fd.totalAssets - fd.equity)' :
+      // ROA = netIncome / totalAssets — guard divide-by-zero
+      '(fd.netIncome * 1.0 / NULLIF(fd.totalAssets, 0))';
+
+    // For derived metrics, both inputs must be present
+    const notNullClause =
+      metric === 'debt' ? 'fd.totalAssets IS NOT NULL AND fd.equity IS NOT NULL' :
+      metric === 'roa' ? 'fd.netIncome IS NOT NULL AND fd.totalAssets IS NOT NULL AND fd.totalAssets <> 0' :
+      `${orderExpr} IS NOT NULL`;
 
     const rows = await prisma.$queryRawUnsafe<RawTopCompany[]>(`
-      SELECT fd.registrationNumber, fd.revenue, fd.netIncome, fd.totalAssets,
+      SELECT fd.registrationNumber, fd.revenue, fd.netIncome, fd.totalAssets, fd.equity,
              fd.employees as fdEmployees,
              c.name, c.legalAddress,
              tp.naceCode, tp.amount as taxAmount, tp.employeeCount as tpEmployees
@@ -278,12 +294,12 @@ async function getTopCompanies(
       LEFT JOIN Company c ON c.registrationNumber = fd.registrationNumber
       LEFT JOIN TaxPayment tp ON tp.registrationNumber = fd.registrationNumber AND tp.year = fd.year
       WHERE fd.year = ${year}
-        AND ${orderCol} IS NOT NULL
+        AND ${notNullClause}
         AND fd.registrationNumber IN (
           SELECT DISTINCT tp2.registrationNumber FROM TaxPayment tp2
           WHERE tp2.year = ${year} AND (${buildNaceLikeClause(prefixes, 'tp2')})
         )
-      ORDER BY ${orderCol} DESC
+      ORDER BY ${orderExpr} DESC
       LIMIT ${limit}
     `);
 
@@ -297,7 +313,7 @@ async function getTopCompanies(
     SELECT tp.registrationNumber, tp.amount as taxAmount, tp.employeeCount as tpEmployees,
            tp.naceCode,
            c.name, c.legalAddress,
-           fd.revenue, fd.netIncome, fd.totalAssets, fd.employees as fdEmployees
+           fd.revenue, fd.netIncome, fd.totalAssets, fd.equity, fd.employees as fdEmployees
     FROM TaxPayment tp
     LEFT JOIN Company c ON c.registrationNumber = tp.registrationNumber
     LEFT JOIN FinancialData fd ON fd.registrationNumber = tp.registrationNumber AND fd.year = tp.year
@@ -320,6 +336,7 @@ function formatRow(r: RawTopCompany) {
     revenue: r.revenue,
     netIncome: r.netIncome,
     totalAssets: r.totalAssets,
+    equity: r.equity,
     employees: r.fdEmployees ?? r.tpEmployees ?? null,
     taxAmount: r.taxAmount,
     naceCode: naceFormatted,

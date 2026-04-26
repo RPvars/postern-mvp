@@ -5,16 +5,18 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowUpDown, ArrowDown, Undo2 } from 'lucide-react';
+import { ArrowUpDown, ArrowDown, Undo2, BarChart3, Scale } from 'lucide-react';
 import { formatCurrency } from '@/lib/format';
 import { AddressLink } from '@/components/address/address-link';
-import type { Metric, TopCompany, IndustryData } from './types';
+import type { Metric, TopCompany, IndustryData, ViewGroup } from './types';
 
 interface TopCompaniesTableProps {
   data: IndustryData;
   displayCompanies: TopCompany[];
   metric: Metric;
   setMetric: (m: Metric) => void;
+  view: ViewGroup;
+  setView: (v: ViewGroup) => void;
   year: string;
   setYear: (y: string) => void;
   t: (key: string, values?: Record<string, string | number>) => string;
@@ -23,13 +25,20 @@ interface TopCompaniesTableProps {
 
 const MAX_COMPARE = 5;
 
-export function TopCompaniesTable({ data, displayCompanies, metric, setMetric, year, setYear, t, locale }: TopCompaniesTableProps) {
+export function TopCompaniesTable({ data, displayCompanies, metric, setMetric, view, setView, year, setYear, t, locale }: TopCompaniesTableProps) {
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const numLocale = locale === 'en' ? 'en-US' : 'lv-LV';
 
   const fmt = (v: number | null) => formatCurrency(v ?? 0);
   const fmtNum = (v: number | null) => (v ?? 0).toLocaleString(numLocale);
+  const fmtPct = (v: number | null) => v == null ? '—' : `${(v * 100).toFixed(1)}%`;
+  const debtOf = (c: TopCompany) =>
+    c.totalAssets != null && c.equity != null ? c.totalAssets - c.equity : null;
+  const roaOf = (c: TopCompany) =>
+    c.netIncome != null && c.totalAssets != null && c.totalAssets !== 0
+      ? c.netIncome / c.totalAssets
+      : null;
 
   const toggleSelect = (regNum: string) => {
     setSelected((prev) => {
@@ -45,7 +54,7 @@ export function TopCompaniesTable({ data, displayCompanies, metric, setMetric, y
 
   return (
     <div className="relative">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
         <h2 className="text-lg font-semibold text-foreground">{t('topCompanies')}</h2>
         <div className="flex items-center gap-3">
           {displayCompanies.length > 0 && (
@@ -68,6 +77,32 @@ export function TopCompaniesTable({ data, displayCompanies, metric, setMetric, y
           )}
         </div>
       </div>
+
+      {/* View tabs — prominent above the table */}
+      <div className="flex items-center gap-1 border-b border-border mb-4">
+        <button
+          onClick={() => setView('volume')}
+          className={`flex items-center gap-2 px-4 py-2.5 -mb-px border-b-2 text-sm font-medium transition-colors ${
+            view === 'volume'
+              ? 'border-[#FEC200] text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+          }`}
+        >
+          <BarChart3 className="h-4 w-4" />
+          {t('view.volume')}
+        </button>
+        <button
+          onClick={() => setView('balance')}
+          className={`flex items-center gap-2 px-4 py-2.5 -mb-px border-b-2 text-sm font-medium transition-colors ${
+            view === 'balance'
+              ? 'border-[#FEC200] text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+          }`}
+        >
+          <Scale className="h-4 w-4" />
+          {t('view.balance')}
+        </button>
+      </div>
       {displayCompanies.length > 0 ? (
         <Card>
           <div className="overflow-x-auto">
@@ -77,10 +112,21 @@ export function TopCompaniesTable({ data, displayCompanies, metric, setMetric, y
                   <TableHead className="w-8"></TableHead>
                   <TableHead className="w-12">{t('rank')}</TableHead>
                   <TableHead>{t('companyName')}</TableHead>
-                  <SortableHead metric="profit" current={metric} onSort={setMetric} label={t('metric.profit')} />
-                  <SortableHead metric="revenue" current={metric} onSort={setMetric} label={t('metric.revenue')} className="hidden md:table-cell" />
-                  <SortableHead metric="taxes" current={metric} onSort={setMetric} label={t('metric.taxes')} className="hidden lg:table-cell" />
-                  <SortableHead metric="employees" current={metric} onSort={setMetric} label={t('metric.employees')} className="hidden lg:table-cell" />
+                  {view === 'volume' ? (
+                    <>
+                      <SortableHead metric="profit" current={metric} onSort={setMetric} label={t('metric.profit')} />
+                      <SortableHead metric="revenue" current={metric} onSort={setMetric} label={t('metric.revenue')} className="hidden md:table-cell" />
+                      <SortableHead metric="taxes" current={metric} onSort={setMetric} label={t('metric.taxes')} className="hidden lg:table-cell" />
+                      <SortableHead metric="employees" current={metric} onSort={setMetric} label={t('metric.employees')} className="hidden lg:table-cell" />
+                    </>
+                  ) : (
+                    <>
+                      <SortableHead metric="assets" current={metric} onSort={setMetric} label={t('metric.assets')} />
+                      <SortableHead metric="equity" current={metric} onSort={setMetric} label={t('metric.equity')} className="hidden md:table-cell" />
+                      <SortableHead metric="debt" current={metric} onSort={setMetric} label={t('metric.debt')} className="hidden lg:table-cell" />
+                      <SortableHead metric="roa" current={metric} onSort={setMetric} label={t('metric.roa')} className="hidden lg:table-cell" />
+                    </>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -121,18 +167,37 @@ export function TopCompaniesTable({ data, displayCompanies, metric, setMetric, y
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      <span className={metric === 'profit' ? 'font-semibold' : ''}>{fmt(company.netIncome)}</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums hidden md:table-cell">
-                      <span className={metric === 'revenue' ? 'font-semibold' : ''}>{fmt(company.revenue)}</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums hidden lg:table-cell">
-                      <span className={metric === 'taxes' ? 'font-semibold' : ''}>{fmt(company.taxAmount)}</span>
-                    </TableCell>
-                    <TableCell className="text-right tabular-nums hidden lg:table-cell">
-                      <span className={metric === 'employees' ? 'font-semibold' : ''}>{fmtNum(company.employees)}</span>
-                    </TableCell>
+                    {view === 'volume' ? (
+                      <>
+                        <TableCell className="text-right tabular-nums">
+                          <span className={metric === 'profit' ? 'font-semibold' : ''}>{fmt(company.netIncome)}</span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums hidden md:table-cell">
+                          <span className={metric === 'revenue' ? 'font-semibold' : ''}>{fmt(company.revenue)}</span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums hidden lg:table-cell">
+                          <span className={metric === 'taxes' ? 'font-semibold' : ''}>{fmt(company.taxAmount)}</span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums hidden lg:table-cell">
+                          <span className={metric === 'employees' ? 'font-semibold' : ''}>{fmtNum(company.employees)}</span>
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        <TableCell className="text-right tabular-nums">
+                          <span className={metric === 'assets' ? 'font-semibold' : ''}>{fmt(company.totalAssets)}</span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums hidden md:table-cell">
+                          <span className={metric === 'equity' ? 'font-semibold' : ''}>{fmt(company.equity)}</span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums hidden lg:table-cell">
+                          <span className={metric === 'debt' ? 'font-semibold' : ''}>{fmt(debtOf(company))}</span>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums hidden lg:table-cell">
+                          <span className={metric === 'roa' ? 'font-semibold' : ''}>{fmtPct(roaOf(company))}</span>
+                        </TableCell>
+                      </>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -208,18 +273,28 @@ function SortableHead({
 function exportCSV(companies: TopCompany[], year: string, t: (key: string) => string) {
   const header = [t('rank'), t('companyName'), t('address'),
     `${t('metric.profit')} (EUR)`, `${t('metric.revenue')} (EUR)`,
+    `${t('metric.assets')} (EUR)`, `${t('metric.equity')} (EUR)`, `${t('metric.debt')} (EUR)`,
+    `${t('metric.roa')} (%)`,
     `${t('metric.taxes')} (EUR)`, t('metric.employees')].join(',');
-  const rows = companies.map((c, i) =>
-    [
+  const rows = companies.map((c, i) => {
+    const debt = c.totalAssets != null && c.equity != null ? c.totalAssets - c.equity : null;
+    const roa = c.netIncome != null && c.totalAssets != null && c.totalAssets !== 0
+      ? c.netIncome / c.totalAssets
+      : null;
+    return [
       i + 1,
       `"${(c.name || '').replace(/"/g, '""')}"`,
       `"${(c.legalAddress || '').replace(/"/g, '""')}"`,
       c.netIncome ?? 0,
       c.revenue ?? 0,
+      c.totalAssets ?? '',
+      c.equity ?? '',
+      debt ?? '',
+      roa != null ? (roa * 100).toFixed(2) : '',
       c.taxAmount ?? 0,
       c.employees ?? 0,
-    ].join(',')
-  );
+    ].join(',');
+  });
   const csv = '\uFEFF' + [header, ...rows].join('\n'); // BOM for Excel UTF-8
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);

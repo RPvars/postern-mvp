@@ -845,7 +845,15 @@
       "revenue": "Apgrozījums",
       "employees": "Darbinieki",
       "taxes": "Nodokļi",
-      "profit": "Peļņa"
+      "profit": "Peļņa",
+      "assets": "Bilances aktīvs",
+      "equity": "Pašu kapitāls",
+      "debt": "Kopējais parāds",
+      "roa": "Aktīvu atdeve"
+    },
+    "view": {
+      "volume": "Apjoms",
+      "balance": "Bilance"
     },
     "stats": {
       "totalCompanies": "Uzņēmumu skaits",

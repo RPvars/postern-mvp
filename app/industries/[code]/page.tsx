@@ -12,7 +12,8 @@ import { SECTION_ICONS } from '@/lib/industry-icons';
 import { StatsCards } from '@/components/industry/stats-cards';
 import { SubcategoryTabs } from '@/components/industry/subcategory-tabs';
 import { TopCompaniesTable } from '@/components/industry/top-companies-table';
-import type { Metric, TopCompany, IndustryData, IndustryChild } from '@/components/industry/types';
+import type { Metric, TopCompany, IndustryData, IndustryChild, ViewGroup } from '@/components/industry/types';
+import { METRIC_GROUP, GROUP_DEFAULT_METRIC } from '@/components/industry/types';
 
 export default function IndustryDetailPage() {
   const t = useTranslations('industries');
@@ -30,7 +31,26 @@ export default function IndustryDetailPage() {
   const [metric, setMetric] = useState<Metric>(
     (searchParams.get('metric') as Metric) || 'profit'
   );
+  const [view, setView] = useState<ViewGroup>(() => {
+    const urlView = searchParams.get('view') as ViewGroup | null;
+    if (urlView === 'volume' || urlView === 'balance') return urlView;
+    const m = searchParams.get('metric') as Metric | null;
+    return m && METRIC_GROUP[m] ? METRIC_GROUP[m] : 'volume';
+  });
   const [year, setYear] = useState<string>(searchParams.get('year') || '');
+
+  // When view changes, ensure sort metric belongs to that group
+  const setViewWithMetric = (next: ViewGroup) => {
+    setView(next);
+    if (METRIC_GROUP[metric] !== next) setMetric(GROUP_DEFAULT_METRIC[next]);
+  };
+
+  // When metric changes, switch view to match its group
+  const setMetricWithView = (next: Metric) => {
+    setMetric(next);
+    const group = METRIC_GROUP[next];
+    if (group !== view) setView(group);
+  };
 
   const [displayStats, setDisplayStats] = useState<IndustryData['stats'] | null>(null);
   const [displayCompanies, setDisplayCompanies] = useState<TopCompany[]>([]);
@@ -161,6 +181,7 @@ export default function IndustryDetailPage() {
   useEffect(() => {
     const p = new URLSearchParams();
     if (metric !== 'profit') p.set('metric', metric);
+    if (view !== 'volume') p.set('view', view);
     if (year && data?.availableYears && String(data.availableYears[0]) !== year) {
       p.set('year', year);
     }
@@ -168,7 +189,7 @@ export default function IndustryDetailPage() {
     const query = p.toString();
     const newUrl = `/industries/${code}${query ? `?${query}` : ''}`;
     router.replace(newUrl, { scroll: false });
-  }, [code, metric, year, drillPath, data?.availableYears, router]);
+  }, [code, metric, view, year, drillPath, data?.availableYears, router]);
 
   // Section heading: name of the deepest selected category
   const sectionHeading = (() => {
@@ -321,7 +342,9 @@ export default function IndustryDetailPage() {
                 data={data}
                 displayCompanies={displayCompanies}
                 metric={metric}
-                setMetric={setMetric}
+                setMetric={setMetricWithView}
+                view={view}
+                setView={setViewWithMetric}
                 year={year}
                 setYear={setYear}
                 t={t}

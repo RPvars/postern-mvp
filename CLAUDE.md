@@ -223,7 +223,7 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **Route**: `/industries` — grid of 21 NACE sections (A-U) with company counts, revenue, employees
 - **Detail**: `/industries/[code]` — drill-down with breadcrumb, inline subcategory expansion (dynamic depth), stats cards, top 20 companies
 - **API**: `/api/industries` (list sections/children), `/api/industries/[code]` (detail + top companies)
-- **Ranking**: 4 metrics — profit, revenue, taxes, employees. Sortable columns, year selector
+- **Ranking**: 8 sortable metrics in 2 view groups — **Apjoms** (profit, revenue, taxes, employees) and **Bilance** (totalAssets, equity, debt, ROA). View toggle (tab UI with `BarChart3`/`Scale` icons) above the table swaps visible columns; URL syncs via `?view=balance&metric=roa`. Debt and ROA are derived in SQL: `(totalAssets - equity)` and `(netIncome / NULLIF(totalAssets, 0))`. Switching view auto-changes sort metric to that group's default if current metric is in another group; clicking a sort header in another group auto-flips the view
 - **Data sources**: `TaxPayment.naceCode` for industry classification, `FinancialData` table for revenue/profit (bulk CKAN import)
 - **NACE hierarchy**: `NaceCode` model with `parentCode` and `level` (1=Section, 2=Division, 3=Group, 4=Class)
 - **NACE import**: NACE 2.0 provides authoritative section→division mapping; NACE 2.1 only updates names (not parentCode)
