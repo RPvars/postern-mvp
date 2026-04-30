@@ -199,6 +199,7 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **Masked codes**: CSV data uses masked personal codes (`123456-*****`). Person links include `?name=` for disambiguation. Masked codes require `?name=` param (400 without it). For full codes, API queries both full and masked variants with `OR`, validates masked matches via BR API (`getLegalEntity`), and shows unverified matches as "possibly connected". Verified codes are upgraded in DB fire-and-forget
 - **Person links**: Natural persons clickable in people-tab → `/person/[personalCode]?name=...`
 - **Legal entities**: Still link to `/company/[regcode]` as before
+- **Auth model**: `/person/*` and `/api/person/*` are currently public (rate-limited 30/min). Page UI keeps a defensive 401 handler so auth can be re-enabled without UI churn — return 401 from the API and the page renders a "Login required" CTA
 
 ## Search
 - **Unified search**: Company, person, and address results in one dropdown (header + home page)
@@ -217,7 +218,7 @@ The company detail page uses 3 parallel API calls for progressive rendering:
 - **Clickable addresses**: `AddressLink` component (`components/address/address-link.tsx`) — used in business card, basic tab, industry table. Yellow (#FEC200) text with underline on hover
 - **Migration script**: `scripts/normalize-addresses.ts` — one-time batch normalization of all addresses
 - **i18n**: `address` namespace in `messages/lv.json`, `messages/en.json`
-- **No auth required**: Address data is public company registration data (unlike person pages which are GDPR-gated)
+- **No auth required**: Address data is public company registration data
 
 ## Industry Browsing
 - **Route**: `/industries` — grid of 21 NACE sections (A-U) with company counts, revenue, employees

@@ -75,6 +75,7 @@ export default function PersonPage() {
   const [person, setPerson] = useState<PersonData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorKind, setErrorKind] = useState<'auth' | 'notFound' | 'other' | null>(null);
 
   const te = (key: string, fallback: string) => translateEnum(tCommon, key, fallback);
 
@@ -85,8 +86,16 @@ export default function PersonPage() {
     fetch(`/api/person/${encodeURIComponent(code)}${queryStr}`)
       .then(r => {
         if (!r.ok) {
+          if (r.status === 401) {
+            setErrorKind('auth');
+            throw new Error(t('authRequired'));
+          }
           if (r.status === 400) throw new Error(t('nameRequired'));
-          if (r.status === 404) throw new Error(t('notFound'));
+          if (r.status === 404) {
+            setErrorKind('notFound');
+            throw new Error(t('notFound'));
+          }
+          setErrorKind('other');
           throw new Error(t('loadError'));
         }
         return r.json();
@@ -129,8 +138,19 @@ export default function PersonPage() {
         <div className="container mx-auto px-4 py-16 text-center">
           <User className="h-16 w-16 text-muted-foreground/50 mx-auto mb-4" />
           <h1 className="text-xl font-bold text-foreground mb-2">{error || t('notFound')}</h1>
-          <p className="text-muted-foreground mb-4">{t('notFoundDescription')}</p>
-          <Link href="/" className="text-primary hover:underline">{t('backToSearch')}</Link>
+          <p className="text-muted-foreground mb-4">
+            {errorKind === 'auth' ? t('authRequiredDescription') : t('notFoundDescription')}
+          </p>
+          {errorKind === 'auth' ? (
+            <Link
+              href={`/login?callbackUrl=${encodeURIComponent(typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/')}`}
+              className="inline-block px-6 py-2.5 rounded-md bg-[#FEC200] text-black font-medium hover:bg-[#FEC200]/90 transition-colors"
+            >
+              {t('loginButton')}
+            </Link>
+          ) : (
+            <Link href="/" className="text-primary hover:underline">{t('backToSearch')}</Link>
+          )}
         </div>
       ) : (
         <>

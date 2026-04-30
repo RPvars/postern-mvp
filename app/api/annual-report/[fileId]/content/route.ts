@@ -55,18 +55,20 @@ export async function GET(
     const contentDisposition = response.headers['content-disposition'] as string | undefined;
     const contentLength = response.headers['content-length'] as string | undefined;
 
+    const isPreview = _request.nextUrl.searchParams.get('preview') === 'true';
+
     const headers: Record<string, string> = {
-      'Content-Type': contentType,
+      // BR API often serves PDFs as application/octet-stream which browsers
+      // refuse to render inline. Trust the client's preview signal — the eye
+      // button is only shown for PDF reports.
+      'Content-Type': isPreview ? 'application/pdf' : contentType,
     };
 
     if (contentLength) {
       headers['Content-Length'] = contentLength;
     }
 
-    const isPreview = _request.nextUrl.searchParams.get('preview') === 'true';
-    const isPdf = contentType.includes('application/pdf');
-
-    if (isPreview && isPdf) {
+    if (isPreview) {
       headers['Content-Disposition'] = 'inline';
     } else if (contentDisposition) {
       headers['Content-Disposition'] = contentDisposition;

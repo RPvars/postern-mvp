@@ -24,12 +24,6 @@ export const authConfig: NextAuthConfig = {
         return Response.redirect(new URL('/', nextUrl));
       }
 
-      // Person pages require authentication (GDPR — personal data protection)
-      const isProtectedPage = nextUrl.pathname.startsWith('/person');
-      if (isProtectedPage && !isLoggedIn) {
-        return false; // Redirects to /login
-      }
-
       return true;
     },
   },
