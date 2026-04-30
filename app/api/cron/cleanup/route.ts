@@ -17,12 +17,13 @@ import { env } from '@/lib/env';
  * curl http://localhost:3000/api/cron/cleanup
  */
 export async function GET(request: NextRequest) {
-  // Verify the request is authorized
-  // Option 1: Check for Vercel Cron secret
+  // CRON_SECRET is enforced as a hard requirement by lib/env.ts in production,
+  // so a missing secret can only happen in dev — never silently accept the
+  // request when the secret isn't configured.
   const authHeader = request.headers.get('authorization');
   const cronSecret = env.CRON_SECRET;
 
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }

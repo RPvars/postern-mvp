@@ -1,0 +1,60 @@
+.git
+.gitignore
+.github
+.githooks
+.vscode
+.idea
+
+node_modules
+.next
+out
+build
+dist
+
+.env
+.env.*
+!.env.example
+
+# Imported CSV data and local SQLite — populated via fly volumes / Postgres
+data
+prisma/dev.db
+prisma/dev.db-journal
+prisma/migrations/dev
+*.sqlite
+*.sqlite3
+
+# Secrets and certificates
+*.pem
+*.pfx
+*.p12
+*.key
+*.cer
+*.p7b
+*.7z
+*.req
+certificates
+
+# Personal/business documents
+*.docx
+*.pdf
+
+# Test artifacts
+coverage
+.nyc_output
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Claude / agent metadata
+.claude
+hooks
+TODO.md
+TODO.personal.md
+PHASE1_IMPLEMENTATION_SUMMARY.md
+
+# Local Vercel state — Fly.io deploy doesn't need it
+.vercel
+
+# Type build cache
+*.tsbuildinfo

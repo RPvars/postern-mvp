@@ -22,6 +22,7 @@ const envSchema = z.object({
   BR_CONSUMER_KEY: z.string().optional(),
   BR_CONSUMER_SECRET: z.string().optional(),
   BR_CERTIFICATE_PATH: z.string().optional(),
+  BR_CERTIFICATE_BASE64: z.string().optional(),
   BR_CERTIFICATE_PASSWORD: z.string().optional(),
   BR_USE_MOCK_DATA: z.string().optional(),
 
@@ -37,6 +38,48 @@ const envSchema = z.object({
 
   // Environment
   NODE_ENV: z.enum(['development', 'production', 'test']).optional().default('development'),
+}).superRefine((data, ctx) => {
+  if (data.NODE_ENV !== 'production') return;
+  // `next build` boots Node with NODE_ENV=production but doesn't actually
+  // need runtime secrets — skip strict validation during the build phase.
+  if (process.env.NEXT_PHASE === 'phase-production-build') return;
+
+  // Production-only requirements: a missing CRON_SECRET silently disables
+  // the cron auth check, so we hard-fail boot instead of shipping it open.
+  if (!data.CRON_SECRET || data.CRON_SECRET.length < 16) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['CRON_SECRET'],
+      message: 'CRON_SECRET must be set (16+ chars) in production',
+    });
+  }
+
+  const useMock = data.BR_USE_MOCK_DATA === 'true';
+  if (!useMock) {
+    const hasPath = !!data.BR_CERTIFICATE_PATH;
+    const hasBase64 = !!data.BR_CERTIFICATE_BASE64;
+    if (!hasPath && !hasBase64) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BR_CERTIFICATE_PATH'],
+        message: 'BR_CERTIFICATE_PATH or BR_CERTIFICATE_BASE64 required when BR_USE_MOCK_DATA is not "true"',
+      });
+    }
+    if (!data.BR_CERTIFICATE_PASSWORD) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BR_CERTIFICATE_PASSWORD'],
+        message: 'BR_CERTIFICATE_PASSWORD required when BR_USE_MOCK_DATA is not "true"',
+      });
+    }
+    if (!data.BR_CONSUMER_KEY || !data.BR_CONSUMER_SECRET) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['BR_CONSUMER_KEY'],
+        message: 'BR_CONSUMER_KEY and BR_CONSUMER_SECRET required when BR_USE_MOCK_DATA is not "true"',
+      });
+    }
+  }
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -56,16 +99,14 @@ function validateEnv(): Env {
   }
 }
 
-// Validate environment variables at module load time
 export const env = validateEnv();
 
-// Helper to check if Google OAuth is configured
 export const isGoogleOAuthEnabled = () => {
   return !!(env.AUTH_GOOGLE_ID && env.AUTH_GOOGLE_SECRET);
 };
 
-// Helper to check if Business Register API is configured
 export const isBusinessRegisterEnabled = () => {
   return env.BR_USE_MOCK_DATA !== 'true' &&
-         !!(env.BR_CONSUMER_KEY && env.BR_CONSUMER_SECRET && env.BR_CERTIFICATE_PATH);
+         !!(env.BR_CONSUMER_KEY && env.BR_CONSUMER_SECRET) &&
+         !!(env.BR_CERTIFICATE_PATH || env.BR_CERTIFICATE_BASE64);
 };

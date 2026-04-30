@@ -1,0 +1,43 @@
+# fly.toml — see https://fly.io/docs/reference/configuration/
+#
+# Adjust `app` to your fly app slug (created via `fly apps create posterns-mvp`).
+# Region `fra` (Frankfurt) is the closest Fly region to Latvia.
+
+app = "posterns-mvp"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "3000"
+  NODE_ENV = "production"
+
+# Single-instance deployment — rate limiting and BR/CKAN caches are kept in
+# in-process memory. Do NOT scale beyond 1 machine without first migrating
+# state to a shared store (see ~/.claude/plans/es-pl-noju-...).
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 200
+    hard_limit = 250
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "15s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1gb"
+  cpu_kind = "shared"
+  cpus = 1

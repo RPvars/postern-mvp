@@ -4,8 +4,14 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts');
 
 const nextConfig: NextConfig = {
+  output: 'standalone',
   outputFileTracingIncludes: {
-    '/api/**/*': ['./prisma/**/*'],
+    '/api/**/*': ['./prisma/schema.prisma'],
+  },
+  // Without this, Next traces all of ./prisma/ — including dev.db (880 MB)
+  // and seed.ts. Both are dev-only and have no business in the runtime image.
+  outputFileTracingExcludes: {
+    '*': ['./prisma/dev.db', './prisma/dev.db-journal', './prisma/seed.ts'],
   },
 
   // Security headers
